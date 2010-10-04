@@ -50,9 +50,7 @@ typedef GuList(gchar) GuString;
 typedef GuList(gint) GuInts;		      
 typedef GuList(GuString*) GuStrings;
 		            		      
-guint gu_bytes_hash(const GuBytes* bytes);
-
-gboolean gu_bytes_equal(const GuBytes* b1, const GuBytes* b2);
-
+guint gu_string_hash(gconstpointer s);
+gboolean gu_string_equal(gconstpointer s1, gconstpointer s2);
 
 #endif // GU_FLEX_H_

@@ -80,11 +80,6 @@ struct PgfType {
 
 
 
-typedef GuVariant PgfLiteral;
-
-typedef GuString PgfLiteralStr;
-typedef gint PgfLiteralInt;
-typedef gdouble PgfLiteralFlt;
 
 typedef gint PgfMetaId;
 
@@ -243,6 +238,8 @@ typedef struct {
 
 // PgfLiteral
 
+typedef GuVariant PgfLiteral;
+
 typedef enum {
 	PGF_LITERAL_STR,
 	PGF_LITERAL_INT,
@@ -250,7 +247,9 @@ typedef enum {
 	PGF_LITERAL_NUM_TAGS
 } PgfLiteralTag;
 
-
+typedef GuString* PgfLiteralStr;
+typedef gint PgfLiteralInt;
+typedef gdouble PgfLiteralFlt;
 
 // PgfExpr
 

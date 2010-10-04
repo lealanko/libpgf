@@ -5,7 +5,6 @@
 #include <stdio.h>
 #include <glib/gprintf.h>
 
-
 typedef struct PgfIdContext PgfIdContext;
 
 struct PgfIdContext {
@@ -38,6 +37,29 @@ pgf_writer_quark(void)
 	return g_quark_from_static_string("pgf-writer-quark");
 }
 
+
+static void 
+pgf_debugv(const gchar* fmt, va_list args)
+{
+#ifdef PGF_DEBUG
+  g_logv(G_LOG_DOMAIN, G_LOG_LEVEL_DEBUG, fmt, args);
+#else
+  (void) fmt;
+  (void) args;
+#endif
+}
+
+
+
+static void 
+pgf_debug(const gchar* fmt, ...)
+{
+  va_list args;
+  va_start(args, fmt);
+  pgf_debugv(fmt, args);
+  va_end (args);
+}
+
 static void
 pgf_writer_error(PgfWriter* wtr, gint code, const gchar* format, ...)
 {
@@ -46,6 +68,7 @@ pgf_writer_error(PgfWriter* wtr, gint code, const gchar* format, ...)
 	va_start(args, format);
 	wtr->err = g_error_new_valist(pgf_writer_quark(), code, format, args);
 	va_end(args);
+	pgf_debug("Write error: %s", wtr->err->message);
 }
 
 static void
@@ -119,7 +142,7 @@ struct PgfReader {
 	GError* err;
 	GuMemPool* pool;
 	GuAllocator* ator;
-	GHashTable* interned_cids;
+	GHashTable* interned_strings;
 	PgfContext ctx;
 };
 
@@ -129,9 +152,9 @@ pgf_reader_new(FILE* in, GuMemPool* pool)
 	PgfReader* rdr = gu_new(NULL, PgfReader);
 	rdr->pool = pool;
 	rdr->ator = gu_mem_pool_allocator(rdr->pool);
-	rdr->interned_cids = 
-		g_hash_table_new((GHashFunc)gu_bytes_hash,
-				 (GEqualFunc)gu_bytes_equal);
+	rdr->interned_strings = 
+		g_hash_table_new(gu_string_hash,
+				 gu_string_equal);
 	rdr->err = NULL;
 	rdr->in = in;
 	rdr->ctx = (PgfContext){{0, NULL}, {0, NULL}};
@@ -141,7 +164,7 @@ pgf_reader_new(FILE* in, GuMemPool* pool)
 static void
 pgf_reader_free(PgfReader* rdr)
 {
-	g_hash_table_destroy(rdr->interned_cids);
+	g_hash_table_destroy(rdr->interned_strings);
 	if (rdr->err != NULL) {
 		g_error_free(rdr->err);
 	}
@@ -162,6 +185,7 @@ pgf_reader_error(PgfReader* rdr, gint code, const gchar* format, ...)
 	va_start(args, format);
 	rdr->err = g_error_new_valist(pgf_reader_quark(), code, format, args);
 	va_end(args);
+	pgf_debug("Read error: %s", rdr->err->message);
 }
 
 static void
@@ -463,13 +487,13 @@ pgf_dump(const PgfTypeBase* type, gconstpointer v, PgfWriter* out)
 #define PgfList(t)				\
 	struct {				\
 	gint len;				\
-	t* elems;				\
+	const t* elems;				\
 	}
 
 #define PGF_LIST(t, ...)					\
 	{							\
-		.elems = (t[]){__VA_ARGS__},			\
-		.len = sizeof((t[]){__VA_ARGS__}) / sizeof(t)	\
+		.elems = (const t[]){__VA_ARGS__},			\
+		.len = sizeof((const t[]){__VA_ARGS__}) / sizeof(t)	\
 	}
 
 #define PGF_PTRLIT(t, ...)			\
@@ -501,6 +525,7 @@ typedef struct PgfStructType PgfStructType;
 
 struct PgfStructType {
 	PgfTypeBase b;
+	const gchar* name;
 	PgfMembers members;
 };
 
@@ -508,6 +533,7 @@ static const PgfMiscType pgf_length_type; // Initialized later
 
 #define PGF_STRUCT_TYPE_WITH_FUNCS(s_type, funcs, ...) {	\
 	.b = PGF_TYPE_BASE(s_type, funcs),			\
+	.name = #s_type, \
 	.members = PGF_LIST(PgfMember, __VA_ARGS__)		\
 }
 
@@ -533,6 +559,8 @@ pgf_unpickle_flex_member(const PgfTypeBase* type,
 	for (gint j = 0; j < length; j++) {
 		pgf_unpickle(rdr, elem_type, 
 			     PGF_CONST_PLACER(&members[j]));
+		if (pgf_reader_failed(rdr)) 
+			return NULL;
 	}
 	return p;
 }
@@ -545,8 +573,10 @@ pgf_unpickle_struct(const PgfTypeBase* info, PgfReader* rdr, PgfPlacer* placer)
 	guint8 buf[info->size];
 	gint length = -1;
 	guint8* p = NULL;
+	pgf_debug("-> struct %s", sinfo->name);
 	for (gint i = 0; i < sinfo->members.len; i++) {
-		PgfMember* m = &sinfo->members.elems[i];
+		const PgfMember* m = &sinfo->members.elems[i];
+		pgf_debug("-> %s.%s", sinfo->name, m->name);
 		if ((gsize)m->offset == info->size) {
 			g_assert(length >= 0 && p == NULL);
 			p = pgf_unpickle_flex_member(info, m->type, length,
@@ -560,11 +590,15 @@ pgf_unpickle_struct(const PgfTypeBase* info, PgfReader* rdr, PgfPlacer* placer)
 			g_assert(length == -1);
 			length = G_STRUCT_MEMBER(gint, buf, m->offset);
 		}
+		if (pgf_reader_failed(rdr)) 
+			return;
+		pgf_debug("<- %s.%s", sinfo->name, m->name);
 	}
 	if (p == NULL) {
 		p = pgf_placer_place(placer, info->size, info->alignment);
 	}
 	memcpy(p, buf, info->size);
+	pgf_debug("<- struct %s", sinfo->name);
 }
 
 static void
@@ -600,7 +634,7 @@ pgf_dump_struct(const PgfTypeBase* type, gconstpointer v, PgfWriter* wtr)
 	pgf_write_str(wtr, "{");
 	gboolean first = TRUE;
 	for (gint i = 0; i < stype->members.len; i++) {
-		PgfMember* m = &stype->members.elems[i];
+		const PgfMember* m = &stype->members.elems[i];
 		if (m->type == &pgf_length_type.b) {
 			g_assert(length == -1);
 			length = G_STRUCT_MEMBER(gint, p, m->offset);
@@ -759,7 +793,7 @@ pgf_unpickle_variant(const PgfTypeBase* base, PgfReader* rdr, PgfPlacer* placer)
 		pgf_reader_tag_error(rdr, "<variant>", btag);
 		return;
 	}
-	PgfConstructor* ctor = &vtype->ctors.elems[btag];
+	const PgfConstructor* ctor = &vtype->ctors.elems[btag];
 	PgfVariantPlacer vplacer = { { pgf_place_variant },
 				     ctor->c_tag, to, rdr->ator };
 	pgf_unpickle(rdr, ctor->type, &vplacer.placer);
@@ -771,7 +805,7 @@ pgf_dump_variant(const PgfTypeBase* type, gconstpointer v, PgfWriter* wtr)
 	const PgfVariantType* vtype = GU_CONTAINER_P(type, PgfVariantType, b);
 	const GuVariant* p = v;
 	gint c_tag = gu_variant_tag(*p);
-	PgfConstructor* ctor = NULL;
+	const PgfConstructor* ctor = NULL;
 	for (gint i = 0; i < vtype->ctors.len; i++) {
 		if (vtype->ctors.elems[i].c_tag == c_tag) {
 			ctor = &vtype->ctors.elems[i];
@@ -874,7 +908,7 @@ pgf_unpickle_enum(const PgfTypeBase* type, PgfReader* rdr, PgfPlacer* placer)
 	}
 	if (pgf_reader_failed(rdr)) 
 		return;
-	PgfEnumerator* enumerator = &etype->enumerators.elems[tag];
+	const PgfEnumerator* enumerator = &etype->enumerators.elems[tag];
 	gpointer to = pgf_placer_place(placer, type->size, type->alignment);
 	if (type->size == sizeof(guint8)) {
 		*((gint8*)to) = enumerator->val;
@@ -961,11 +995,14 @@ static const PgfMiscType pgf_void_type = {
 };
 
 static void
-pgf_unpickle_int(G_GNUC_UNUSED const PgfTypeBase* info, 
+pgf_unpickle_int(const PgfTypeBase* type, 
 		 PgfReader* rdr, PgfPlacer* placer) 
 {
+	const PgfMiscType* mtype = GU_CONTAINER_P(type, const PgfMiscType, b);
+	pgf_debug("-> %s", mtype->name);
 	gint* to = pgf_placer_place_type(placer, gint);
 	*to = pgf_read_int(rdr);
+	pgf_debug("<- %s: %d", mtype->name, *to);
 }
 
 static void
@@ -1170,34 +1207,6 @@ static const PgfTypeFuncs pgf_list_type_funcs = {
 #define PGF_OWNED_LIST_TYPE_L(ctype, elemtype)		\
 	PGF_OWNED_TYPE_L(PGF_LIST_TYPE_L(ctype, elemtype))
 
-
-// Strings
-
-static void
-pgf_unpickle_string(G_GNUC_UNUSED const PgfTypeBase* info, 
-		    PgfReader* rdr, PgfPlacer* placer)
-{
-	GString* tmp_str = pgf_read_tmp_string(rdr);
-	GuString* str = pgf_placer_place_flex(placer, GuString, elems, tmp_str->len);
-	str->len = tmp_str->len;
-	memcpy(str->elems, tmp_str->str, tmp_str->len);
-	g_string_free(tmp_str, TRUE);
-}
-
-static void
-pgf_dump_string(G_GNUC_UNUSED const PgfTypeBase* info,
-		gconstpointer v, PgfWriter* wtr)
-{
-	const GuString* p = v;
-	pgf_write_string(wtr, p);
-}
-
-static const PgfMiscType pgf_string_type = 
-	PGF_MISC_TYPE(GuString, pgf_unpickle_string, pgf_dump_string);
-
-static const PgfPointerType pgf_string_p_type =
-	PGF_OWNED_TYPE(&pgf_string_type.b);
-
 // Maps
 
 typedef struct PgfMapType PgfMapType;
@@ -1226,9 +1235,13 @@ pgf_unpickle_map_p(const PgfTypeBase* info, PgfReader* rdr, PgfPlacer* placer)
 		gpointer key = NULL;
 		pgf_unpickle(rdr, minfo->key_type, 
 			     PGF_CONST_PLACER(&key));
+		if (pgf_reader_failed(rdr)) 
+			return;
 		gpointer value = NULL;
 		pgf_unpickle(rdr, minfo->value_type, 
 			     PGF_CONST_PLACER(&value));
+		if (pgf_reader_failed(rdr)) 
+			return;
 		g_hash_table_insert(ht, key, value);
 	}
 	
@@ -1283,39 +1296,40 @@ static const PgfTypeFuncs pgf_map_p_type_funcs = {
 	.compare_func = cmp_fn \
 }
 
-// PgfCId
+// GuString
 
 static void
-pgf_unpickle_cid_p(G_GNUC_UNUSED const PgfTypeBase* type, 
-		   PgfReader* rdr, PgfPlacer* placer)
+pgf_unpickle_string_p(G_GNUC_UNUSED const PgfTypeBase* type, 
+		      PgfReader* rdr, PgfPlacer* placer)
 {
+	pgf_debug("-> GuString*");
 	gint len = pgf_read_len(rdr);
-	PgfCId* cid = gu_list_new(PgfCId, NULL, len + 1);
-	cid->len = len;
-	pgf_read_chars(rdr, gu_list_elems(cid), len);
-	cid->elems[len] = '\0';
-	PgfCId* interned = g_hash_table_lookup(rdr->interned_cids, cid);
+	GuString* tmp = gu_list_new(GuString, NULL, len);
+	tmp->len = len;
+	pgf_read_chars(rdr, tmp->elems, len);
+	GuString* interned = g_hash_table_lookup(rdr->interned_strings, tmp);
 	if (interned == NULL) {
-		interned = gu_list_new(PgfCId, rdr->ator, cid->len);
-		memcpy(interned->elems, cid->elems, cid->len);
-		g_hash_table_insert(rdr->interned_cids, interned, interned);
+		interned = gu_list_new(GuString, rdr->ator, len);
+		memcpy(interned->elems, tmp->elems, tmp->len);
+		g_hash_table_insert(rdr->interned_strings, 
+				    interned, interned);
 	}
-	g_free(cid);
-	PgfCId** to = pgf_placer_place_type(placer, PgfCId*);
+	g_free(tmp);
+	GuString** to = pgf_placer_place_type(placer, GuString*);
 	*to = interned;
+	pgf_debug("<- GuString*: %.*s", interned->len, interned->elems);
 }
 
 static void
-pgf_dump_cid_p(G_GNUC_UNUSED const PgfTypeBase* info,
-	       gconstpointer v, PgfWriter* wtr)
+pgf_dump_string_p(G_GNUC_UNUSED const PgfTypeBase* info,
+		  gconstpointer v, PgfWriter* wtr)
 {
-	PgfCId* const* p = v;
+	GuString* const* p = v;
 	pgf_write_string(wtr, *p);
 }
 
-static PgfMiscType pgf_cid_p_type =
-	PGF_MISC_TYPE(PgfCId*, pgf_unpickle_cid_p, pgf_dump_cid_p);
-
+static PgfMiscType pgf_string_p_type =
+	PGF_MISC_TYPE(GuString*, pgf_unpickle_string_p, pgf_dump_string_p);
 
 
 // Ids
@@ -1446,7 +1460,7 @@ static const PgfTypeFuncs pgf_id_funcs = {
 
 static const PgfVariantType pgf_literal_type = PGF_VARIANT_TYPE(
 	PgfLiteral,
-	PGF_CONSTRUCTOR(PGF_LITERAL_STR, Str, &pgf_string_type.b),
+	PGF_CONSTRUCTOR(PGF_LITERAL_STR, Str, &pgf_string_p_type.b),
 	PGF_CONSTRUCTOR(PGF_LITERAL_INT, Int, &pgf_int_type.b),
 	PGF_CONSTRUCTOR(PGF_LITERAL_FLT, Flt, &pgf_double_type.b));
 
@@ -1461,7 +1475,7 @@ static const PgfPointerType pgf_type_p_type;
 static const PgfStructType pgf_hypo_type = PGF_STRUCT_TYPE(
 	PgfHypo,
 	PGF_MEMBER(PgfHypo, bindtype, &pgf_bind_type_type.b),
-	PGF_MEMBER(PgfHypo, cid, &pgf_cid_p_type.b),
+	PGF_MEMBER(PgfHypo, cid, &pgf_string_p_type.b),
 	PGF_MEMBER(PgfHypo, type, &pgf_type_p_type.b));
 
 static const PgfPointerType pgf_hypos_p_type =
@@ -1472,7 +1486,7 @@ static const PgfVariantType pgf_expr_type;
 static const PgfStructType pgf_type_type = PGF_STRUCT_TYPE(
 	PgfType,
 	PGF_MEMBER(PgfType, hypos, &pgf_hypos_p_type.b),
-	PGF_MEMBER(PgfType, cid, &pgf_cid_p_type.b),
+	PGF_MEMBER(PgfType, cid, &pgf_string_p_type.b),
 	PGF_MEMBER(PgfType, n_exprs, &pgf_length_type.b),
 	PGF_MEMBER(PgfType, exprs, &pgf_expr_type.b)
 );
@@ -1495,7 +1509,7 @@ static const PgfVariantType pgf_expr_type = PGF_VARIANT_TYPE(
 	PGF_STRUCT_CONSTRUCTOR(
 		PGF_EXPR_ABS, Abs, PgfExprAbs,
 		PGF_MEMBER(PgfExprAbs, bind_type, &pgf_bind_type_type.b),
-		PGF_MEMBER(PgfExprAbs, id, &pgf_cid_p_type.b),
+		PGF_MEMBER(PgfExprAbs, id, &pgf_string_p_type.b),
 		PGF_MEMBER(PgfExprAbs, body, &pgf_expr_type.b)),
 	PGF_STRUCT_CONSTRUCTOR(
 		PGF_EXPR_APP, App, PgfExprApp,
@@ -1506,7 +1520,7 @@ static const PgfVariantType pgf_expr_type = PGF_VARIANT_TYPE(
 	PGF_CONSTRUCTOR(
 		PGF_EXPR_META, Meta, &pgf_int_type.b),
 	PGF_CONSTRUCTOR(
-		PGF_EXPR_FUN, Fun, &pgf_cid_p_type.b),
+		PGF_EXPR_FUN, Fun, &pgf_string_p_type.b),
 	PGF_CONSTRUCTOR(
 		PGF_EXPR_VAR, Var, &pgf_int_type.b),
 	PGF_STRUCT_CONSTRUCTOR(
@@ -1518,9 +1532,8 @@ static const PgfVariantType pgf_expr_type = PGF_VARIANT_TYPE(
 
 
 #define PGF_CIDMAP_P_TYPE(val_type)			\
-	PGF_MAP_P_TYPE(&pgf_cid_p_type.b, val_type,	\
-		       (GHashFunc)gu_bytes_hash,	\
-		       (GEqualFunc)gu_bytes_equal)
+	PGF_MAP_P_TYPE(&pgf_string_p_type.b, val_type,	\
+		       gu_string_hash, gu_string_equal)
 
 #define PGF_CIDMAP_P_TYPE_L(val_type)				\
 	&GU_LVALUE(PgfMapType, PGF_CIDMAP_P_TYPE(val_type)).b
@@ -1586,7 +1599,7 @@ static const PgfIdType pgf_sequence_id_type =
 
 static const PgfStructType pgf_cncfun_type = PGF_STRUCT_TYPE(
 	PgfCncFun,
-	PGF_MEMBER(PgfCncFun, fun, &pgf_cid_p_type.b),
+	PGF_MEMBER(PgfCncFun, fun, &pgf_string_p_type.b),
 	PGF_MEMBER(PgfCncFun, n_lins, &pgf_length_type.b),
 	PGF_MEMBER(PgfCncFun, lins, &pgf_sequence_id_type.b));
 
@@ -1625,7 +1638,7 @@ static const PgfVariantType pgf_patt_type = PGF_VARIANT_TYPE(
 	PgfPatt,
 	PGF_STRUCT_CONSTRUCTOR(
 		PGF_PATT_APP, PApp, PgfPattApp,
-		PGF_MEMBER(PgfPattApp, ctor, &pgf_cid_p_type.b),
+		PGF_MEMBER(PgfPattApp, ctor, &pgf_string_p_type.b),
 		PGF_MEMBER(PgfPattApp, n_args, &pgf_length_type.b),
 		PGF_MEMBER(PgfPattApp, args, &pgf_patt_type.b)),
 	PGF_CONSTRUCTOR(
@@ -1633,10 +1646,10 @@ static const PgfVariantType pgf_patt_type = PGF_VARIANT_TYPE(
 		PGF_OWNED_TYPE_L(&pgf_literal_type.b)),
 	PGF_CONSTRUCTOR(
 		PGF_PATT_VAR, PVar, 
-		&pgf_cid_p_type.b),
+		&pgf_string_p_type.b),
 	PGF_STRUCT_CONSTRUCTOR(
 		PGF_PATT_AS, PAs, PgfPattAs,
-		PGF_MEMBER(PgfPattAs, var, &pgf_cid_p_type.b),
+		PGF_MEMBER(PgfPattAs, var, &pgf_string_p_type.b),
 		PGF_MEMBER(PgfPattAs, patt, &pgf_patt_type.b)),
 	PGF_CONSTRUCTOR(
 		PGF_PATT_WILD, PWild, &pgf_void_type.b),
@@ -1664,7 +1677,7 @@ static const PgfStructType pgf_cat_type = PGF_STRUCT_TYPE(
 	PgfCat,
 	PGF_MEMBER(PgfCat, context, &pgf_hypos_p_type.b),
 	PGF_MEMBER(PgfCat, n_functions, &pgf_length_type.b),
-	PGF_MEMBER(PgfCat, functions, &pgf_cid_p_type.b));
+	PGF_MEMBER(PgfCat, functions, &pgf_string_p_type.b));
 
 static const PgfStructType pgf_abstr_type = PGF_STRUCT_TYPE(
 	PgfAbstr,
@@ -1703,7 +1716,7 @@ static const PgfStructType pgf_pgf_type = PGF_STRUCT_TYPE(
 	PGF_MEMBER(PgfPGF, major_version, &pgf_uint16be_type.b),
 	PGF_MEMBER(PgfPGF, minor_version, &pgf_uint16be_type.b),
 	PGF_MEMBER(PgfPGF, gflags, &pgf_flags_p_type.b),
-	PGF_MEMBER(PgfPGF, absname, &pgf_cid_p_type.b),
+	PGF_MEMBER(PgfPGF, absname, &pgf_string_p_type.b),
 	PGF_MEMBER(PgfPGF, abstract, &pgf_abstr_type.b),
 	PGF_MEMBER(PgfPGF, concretes,
 		   PGF_CIDMAP_P_TYPE_L(PGF_OWNED_TYPE_L(&pgf_concr_type.b))));
@@ -1713,7 +1726,6 @@ PgfPGF* pgf_read(FILE* in, GError** err_out)
 {
 	GuMemPool* pool = gu_mem_pool_new();
 	PgfReader* rdr = pgf_reader_new(in, pool);
-	GuAllocator* ator = gu_mem_pool_allocator(pool);
 	PgfPGF* pgf = NULL;
 	pgf_unpickle(rdr, 
 		     PGF_OWNED_TYPE_L(&pgf_pgf_type.b),
