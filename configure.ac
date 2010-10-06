@@ -50,6 +50,7 @@ AC_SUBST(GIO_LIBS)
 
 dnl Doxygen support
 DX_PS_FEATURE(OFF)	
+DX_PDF_FEATURE(OFF)	
 AC_DEFUN([DX_FEATURE_dev],   OFF)
 DX_ARG_ABLE(dev, [include internal development documentation],
             [],
