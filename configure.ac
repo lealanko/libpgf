@@ -25,27 +25,6 @@ AC_PROG_CC_C99
 DOLT
 
 
-dnl Doxygen support
-
-DX_PS_FEATURE(OFF)	
-AC_DEFUN([DX_FEATURE_dev],   OFF)
-DX_ARG_ABLE(dev, [include internal development documentation],
-            [],
-            [],
-	    [],
-	    [DX_ENV_APPEND(DEVDOC, YES)]
-	    [DX_ENV_APPEND(INPUT, $srcdir)],
-	    [DX_ENV_APPEND(DEVDOC, NO)
-	     DX_ENV_APPEND(INPUT, \$(include_HEADERS))])
-DX_INIT_DOXYGEN(libpgf)
-
-
-dnl Check if pkg-config is installed
-AC_CHECK_PROG(PKGCONFIG, pkg-config, yes, no)
-if test $PKGCONFIG = "no"; then
-	AC_MSG_ERROR("*** pkg-config not found! ***")
-fi
-
 AC_CHECK_FUNCS([alarm gettimeofday memset strndup inet_ntoa])
 AC_CHECK_FUNCS([strstr select strerror])
 AC_C_ALIGNOF
@@ -60,12 +39,6 @@ fi
 
 
 
-
-
-
-
-
-
 AC_CHECK_LIB(m, sin)
 PKG_CHECK_MODULES(GLIB, [glib-2.0 >= 2.24.0])
 AC_SUBST(GLIB_CFLAGS)
@@ -73,6 +46,25 @@ AC_SUBST(GLIB_LIBS)
 PKG_CHECK_MODULES(GIO, [gio-2.0 >= 2.24.0])
 AC_SUBST(GIO_CFLAGS)
 AC_SUBST(GIO_LIBS)
+
+
+dnl Doxygen support
+DX_PS_FEATURE(OFF)	
+AC_DEFUN([DX_FEATURE_dev],   OFF)
+DX_ARG_ABLE(dev, [include internal development documentation],
+            [],
+            [],
+	    [],
+	    [DX_ENV_APPEND(DEVDOC, YES)]
+	    [DX_ENV_APPEND(INPUT, $srcdir)],
+	    [DX_ENV_APPEND(DEVDOC, NO)
+	     DX_ENV_APPEND(INPUT, \$(include_HEADERS))])
+DX_INIT_DOXYGEN(libpgf)
+
+DX_ENV_APPEND(INCLUDE_PATH,
+	      `$PKG_CONFIG --cflags-only-I glib-2.0 | sed -e 's/-I//g'`)
+
+
 
 
 
