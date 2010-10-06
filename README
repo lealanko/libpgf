@@ -1,0 +1,17 @@
+This will eventually be libpgf, a library for parsing and unparsing
+texts using PGF grammars, which are produced by the Grammatical
+Framework <http://www.grammaticalframework.org/>.
+
+For now, the only thing provided is a pgf2yaml tool which converts
+binary PGF files into the YAML format <http://yaml.org/> after which
+they can be further processed with existing YAML software.
+
+To build the library, you need a recent version (>= 2.24) of GLib
+<http://ftp.gnome.org/pub/gnome/sources/glib/>. Actual building
+happens with the standard './configure && make' invocation.
+
+To try out the tool, run './pgf2yaml < .../foo.pgf > .../foo.yaml'.
+
+Libpgf attempts to track the changes to the PGF file format in the
+development version of GF. It will not work with the PGF files
+produced by older versions of GF.
