@@ -17,6 +17,11 @@
  * License along with libgu. If not, see <http://www.gnu.org/licenses/>.
  */
 
+/** @file
+ *
+ * Utilities for structures with flexible array members.
+ */
+
 #ifndef GU_FLEX_H_
 #define GU_FLEX_H_
 
@@ -30,6 +35,7 @@
 
 #define GU_FLEX_SIZE(type, flex_member, n_elems) \
 	(sizeof(type) + ((n_elems) * sizeof(((type *)NULL)->flex_member[0])))
+/**< @hideinitializer */
 
 
 // Alas, there's no portable way to get the alignment of flex structs.
