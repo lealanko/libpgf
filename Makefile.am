@@ -1,7 +1,4 @@
 
-AUTOMAKE_OPTIONS = foreign
-ACLOCAL_AMFLAGS = -I m4
-
 lib_LTLIBRARIES = libgu.la libpgf.la
 
 include_HEADERS = \
@@ -30,3 +27,10 @@ bin_PROGRAMS = pgf2yaml
 pgf2yaml_SOURCES = utils/pgf2yaml.c
 pgf2yaml_LDADD = libgu.la libpgf.la $(GLIB_LIBS)
 pgf2yaml_CFLAGS = $(GLIB_CFLAGS) $(AM_CFLAGS)
+
+
+AUTOMAKE_OPTIONS = foreign
+ACLOCAL_AMFLAGS = -I m4
+include doxygen.am
+
+EXTRA_DIST = Doxyfile

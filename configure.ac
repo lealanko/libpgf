@@ -24,6 +24,22 @@ AC_PROG_CC_C99
 # see m4/dolt.m4
 DOLT
 
+
+dnl Doxygen support
+
+DX_PS_FEATURE(OFF)	
+AC_DEFUN([DX_FEATURE_dev],   OFF)
+DX_ARG_ABLE(dev, [include internal development documentation],
+            [],
+            [],
+	    [],
+	    [DX_ENV_APPEND(DEVDOC, YES)]
+	    [DX_ENV_APPEND(INPUT, $srcdir)],
+	    [DX_ENV_APPEND(DEVDOC, NO)
+	     DX_ENV_APPEND(INPUT, \$(include_HEADERS))])
+DX_INIT_DOXYGEN(libpgf)
+
+
 dnl Check if pkg-config is installed
 AC_CHECK_PROG(PKGCONFIG, pkg-config, yes, no)
 if test $PKGCONFIG = "no"; then
@@ -41,6 +57,14 @@ fi
 if test $ac_cv_c_fam_in_mem != no; then
   AC_DEFINE([GU_CAN_HAVE_FAM_IN_MEMBER], 1, [foo])
 fi
+
+
+
+
+
+
+
+
 
 AC_CHECK_LIB(m, sin)
 PKG_CHECK_MODULES(GLIB, [glib-2.0 >= 2.24.0])
