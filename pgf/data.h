@@ -148,10 +148,18 @@ struct PgfCat {
 };
 
 struct PgfCncCat {
-	PgfFId fid1;
-	PgfFId fid2;
-	gint n_strings; // XXX
-	GuString* strings[];
+	PgfFId first;
+	PgfFId last;
+	/**< The range of FIds that this concrete category covers. */
+
+	gint n_labels; 
+	GuString* labels[];
+	/**< Labels for tuples. All nested tuples, records and tables
+	 * in the GF linearization types are flattened into a single
+	 * tuple in the corresponding PGF concrete category. This
+	 * field holds the labels that indicate which GF field or
+	 * parameter (or their combination) each tuple element
+	 * represents. */
 };
 
 struct PgfCncFun {
@@ -161,8 +169,12 @@ struct PgfCncFun {
 };
 
 struct PgfAlternative {
-	GuStrings* s1; // XXX
-	GuStrings* s2; // XXX
+	GuStrings* form;
+	/**< The form of this variant as a list of tokens. */
+
+	GuStrings* prefixes;
+	/**< The prefixes of the following symbol that trigger this
+	 * form. */
 };
 
 
@@ -182,9 +194,6 @@ struct PgfConcr {
 	gint totalcats;
 };
 
-
-
-// PgfSymbol
 
 typedef enum {
 	PGF_SYMBOL_CAT,
@@ -211,11 +220,20 @@ typedef struct {
 
 typedef GuStrings PgfSymbolKS;
 
-typedef struct {
-	GuStrings* ts;
-	gint n_alts;
-	PgfAlternative alts[]; // XXX
+typedef struct PgfSymbolKP
+/** A prefix-dependent symbol. The form that this symbol takes
+ * depends on the form of a prefix of the following symbol. */
+{
+	GuStrings* default_form; 
+	/**< Default form that this symbol takes if none of of the
+	 * variant forms is triggered. */
+
+	gint n_forms;
+	PgfAlternative forms[]; 
+	/**< Variant forms whose choise depends on the following
+	 * symbol. */
 } PgfSymbolKP;
+
 
 
 

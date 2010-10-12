@@ -25,10 +25,11 @@
 #ifndef PGF_H_
 #define PGF_H_
 
+#include <glib.h>
+#include <stdio.h>
+
 G_BEGIN_DECLS
 
-#include <stdio.h>
-#include <glib.h>
 
 
 /// @name PGF Grammar objects

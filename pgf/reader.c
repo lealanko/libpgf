@@ -1572,8 +1572,8 @@ static const PgfPointerType pgf_strings_p_type =
 
 static const PgfStructType pgf_alternative_type = PGF_STRUCT_TYPE(
 	PgfAlternative,
-	PGF_MEMBER(PgfAlternative, s1, &pgf_strings_p_type.b),
-	PGF_MEMBER(PgfAlternative, s2, &pgf_strings_p_type.b));
+	PGF_MEMBER(PgfAlternative, form, &pgf_strings_p_type.b),
+	PGF_MEMBER(PgfAlternative, prefixes, &pgf_strings_p_type.b));
 
 static const PgfVariantType pgf_symbol_type = PGF_VARIANT_TYPE(
 	PgfSymbol,
@@ -1593,17 +1593,17 @@ static const PgfVariantType pgf_symbol_type = PGF_VARIANT_TYPE(
 		PGF_SYMBOL_KS, SymKS, &pgf_strings_p_type.b),
 	PGF_STRUCT_CONSTRUCTOR(
 		PGF_SYMBOL_KP, SymKP, PgfSymbolKP,
-		PGF_MEMBER(PgfSymbolKP, ts, &pgf_strings_p_type.b),
-		PGF_MEMBER(PgfSymbolKP, n_alts, &pgf_length_type.b),
-		PGF_MEMBER(PgfSymbolKP, alts, &pgf_alternative_type.b)));
+		PGF_MEMBER(PgfSymbolKP, default_form, &pgf_strings_p_type.b),
+		PGF_MEMBER(PgfSymbolKP, n_forms, &pgf_length_type.b),
+		PGF_MEMBER(PgfSymbolKP, forms, &pgf_alternative_type.b)));
 
 
 static const PgfStructType pgf_cnccat_type = PGF_STRUCT_TYPE(
 	PgfCncCat,
-	PGF_MEMBER(PgfCncCat, fid1, &pgf_int_type.b),
-	PGF_MEMBER(PgfCncCat, fid2, &pgf_int_type.b),
-	PGF_MEMBER(PgfCncCat, n_strings, &pgf_length_type.b),
-	PGF_MEMBER(PgfCncCat, strings, &pgf_string_p_type.b));
+	PGF_MEMBER(PgfCncCat, first, &pgf_int_type.b),
+	PGF_MEMBER(PgfCncCat, last, &pgf_int_type.b),
+	PGF_MEMBER(PgfCncCat, n_labels, &pgf_length_type.b),
+	PGF_MEMBER(PgfCncCat, labels, &pgf_string_p_type.b));
 
 static const PgfListType pgf_sequence_type =
 	PGF_LIST_TYPE(PgfSequence, PGF_OWNED_TYPE_L(&pgf_symbol_type.b));

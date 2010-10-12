@@ -1,5 +1,4 @@
 #include <pgf/pgf.h>
-#include <pgf/data.h>
 
 int main(void) {
 	GError* err = NULL;
