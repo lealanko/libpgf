@@ -76,6 +76,7 @@ typedef GuVariant PgfPatt;
 
 typedef GuString PgfToken;			      
 
+typedef GuStrings PgfTokens;
 
 typedef enum {
 	PGF_BIND_TYPE_EXPLICIT,
@@ -84,7 +85,11 @@ typedef enum {
 
 struct PgfHypo {
 	PgfBindType bindtype;
+
 	PgfCId* cid;
+	/**< Locally scoped name for the parameter if dependent types
+	 * are used. "_" for normal parameters. */
+
 	PgfType* type;
 };
 
@@ -92,7 +97,7 @@ typedef GuList(PgfHypo) PgfHypos;
 
 struct PgfType {
 	PgfHypos* hypos;
-	PgfCId* cid;
+	PgfCId* cid; /// XXX: resolve to PgfCat*?
 	gint n_exprs;
 	PgfExpr exprs[];
 };
@@ -144,7 +149,7 @@ struct PgfFunDecl {
 struct PgfCat {
 	PgfHypos* context;
 	gint n_functions;
-	PgfCId* functions[];
+	PgfCId* functions[]; // XXX: resolve to PgfFunDecl*?
 };
 
 struct PgfCncCat {
@@ -163,13 +168,13 @@ struct PgfCncCat {
 };
 
 struct PgfCncFun {
-	PgfCId* fun;
+	PgfCId* fun; // XXX: resolve to PgfFunDecl*?
 	gint n_lins;
 	PgfSeqId lins[];
 };
 
 struct PgfAlternative {
-	GuStrings* form;
+	PgfTokens* form;
 	/**< The form of this variant as a list of tokens. */
 
 	GuStrings* prefixes;
@@ -203,28 +208,24 @@ typedef enum {
 	PGF_SYMBOL_KP
 } PgfSymbolTag;
 
-typedef struct {
+typedef struct PgfSymbolIdx PgfSymbolIdx;
+
+struct PgfSymbolIdx {
 	gint d;
 	gint r;
-} PgfSymbolCat;
+};
 
-typedef struct {
-	gint d;
-	gint r;
-} PgfSymbolLit;
+typedef struct PgfSymbolIdx PgfSymbolCat;
+typedef struct PgfSymbolIdx PgfSymbolLit;
+typedef struct PgfSymbolIdx PgfSymbolVar;
 
-typedef struct {
-	gint d;
-	gint r;
-} PgfSymbolVar;
-
-typedef GuStrings PgfSymbolKS;
+typedef PgfTokens PgfSymbolKS;
 
 typedef struct PgfSymbolKP
 /** A prefix-dependent symbol. The form that this symbol takes
  * depends on the form of a prefix of the following symbol. */
 {
-	GuStrings* default_form; 
+	PgfTokens* default_form; 
 	/**< Default form that this symbol takes if none of of the
 	 * variant forms is triggered. */
 
@@ -248,19 +249,23 @@ typedef enum {
 typedef struct PgfPArg PgfPArg;
 
 struct PgfPArg {
-	PgfFId fid;
+	PgfFId fid; // XXX: resolve to PgfProductions*?
 	gint n_hypos;
-	PgfFId hypos[];
+	PgfFId hypos[]; // XXX: Change to GuList(PgfFId) since usually empty
 };
 
 typedef struct {
 	PgfFunId fun; 
 	gint n_args;
-	PgfPArg* args[];
+	PgfPArg* args[]; // XXX: Remove indirection once PArg is fixed-length
 } PgfProductionApply;
 
-typedef struct {
-	PgfFId coerce;
+typedef struct PgfProductionCoerce
+/** A coercion. This production is a logical union of the coercions of
+ * another FId. This allows common subsets of productions to be
+ * shared. */
+{
+	PgfFId coerce; // XXX: resolve to PgfProductions*?
 } PgfProductionCoerce;
 
 typedef struct {
@@ -304,7 +309,7 @@ typedef enum {
 
 typedef struct {
 	PgfBindType bind_type;
-	PgfCId* id;
+	PgfCId* id; // 
 	PgfExpr body;
 } PgfExprAbs;
 		
@@ -313,13 +318,15 @@ typedef struct {
 	PgfExpr arg;
 } PgfExprApp;
 
-typedef PgfLiteral* PgfExprLit;
+typedef PgfLiteral PgfExprLit;
 
 typedef PgfMetaId PgfExprMeta;
 
 typedef PgfCId* PgfExprFun;
 
 typedef gint PgfExprVar;
+/**< A variable. The value is a de Bruijn index to the environment,
+ * beginning from the innermost variable. */
 
 typedef struct {
 	PgfExpr expr;

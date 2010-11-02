@@ -46,6 +46,9 @@ gu_variant_alloc(GuAllocator* ator, guint8 tag, gsize size,
 guint
 gu_variant_tag(GuVariant variant)
 {
+	if (gu_variant_is_null(variant)) {
+		return GU_VARIANT_NULL;
+	}
 	guint u = variant.p % ALIGNMENT;
 	if (u == 0) {
 		guint8* mem = (guint8*)variant.p;
@@ -57,7 +60,19 @@ gu_variant_tag(GuVariant variant)
 gpointer
 gu_variant_data(GuVariant variant)
 {
+	if (gu_variant_is_null(variant)) {
+		return NULL;
+	}
 	return (gpointer)((variant.p / ALIGNMENT) * ALIGNMENT);
+}
+
+GuVariantInfo gu_variant_open(GuVariant variant)
+{
+	GuVariantInfo info = {
+		.tag = gu_variant_tag(variant),
+		.data = gu_variant_data(variant)
+	};
+	return info;
 }
 
 gint 
@@ -71,11 +86,14 @@ gu_variant_intval(GuVariant variant)
 	return (variant.p / ALIGNMENT);
 }
 
+GuVariant gu_variant_null = { (guintptr) NULL };
 
-struct foo {
-	gint l;
-	struct {
-		gint u;
-		gchar arr[];
-	} fin;
-};
+
+extern inline gpointer
+gu_variant_to_ptr(GuVariant variant);
+
+extern inline GuVariant
+gu_variant_from_ptr(gpointer p);
+
+extern inline gboolean
+gu_variant_is_null(GuVariant v);

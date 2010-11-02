@@ -39,8 +39,9 @@ gpointer gu_variant_alloc(GuAllocator* ator, guint8 tag,
 			  GuVariant* variant_out);
 
 
-#define gu_variant_new(ator, tag, type, variant_out) \
-	((type*)gu_variant_alloc(ator, tag, sizeof(type), variant_out))
+#define gu_variant_new(ator, tag, type, variant_out)	  \
+	((type*)gu_variant_alloc(ator, tag, sizeof(type), \
+				 gu_alignof(type), variant_out))
 /**< 
  * @hideinitializer */
 
@@ -48,14 +49,28 @@ gpointer gu_variant_alloc(GuAllocator* ator, guint8 tag,
 #define gu_variant_flex_new(ator, tag, type, flex_mem, n_elems, variant_out)	\
 	((type*)gu_variant_alloc(ator, tag,				\
 				 GU_FLEX_SIZE(type, flex_mem, n_elems), \
-				 variant_out)
+				 gu_flex_alignof(type),			\
+				 variant_out))
 /**< 
  * @hideinitializer */
+
+enum {
+	GU_VARIANT_NULL = (guint)-1
+};
 
 guint gu_variant_tag(GuVariant variant);
 
 gpointer gu_variant_data(GuVariant variant);
 
+
+typedef struct GuVariantInfo GuVariantInfo;
+
+struct GuVariantInfo {
+	guint tag;
+	gpointer data;
+};
+
+GuVariantInfo gu_variant_open(GuVariant variant);
 
 /** @privatesection */
 struct GuVariant {
@@ -64,5 +79,25 @@ struct GuVariant {
 };
 
 /** @} */
+
+inline gpointer
+gu_variant_to_ptr(GuVariant variant)
+{
+	return GINT_TO_POINTER(variant.p);
+}
+
+inline GuVariant
+gu_variant_from_ptr(gpointer p)
+{
+	GuVariant v = { GPOINTER_TO_INT(p) };
+	return v;
+}
+
+extern GuVariant gu_variant_null;
+
+inline gboolean
+gu_variant_is_null(GuVariant v) {
+	return (v.p == (guintptr) NULL);
+}
 
 #endif // GU_VARIANT_H_

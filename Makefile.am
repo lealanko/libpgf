@@ -5,11 +5,13 @@ include_HEADERS = \
 	pgf/pgf.h \
 	gu/macros.h \
 	gu/flex.h \
+	gu/map.h \
 	gu/mem.h \
 	gu/variant.h
 
 libgu_la_SOURCES = \
 	gu/flex.c \
+	gu/map.c \
 	gu/mem.c \
 	gu/variant.c
 
@@ -18,7 +20,8 @@ libgu_la_LIBADD = $(GLIB_LIBS)
 
 libpgf_la_SOURCES = \
 	pgf/data.h \
-	pgf/reader.c
+	pgf/reader.c \
+	pgf/linearize.c
 
 libpgf_la_LIBADD = libgu.la $(GLIB_LIBS)
 libpgf_la_CFLAGS = $(GLIB_CFLAGS) $(AM_CFLAGS)
