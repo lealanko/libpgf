@@ -95,5 +95,5 @@ gu_variant_to_ptr(GuVariant variant);
 extern inline GuVariant
 gu_variant_from_ptr(void* p);
 
-extern inline gboolean
+extern inline bool
 gu_variant_is_null(GuVariant v);

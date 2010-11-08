@@ -3,7 +3,7 @@ lib_LTLIBRARIES = libgu.la libpgf.la
 
 include_HEADERS = \
 	pgf/pgf.h \
-	gu/macros.h \
+	gu/defs.h \
 	gu/flex.h \
 	gu/map.h \
 	gu/mem.h \

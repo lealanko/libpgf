@@ -19,6 +19,7 @@
 
 #include "data.h"
 #include <gu/defs.h>
+#include <gu/map.h>
 #include <string.h>
 #include <math.h>
 #include <stdio.h>
@@ -170,8 +171,7 @@ pgf_reader_new(FILE* in, GuPool* pool)
 	PgfReader* rdr = gu_new(NULL, PgfReader);
 	rdr->pool = pool;
 	rdr->interned_strings = 
-		g_hash_table_new(gu_string_hash,
-				 gu_string_equal);
+		gu_map_new(pool, gu_string_hash, gu_string_equal);
 	rdr->err = NULL;
 	rdr->in = in;
 	rdr->ctx = (PgfContext){{0, NULL}, {0, NULL}};
@@ -211,7 +211,7 @@ pgf_reader_tag_error(PgfReader* rdr, const char* type_name, int tag)
 	pgf_reader_error(rdr, 1, "Invalid tag for %s: %d", type_name, tag);
 }
 
-static gboolean
+static bool
 pgf_reader_failed(PgfReader* rdr)
 {
 	return (rdr->err != NULL);
@@ -649,7 +649,7 @@ pgf_dump_struct(const PgfTypeBase* type, const void* v, PgfWriter* wtr)
 	int length = -1;
 	const uint8_t* p = v;
 	pgf_write_str(wtr, "{");
-	gboolean first = TRUE;
+	bool first = TRUE;
 	for (int i = 0; i < stype->members.len; i++) {
 		const PgfMember* m = &stype->members.elems[i];
 		if (m->type == &pgf_length_type.b) {
@@ -1143,7 +1143,7 @@ static void
 pgf_dump_maybe(const PgfTypeBase* base, const void* v, PgfWriter* wtr)
 {
 	PgfMaybeType* mtype = GU_CONTAINER_P(base, PgfMaybeType, b);
-	const void** p = v;
+	void* const* p = v;
 	if (*p == NULL) {
 		pgf_write_str(wtr, "null");
 	} else {
@@ -1269,7 +1269,7 @@ pgf_unpickle_map_p(const PgfTypeBase* info, PgfReader* rdr, PgfPlacer* placer)
 typedef struct {
 	const PgfMapType* mtype;
 	PgfWriter* wtr;
-	gboolean first;
+	bool first;
 } PgfHashDumpContext;
 
 static void

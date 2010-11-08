@@ -28,6 +28,7 @@
 #include <guconfig.h>
 #include <stddef.h>
 #include <stdint.h>
+#include <stdbool.h>
 #include <glib.h>
 
 #define GU_CONTAINER_P(mem_p, container_type, member) \

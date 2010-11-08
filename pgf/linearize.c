@@ -130,7 +130,7 @@ pgf_lzn_new(PgfLzr* lzr, GuPool* pool)
 
 
 
-static gboolean
+static bool
 pgf_lzn_advance(PgfLzn* lzn)
 {
 	GByteArray* path = lzn->path;
@@ -160,14 +160,14 @@ struct PgfLznCtx {
 };
 
 
-static gboolean
+static bool
 pgf_lzc_linearize(PgfLzc* lzc, PgfExpr expr, PgfFId fid, int lin_idx);
 
-static gboolean
+static bool
 pgf_lzc_apply(PgfLzc* lzc, PgfExpr src_expr, PgfFId fid,
 	      int lin_idx, PgfCId* fun_cid, GPtrArray* args);
 
-gboolean
+bool
 pgf_lzn_linearize(PgfLzn* lzn, PgfExpr expr, PgfFId fid, int lin_idx, 
 		  PgfLinFuncs* handler)
 {
@@ -183,11 +183,11 @@ pgf_lzn_linearize(PgfLzn* lzn, PgfExpr expr, PgfFId fid, int lin_idx,
 
 
 // TODO: check for invalid lin_idx. For literals, only 0 is legal.
-static gboolean
+static bool
 pgf_lzc_linearize(PgfLzc* lzc, PgfExpr expr, PgfFId fid, int lin_idx) 
 {
 	GPtrArray* args = g_ptr_array_new();
-	gboolean succ = FALSE;
+	bool succ = FALSE;
 
 	while (TRUE) {
 		GuVariantInfo i = gu_variant_open(expr);
@@ -285,7 +285,7 @@ pgf_lzc_choose_production(PgfLzc* lzc, PgfCId* cid, PgfFId fid)
 	}
 }
 
-static gboolean
+static bool
 pgf_lzc_apply(PgfLzc* lzc, PgfExpr src_expr, PgfFId fid,
 	      int lin_idx, PgfCId* fun_cid, GPtrArray* args)
 {
@@ -325,7 +325,7 @@ pgf_lzc_apply(PgfLzc* lzc, PgfExpr src_expr, PgfFId fid,
 				gu_variant_from_ptr(args->pdata[sidx->d]);
 			lzc->handler->symbol_expr(lzc->handler, sidx->d, 
 						  arg, sidx->r);
-			gboolean succ =
+			bool succ =
 				pgf_lzc_linearize(lzc, 
 						  arg,
 						  papply->args[sidx->d]->fid,
