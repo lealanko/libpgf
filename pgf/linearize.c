@@ -18,6 +18,7 @@
  */
 
 #include "data.h"
+#include "linearize.h"
 #include <gu/map.h>
 
 
@@ -112,37 +113,6 @@ struct PgfLinearization {
 
 typedef PgfLinearization PgfLzn;
 
-typedef GuVariant PgfCncTree;
-
-typedef GuList(PgfCncTree) PgfCncTrees;
-
-typedef enum {
-	PGF_CNCTREE_LEAFKS,
-	PGF_CNCTREE_LEAFKP,
-	PGF_CNCTREE_LEAFLIT,
-	PGF_CNCTREE_BRACKET
-} PgfCncTreeTag;
-
-typedef PgfTokens PgfCncTreeLeafKS;
-
-typedef struct PgfCncTreeLeafLit PgfCncTreeLeafLit;
-struct PgfCncTreeLeafLit {
-	PgfLiteral lit;
-};
-
-// XXX: PgfCncTermLeafKP, although fully resolved prefix tokens would
-// be better
-
-typedef struct PgfCncTreeBracket PgfCncTreeBracket;
-
-struct PgfCncTreeBracket {
-	// XXX: metainformation
-	PgfExpr src_expr;
-	PgfCId* cat_cid;
-	gint lin_idx;
-	gint n_subtrees;
-	PgfCncTree subtrees[];
-};
 
 static PgfLzn*
 pgf_lzn_new(PgfLzr* lzr, GuMemPool* pool)
@@ -188,47 +158,39 @@ struct PgfLznCtx {
 	GuMemPool* pool;
 	GuAllocator* ator;
 	gint path_idx;
+	PgfLinFuncs* handler;
 };
 
-static PgfCncTree
+
+static gboolean
 pgf_lzc_linearize(PgfLzc* lzc, PgfExpr expr, PgfFId fid, gint lin_idx);
 
-static PgfCncTree 
+static gboolean
 pgf_lzc_apply(PgfLzc* lzc, PgfExpr src_expr, PgfFId fid,
 	      gint lin_idx, PgfCId* fun_cid, GPtrArray* args);
 
-PgfCncTree
+gboolean
 pgf_lzn_linearize(PgfLzn* lzn, PgfExpr expr, PgfFId fid, gint lin_idx, 
-		  GuMemPool* pool)
+		  PgfLinFuncs* handler)
 {
 	PgfLzc lzc = {
 		.lzn = lzn,
 		.expr = expr,
-		.pool = pool,
-		.ator = gu_mem_pool_allocator(pool),
-		.path_idx = 0
+		.path_idx = 0,
+		.handler = handler,
 	};
 	return pgf_lzc_linearize(&lzc, expr, fid, lin_idx);
 }
 
 
-static PgfCncTree
-pgf_lzc_lit(PgfLzc* lzc, PgfLiteral lit)
-{
-	PgfCncTree tree = gu_variant_null;
-	PgfCncTreeLeafLit* tlit =
-		gu_variant_new(lzc->ator, PGF_CNCTREE_LEAFLIT, 
-			       PgfCncTreeLeafLit, &tree);
-	tlit->lit = lit;
-	return tree;
-}
-
 
 // TODO: check for invalid lin_idx. For literals, only 0 is legal.
-static PgfCncTree
+static gboolean
 pgf_lzc_linearize(PgfLzc* lzc, PgfExpr expr, PgfFId fid, gint lin_idx) 
 {
 	GPtrArray* args = g_ptr_array_new();
+	gboolean succ = FALSE;
+
 	while (TRUE) {
 		GuVariantInfo i = gu_variant_open(expr);
 		switch (i.tag) {
@@ -251,14 +213,18 @@ pgf_lzc_linearize(PgfLzc* lzc, PgfExpr expr, PgfFId fid, gint lin_idx)
 		case PGF_EXPR_FUN: {
 			PgfExprFun* fun = i.data;
 			PgfCId* fun_cid = *fun;
-			return pgf_lzc_apply(lzc, expr, fid, lin_idx, 
+			succ = pgf_lzc_apply(lzc, expr, fid, lin_idx, 
 					     fun_cid, args);
-		}
+			goto exit;
+			
+	 	}
 		case PGF_EXPR_LIT: {
 			PgfExprLit* elit = i.data;
 			PgfLiteral lit = *elit;
 			g_assert(args->len == 0); // XXX: fail nicely
-			return pgf_lzc_lit(lzc, lit);
+			lzc->handler->expr_literal(lzc->handler, lit);
+			succ = TRUE;
+			goto exit;
 		}
 		case PGF_EXPR_ABS:
 		case PGF_EXPR_VAR:
@@ -270,6 +236,9 @@ pgf_lzc_linearize(PgfLzc* lzc, PgfExpr expr, PgfFId fid, gint lin_idx)
 			g_assert_not_reached();
 		}
 	}
+exit:
+	g_ptr_array_free(args, FALSE);
+	return succ;
 }
 
 static PgfProductionApply*
@@ -318,7 +287,7 @@ pgf_lzc_choose_production(PgfLzc* lzc, PgfCId* cid, PgfFId fid)
 	}
 }
 
-static PgfCncTree 
+static gboolean
 pgf_lzc_apply(PgfLzc* lzc, PgfExpr src_expr, PgfFId fid,
 	      gint lin_idx, PgfCId* fun_cid, GPtrArray* args)
 {
@@ -333,7 +302,7 @@ pgf_lzc_apply(PgfLzc* lzc, PgfExpr src_expr, PgfFId fid,
 	PgfProductionApply* papply = 
 		pgf_lzc_choose_production(lzc, fun_cid, fid);
 	if (papply == NULL) {
-		return gu_variant_null;
+		return FALSE;
 	}
 
 	g_assert(papply->n_args == args->len);
@@ -342,22 +311,10 @@ pgf_lzc_apply(PgfLzc* lzc, PgfExpr src_expr, PgfFId fid,
 	g_assert(lin_idx < cfun->n_lins);
 	
 	PgfSequence* lin = *(cfun->lins[lin_idx]);
-	
-	PgfCncTree tree = gu_variant_null;
 
-	PgfCncTreeBracket* bracket = 
-		gu_variant_flex_new(lzc->ator, 
-				    PGF_CNCTREE_BRACKET,
-				    PgfCncTreeBracket,
-				    subtrees,
-				    lin->len,
-				    &tree);
-	bracket->n_subtrees = lin->len;
-	bracket->lin_idx = lin_idx;
-	bracket->cat_cid = fdecl->type->cid;
-	bracket->src_expr = src_expr;
+	lzc->handler->expr_apply(lzc->handler, fdecl, lin->len);
 	
-	for (gint i = 0; i < bracket->n_subtrees; i++) {
+	for (gint i = 0; i < lin->len; i++) {
 		PgfSymbol sym = lin->elems[i];
 		GuVariantInfo sym_i = gu_variant_open(sym);
 		switch (sym_i.tag) {
@@ -368,18 +325,21 @@ pgf_lzc_apply(PgfLzc* lzc, PgfExpr src_expr, PgfFId fid,
 			g_assert(sidx->d < args->len);
 			PgfExpr arg = 
 				gu_variant_from_ptr(args->pdata[sidx->d]);
-			bracket->subtrees[i] =
+			lzc->handler->symbol_expr(lzc->handler, sidx->d, 
+						  arg, sidx->r);
+			gboolean succ =
 				pgf_lzc_linearize(lzc, 
 						  arg,
 						  papply->args[sidx->d]->fid,
 						  sidx->r);
-			if (gu_variant_is_null(bracket->subtrees[i])) {
-				return gu_variant_null;
+			if (!succ) {
+				return FALSE;
 			}
 			break;
 		}
 		case PGF_SYMBOL_KS: {
 			PgfSymbolKS* ks = sym_i.data;
+			/*
 			PgfCncTreeLeafKS* leafks =
 				gu_variant_flex_new(lzc->ator,
 						    PGF_CNCTREE_LEAFKS,
@@ -387,6 +347,7 @@ pgf_lzc_apply(PgfLzc* lzc, PgfExpr src_expr, PgfFId fid,
 						    elems,
 						    ks->len,
 						    &bracket->subtrees[i]);
+			*/
 			break;
 		}
 		case PGF_SYMBOL_KP:
@@ -397,6 +358,8 @@ pgf_lzc_apply(PgfLzc* lzc, PgfExpr src_expr, PgfFId fid,
 		}
 	}
 	
-	return tree;
+	return TRUE;
 }
+
+
 
