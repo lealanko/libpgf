@@ -18,10 +18,6 @@
  */
 
 #include "mem.h"
-#include "macros.h"
-
-#include <stdint.h>
-
 
 
 typedef union {
@@ -41,8 +37,8 @@ enum {
 
 
 struct GuPool {
-	guint8* cur;
-	guint8* end;
+	uint8_t* cur;
+	uint8_t* end;
 	GPtrArray* chunks;
 	GHashTable* finalizers;
 };
@@ -51,7 +47,7 @@ typedef struct Finalizer Finalizer;
 
 struct Finalizer {
 	GDestroyNotify func;
-	gpointer p;
+	void* p;
 };
 
 enum {
@@ -78,10 +74,10 @@ gu_pool_new(void)
 G_STATIC_ASSERT((CHUNK_SIZE >= MAX_CHUNKABLE_SIZE));
 
 // We assume that all alignments are powers of two
-gsize
-gu_mem_alignment(gsize size)
+size_t
+gu_mem_alignment(size_t size)
 {
-	gsize align = 2;
+	size_t align = 2;
 	while (size % align == 0) {
 		align = align * 2;
 	}
@@ -90,21 +86,21 @@ gu_mem_alignment(gsize size)
 
 
 
-gpointer
-gu_malloc_aligned(GuPool* pool, gsize size, gsize alignment)
+void*
+gu_malloc_aligned(GuPool* pool, size_t size, size_t alignment)
 {
 	if (size > MAX_CHUNKABLE_SIZE) {
-		gpointer p = g_malloc(size);
+		void* p = g_malloc(size);
 		g_ptr_array_add(pool->chunks, p);
 		return p;
 	}
 	if (alignment == 0) {
 		alignment = gu_mem_alignment(size);
 	}
-	gintptr cur = (gintptr)pool->cur;
+	uintptr_t cur = (uintptr_t)pool->cur;
 	cur = ((cur + alignment - 1) / alignment) * alignment;
-	guint8* p = (gpointer) cur;
-	if (pool->end - p < (goffset)size) {
+	uint8_t* p = (void*) cur;
+	if (pool->end - p < (ptrdiff_t)size) {
 		p = g_malloc(CHUNK_SIZE);
 		pool->end = &p[CHUNK_SIZE];
 		g_ptr_array_add(pool->chunks, p);
@@ -114,9 +110,9 @@ gu_malloc_aligned(GuPool* pool, gsize size, gsize alignment)
 }
 
 void 
-gu_pool_finally(GuPool* pool, GDestroyNotify func, gpointer p)
+gu_pool_finally(GuPool* pool, GDestroyNotify func, void* p)
 {
-	gpointer key = (gpointer)func; // Not strictly portable
+	void* key = (void*)func; // Not strictly portable
 	GPtrArray* arr = g_hash_table_lookup(pool->finalizers, key);
 	if (arr == NULL) {
 		arr = g_ptr_array_new();
@@ -126,13 +122,13 @@ gu_pool_finally(GuPool* pool, GDestroyNotify func, gpointer p)
 }
 
 static void
-gu_pool_run_finalizer(gpointer key, gpointer value, 
-			  G_GNUC_UNUSED gpointer user_data)
+gu_pool_run_finalizer(void* key, void* value, 
+			  G_GNUC_UNUSED void* user_data)
 {
 	GDestroyNotify destroy = (GDestroyNotify) key;
 	GPtrArray* arr = value;
-	gint len = arr->len;
-	for (gint i = 0; i < len; i++) {
+	int len = arr->len;
+	for (int i = 0; i < len; i++) {
 		destroy(arr->pdata[i]);
 	}
 	g_ptr_array_free(arr, TRUE);
@@ -148,5 +144,5 @@ gu_pool_free(GuPool* pool)
 }
 
 
-extern inline gpointer gu_malloc(GuPool* pool, gsize size);
+extern inline void* gu_malloc(GuPool* pool, size_t size);
 

@@ -42,7 +42,7 @@ static void
 pgf_linearizer_add_production(PgfLinearizer* lzr, PgfFId fid,
 			      PgfProduction prod, PgfProduction from)
 {
-	gpointer data = gu_variant_data(from);
+	void* data = gu_variant_data(from);
 	switch (gu_variant_tag(from)) {
 	case PGF_PRODUCTION_APPLY: {
 		PgfProductionApply* papply = data;
@@ -66,7 +66,7 @@ pgf_linearizer_add_production(PgfLinearizer* lzr, PgfFId fid,
 		if (c_prods == NULL) {
 			return;
 		}
-		for (gint i = 0; i < c_prods->len; i++) {
+		for (int i = 0; i < c_prods->len; i++) {
 			pgf_linearizer_add_production(lzr, fid, prod,
 						      c_prods->elems[i]);
 		}
@@ -78,14 +78,14 @@ pgf_linearizer_add_production(PgfLinearizer* lzr, PgfFId fid,
 }
 
 static void
-pgf_linearizer_add_production_cb(gpointer key, gpointer value, 
-				 gpointer user_data)
+pgf_linearizer_add_production_cb(void* key, void* value, 
+				 void* user_data)
 {
 	PgfFId fid = GPOINTER_TO_INT(key);
 	PgfProductions* prods = value;
 	PgfLinearizer* lzr = user_data;
 
-	for (gint i = 0; i < prods->len; i++) {
+	for (int i = 0; i < prods->len; i++) {
 		PgfProduction prod = prods->elems[i];
 		pgf_linearizer_add_production(lzr, fid, prod, prod);
 	}
@@ -155,20 +155,20 @@ struct PgfLznCtx {
 	PgfLzn* lzn;
 	PgfExpr expr;
 	GuPool* pool;
-	gint path_idx;
+	int path_idx;
 	PgfLinFuncs* handler;
 };
 
 
 static gboolean
-pgf_lzc_linearize(PgfLzc* lzc, PgfExpr expr, PgfFId fid, gint lin_idx);
+pgf_lzc_linearize(PgfLzc* lzc, PgfExpr expr, PgfFId fid, int lin_idx);
 
 static gboolean
 pgf_lzc_apply(PgfLzc* lzc, PgfExpr src_expr, PgfFId fid,
-	      gint lin_idx, PgfCId* fun_cid, GPtrArray* args);
+	      int lin_idx, PgfCId* fun_cid, GPtrArray* args);
 
 gboolean
-pgf_lzn_linearize(PgfLzn* lzn, PgfExpr expr, PgfFId fid, gint lin_idx, 
+pgf_lzn_linearize(PgfLzn* lzn, PgfExpr expr, PgfFId fid, int lin_idx, 
 		  PgfLinFuncs* handler)
 {
 	PgfLzc lzc = {
@@ -184,7 +184,7 @@ pgf_lzn_linearize(PgfLzn* lzn, PgfExpr expr, PgfFId fid, gint lin_idx,
 
 // TODO: check for invalid lin_idx. For literals, only 0 is legal.
 static gboolean
-pgf_lzc_linearize(PgfLzc* lzc, PgfExpr expr, PgfFId fid, gint lin_idx) 
+pgf_lzc_linearize(PgfLzc* lzc, PgfExpr expr, PgfFId fid, int lin_idx) 
 {
 	GPtrArray* args = g_ptr_array_new();
 	gboolean succ = FALSE;
@@ -256,14 +256,14 @@ pgf_lzc_choose_production(PgfLzc* lzc, PgfCId* cid, PgfFId fid)
 			return NULL;
 		}
 
-		gint idx = 0;
+		int idx = 0;
 		if (prods->len > 1) {
 			if (lzc->path_idx == lzn->path->len) {
-				guint8 n = (guint8)prods->len;
+				uint8_t n = (uint8_t)prods->len;
 				g_byte_array_append(lzn->path, &n, 1);
 			}
 			g_assert(lzc->path_idx < lzn->path->len);
-			guint8 n = lzn->path->data[lzc->path_idx];
+			uint8_t n = lzn->path->data[lzc->path_idx];
 			idx = prods->len - n;
 			lzc->path_idx++;
 		}
@@ -287,7 +287,7 @@ pgf_lzc_choose_production(PgfLzc* lzc, PgfCId* cid, PgfFId fid)
 
 static gboolean
 pgf_lzc_apply(PgfLzc* lzc, PgfExpr src_expr, PgfFId fid,
-	      gint lin_idx, PgfCId* fun_cid, GPtrArray* args)
+	      int lin_idx, PgfCId* fun_cid, GPtrArray* args)
 {
 	PgfLzn* lzn = lzc->lzn;
 	PgfLzr* lzr = lzn->lzr;
@@ -312,7 +312,7 @@ pgf_lzc_apply(PgfLzc* lzc, PgfExpr src_expr, PgfFId fid,
 
 	lzc->handler->expr_apply(lzc->handler, fdecl, lin->len);
 	
-	for (gint i = 0; i < lin->len; i++) {
+	for (int i = 0; i < lin->len; i++) {
 		PgfSymbol sym = lin->elems[i];
 		GuVariantInfo sym_i = gu_variant_open(sym);
 		switch (sym_i.tag) {

@@ -25,7 +25,7 @@
 #ifndef GU_FLEX_H_
 #define GU_FLEX_H_
 
-#include "mem.h"
+#include <gu/mem.h>
 
 #ifdef GU_ALIGNOF_WORKS_ON_FAM_STRUCTS
 #define gu_flex_alignof gu_alignof
@@ -47,12 +47,12 @@
 
 #define GuList(t)	   \
 	struct {	   \
-		gint len;  \
+		int len;  \
 		t elems[]; \
 	}
 
-gpointer gu_list_alloc(GuPool* pool, gsize base_size, gsize elem_size, 
-		       gint n_elems, gsize alignment, goffset len_offset);
+void* gu_list_alloc(GuPool* pool, size_t base_size, size_t elem_size, 
+		       int n_elems, size_t alignment, ptrdiff_t len_offset);
 
 #define gu_list_new(t, pool, n)						\
 	((t*) gu_list_alloc(pool,					\
@@ -69,13 +69,13 @@ gpointer gu_list_alloc(GuPool* pool, gsize base_size, gsize elem_size,
 #define gu_list_elems(lst) \
 	((lst)->elems)
 
-typedef GuList(gpointer) GuPointers; 
-typedef GuList(guint8) GuBytes;
+typedef GuList(void*) GuPointers; 
+typedef GuList(uint8_t) GuBytes;
 typedef GuList(gchar) GuString;
-typedef GuList(gint) GuInts;		      
+typedef GuList(int) GuInts;		      
 typedef GuList(GuString*) GuStrings;
 		            		      
-guint gu_string_hash(gconstpointer s);
-gboolean gu_string_equal(gconstpointer s1, gconstpointer s2);
+unsigned gu_string_hash(const void* s);
+gboolean gu_string_equal(const void* s1, const void* s2);
 
 #endif // GU_FLEX_H_

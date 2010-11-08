@@ -20,50 +20,50 @@
 #include "variant.h"
 
 enum {
-	ALIGNMENT = sizeof(guintptr)
+	ALIGNMENT = sizeof(uintptr_t)
 };
 
-gpointer 
-gu_variant_alloc(GuPool* pool, guint8 tag, gsize size, 
-		 gsize align, GuVariant* variant_out)
+void* 
+gu_variant_alloc(GuPool* pool, uint8_t tag, size_t size, 
+		 size_t align, GuVariant* variant_out)
 {
 	if (align == 0) {
 		align = gu_mem_alignment(size);
 	}
 	align = MAX(ALIGNMENT, align);
-	if (((gsize)tag) > ALIGNMENT - 2) {
-		guint8* alloc = gu_malloc_aligned(pool, align + size, align);
+	if (((size_t)tag) > ALIGNMENT - 2) {
+		uint8_t* alloc = gu_malloc_aligned(pool, align + size, align);
 		alloc[align - 1] = tag;
-		gpointer p = &alloc[align];
-		variant_out->p = (guintptr)p;
+		void* p = &alloc[align];
+		variant_out->p = (uintptr_t)p;
 		return p;
 	}
-	gpointer p = gu_malloc_aligned(pool, size, align);
-	variant_out->p = ((guintptr)p) | (tag + 1);
+	void* p = gu_malloc_aligned(pool, size, align);
+	variant_out->p = ((uintptr_t)p) | (tag + 1);
 	return p;
 }
 
-guint
+unsigned
 gu_variant_tag(GuVariant variant)
 {
 	if (gu_variant_is_null(variant)) {
 		return GU_VARIANT_NULL;
 	}
-	guint u = variant.p % ALIGNMENT;
+	unsigned u = variant.p % ALIGNMENT;
 	if (u == 0) {
-		guint8* mem = (guint8*)variant.p;
+		uint8_t* mem = (uint8_t*)variant.p;
 		return mem[-1];
 	}
 	return u - 1;
 }
 
-gpointer
+void*
 gu_variant_data(GuVariant variant)
 {
 	if (gu_variant_is_null(variant)) {
 		return NULL;
 	}
-	return (gpointer)((variant.p / ALIGNMENT) * ALIGNMENT);
+	return (void*)((variant.p / ALIGNMENT) * ALIGNMENT);
 }
 
 GuVariantInfo gu_variant_open(GuVariant variant)
@@ -75,25 +75,25 @@ GuVariantInfo gu_variant_open(GuVariant variant)
 	return info;
 }
 
-gint 
+int 
 gu_variant_intval(GuVariant variant)
 {
-	guint u = variant.p % ALIGNMENT;
+	unsigned u = variant.p % ALIGNMENT;
 	if (u == 0) {
-		gint* mem = (gint*)variant.p;
+		int* mem = (int*)variant.p;
 		return *mem;
 	}
 	return (variant.p / ALIGNMENT);
 }
 
-GuVariant gu_variant_null = { (guintptr) NULL };
+GuVariant gu_variant_null = { (uintptr_t) NULL };
 
 
-extern inline gpointer
+extern inline void*
 gu_variant_to_ptr(GuVariant variant);
 
 extern inline GuVariant
-gu_variant_from_ptr(gpointer p);
+gu_variant_from_ptr(void* p);
 
 extern inline gboolean
 gu_variant_is_null(GuVariant v);

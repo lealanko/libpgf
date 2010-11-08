@@ -25,10 +25,7 @@
 #ifndef GU_MEM_H_
 #define GU_MEM_H_
 
-#include <glib.h>
-#include "macros.h"
-
-G_BEGIN_DECLS
+#include <gu/defs.h>
 
 /// @name Memory pools
 /// @{
@@ -42,7 +39,7 @@ GuPool* gu_pool_new(void);
  */
 
 
-void gu_pool_finally(GuPool* pool, GDestroyNotify func, gpointer p);
+void gu_pool_finally(GuPool* pool, GDestroyNotify func, void* p);
 /**< Register a function to be run when the pool is freed.
  *
  * @relates GuPool */
@@ -56,14 +53,14 @@ void gu_pool_free(GuPool* pool);
 /// @}
 
 
-gpointer 
-gu_malloc_aligned(GuPool* pool, gsize size, gsize alignment);
+void* 
+gu_malloc_aligned(GuPool* pool, size_t size, size_t alignment);
 /**< Allocate memory with a specified alignment.
  *
  */
 
-inline gpointer
-gu_malloc(GuPool* pool, gsize size) {
+inline void*
+gu_malloc(GuPool* pool, size_t size) {
 	return gu_malloc_aligned(pool, size, 0);
 }
 /**< Allocate memory.
@@ -84,11 +81,9 @@ gu_malloc(GuPool* pool, gsize size) {
 /// @name Miscellaneous
 /// @{
 
-gsize gu_mem_alignment(gsize size);
+size_t gu_mem_alignment(size_t size);
 
 /// @}
 
-
-G_END_DECLS
 
 #endif // GU_MEM_H_

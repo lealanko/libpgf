@@ -30,9 +30,9 @@ typedef struct PgfAbstr PgfAbstr;
 typedef struct PgfFunDecl PgfFunDecl;
 typedef struct PgfConcr PgfConcr;
 
-typedef gint PgfFId;
+typedef int PgfFId;
 
-typedef gint PgfLength;
+typedef int PgfLength;
 
 typedef struct GuVariant PgfSymbol;
 typedef struct PgfAlternative PgfAlternative;
@@ -49,12 +49,12 @@ typedef PgfCncFun** PgfFunId; // key to PgfCncFuns
 typedef GuList(PgfCncFun*) PgfCncFuns; 
 typedef GuList(PgfFunId) PgfFunIds; 
 
-typedef gint PgfId; // second key to PgfConcr.lproductions
+typedef int PgfId; // second key to PgfConcr.lproductions
 
 typedef GHashTable PgfCIdMap; // PgfCId -> ?
 typedef PgfCIdMap PgfFlags; // PgfCId -> PgfLiteral
 
-typedef GHashTable PgfIntMap; // gint -> ?
+typedef GHashTable PgfIntMap; // int -> ?
 
 
 typedef GuVariant PgfExpr;
@@ -96,14 +96,14 @@ typedef GuList(PgfHypo) PgfHypos;
 struct PgfType {
 	PgfHypos* hypos;
 	PgfCId* cid; /// XXX: resolve to PgfCat*?
-	gint n_exprs;
+	int n_exprs;
 	PgfExpr exprs[];
 };
 
 
 
 
-typedef gint PgfMetaId;
+typedef int PgfMetaId;
 
 typedef PgfExpr PgfTree;
 
@@ -129,8 +129,8 @@ struct PgfAbstr {
 };
 
 struct PgfPGF {
-	guint16 major_version;
-	guint16 minor_version;
+	uint16_t major_version;
+	uint16_t minor_version;
 	PgfFlags* gflags;
 	PgfCId* absname;
 	PgfAbstr abstract;
@@ -140,13 +140,13 @@ struct PgfPGF {
 
 struct PgfFunDecl {
 	PgfType* type;
-	gint arity;
+	int arity;
 	PgfEquations* defns; // maybe null
 };
 
 struct PgfCat {
 	PgfHypos* context;
-	gint n_functions;
+	int n_functions;
 	PgfCId* functions[]; // XXX: resolve to PgfFunDecl*?
 };
 
@@ -155,7 +155,7 @@ struct PgfCncCat {
 	PgfFId last;
 	/**< The range of FIds that this concrete category covers. */
 
-	gint n_labels; 
+	int n_labels; 
 	GuString* labels[];
 	/**< Labels for tuples. All nested tuples, records and tables
 	 * in the GF linearization types are flattened into a single
@@ -167,7 +167,7 @@ struct PgfCncCat {
 
 struct PgfCncFun {
 	PgfCId* fun; // XXX: resolve to PgfFunDecl*?
-	gint n_lins;
+	int n_lins;
 	PgfSeqId lins[];
 };
 
@@ -194,7 +194,7 @@ struct PgfConcr {
 	PgfCIdMap* lproductions;
 
 	PgfCIdMap* cnccats;
-	gint totalcats;
+	int totalcats;
 };
 
 
@@ -209,8 +209,8 @@ typedef enum {
 typedef struct PgfSymbolIdx PgfSymbolIdx;
 
 struct PgfSymbolIdx {
-	gint d;
-	gint r;
+	int d;
+	int r;
 };
 
 typedef struct PgfSymbolIdx PgfSymbolCat;
@@ -227,7 +227,7 @@ typedef struct PgfSymbolKP
 	/**< Default form that this symbol takes if none of of the
 	 * variant forms is triggered. */
 
-	gint n_forms;
+	int n_forms;
 	PgfAlternative forms[]; 
 	/**< Variant forms whose choise depends on the following
 	 * symbol. */
@@ -248,13 +248,13 @@ typedef struct PgfPArg PgfPArg;
 
 struct PgfPArg {
 	PgfFId fid; // XXX: resolve to PgfProductions*?
-	gint n_hypos;
+	int n_hypos;
 	PgfFId hypos[]; // XXX: Change to GuList(PgfFId) since usually empty
 };
 
 typedef struct {
 	PgfFunId fun; 
-	gint n_args;
+	int n_args;
 	PgfPArg* args[]; // XXX: Remove indirection once PArg is fixed-length
 } PgfProductionApply;
 
@@ -268,7 +268,7 @@ typedef struct PgfProductionCoerce
 
 typedef struct {
 	PgfExpr expr; // XXX
-	gint n_toks;
+	int n_toks;
 	GuString* toks[]; // XXX
 } PgfProductionConst;
 
@@ -288,7 +288,7 @@ typedef enum {
 } PgfLiteralTag;
 
 typedef GuString* PgfLiteralStr;
-typedef gint PgfLiteralInt;
+typedef int PgfLiteralInt;
 typedef gdouble PgfLiteralFlt;
 
 // PgfExpr
@@ -322,7 +322,7 @@ typedef PgfMetaId PgfExprMeta;
 
 typedef PgfCId* PgfExprFun;
 
-typedef gint PgfExprVar;
+typedef int PgfExprVar;
 /**< A variable. The value is a de Bruijn index to the environment,
  * beginning from the innermost variable. */
 
@@ -349,7 +349,7 @@ typedef enum {
 
 typedef	struct {
 	PgfCId* ctor;
-	gint n_args;
+	int n_args;
 	PgfPatt args[];
 } PgfPattApp;
 
@@ -368,7 +368,7 @@ typedef PgfExpr PgfPattTilde;
 
 struct PgfEquation {
 	PgfExpr body;
-	gint n_patts;
+	int n_patts;
 	PgfPatt patts[];
 };
 

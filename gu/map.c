@@ -2,7 +2,7 @@
 #include "map.h"
 
 static void
-gu_map_free_cb(gpointer ht) 
+gu_map_free_cb(void* ht) 
 {
 	g_hash_table_destroy(ht);
 }

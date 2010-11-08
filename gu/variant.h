@@ -25,7 +25,8 @@
 #ifndef GU_VARIANT_H_
 #define GU_VARIANT_H_
 
-#include "mem.h"
+#include <gu/defs.h>
+#include <gu/mem.h>
 
 /** @name Variants
  * @{
@@ -34,9 +35,9 @@
 typedef struct GuVariant GuVariant;
 
 
-gpointer gu_variant_alloc(GuPool* pool, guint8 tag, 
-			  gsize size, gsize align, 
-			  GuVariant* variant_out);
+void* gu_variant_alloc(GuPool* pool, uint8_t tag, 
+		       size_t size, size_t align, 
+		       GuVariant* variant_out);
 
 
 #define gu_variant_new(pool, tag, type, variant_out)	  \
@@ -55,41 +56,41 @@ gpointer gu_variant_alloc(GuPool* pool, guint8 tag,
  * @hideinitializer */
 
 enum {
-	GU_VARIANT_NULL = (guint)-1
+	GU_VARIANT_NULL = (unsigned)-1
 };
 
-guint gu_variant_tag(GuVariant variant);
+unsigned gu_variant_tag(GuVariant variant);
 
-gpointer gu_variant_data(GuVariant variant);
+void* gu_variant_data(GuVariant variant);
 
 
 typedef struct GuVariantInfo GuVariantInfo;
 
 struct GuVariantInfo {
-	guint tag;
-	gpointer data;
+	unsigned tag;
+	void* data;
 };
 
 GuVariantInfo gu_variant_open(GuVariant variant);
 
 /** @privatesection */
 struct GuVariant {
-	guintptr p;
+	uintptr_t p;
 	/**< @private */
 };
 
 /** @} */
 
-inline gpointer
+inline void*
 gu_variant_to_ptr(GuVariant variant)
 {
-	return GINT_TO_POINTER(variant.p);
+	return (void*)variant.p;
 }
 
 inline GuVariant
-gu_variant_from_ptr(gpointer p)
+gu_variant_from_ptr(void* p)
 {
-	GuVariant v = { GPOINTER_TO_INT(p) };
+	GuVariant v = { (uintptr_t)p };
 	return v;
 }
 
@@ -97,7 +98,7 @@ extern GuVariant gu_variant_null;
 
 inline gboolean
 gu_variant_is_null(GuVariant v) {
-	return (v.p == (guintptr) NULL);
+	return ((void*)v.p == NULL);
 }
 
 #endif // GU_VARIANT_H_

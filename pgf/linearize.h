@@ -22,10 +22,10 @@ typedef struct PgfLinFuncs PgfLinFuncs;
 
 struct PgfLinFuncs {
 	void (*symbol_tokens)(PgfLinFuncs* funcs, PgfTokens* toks);
-	void (*symbol_expr)(PgfLinFuncs* funcs, gint argno, PgfExpr expr, gint lin_idx);
+	void (*symbol_expr)(PgfLinFuncs* funcs, int argno, PgfExpr expr, int lin_idx);
 	void (*expr_apply)(PgfLinFuncs* funcs,
 			   PgfFunDecl* fun,
-			   gint n_symbols);
+			   int n_symbols);
 	void (*expr_literal)(PgfLinFuncs* funcs, PgfLiteral lit);
 
 	void (*abort)(PgfLinFuncs* funcs);
