@@ -39,8 +39,8 @@
 
 
 // Alas, there's no portable way to get the alignment of flex structs.
-#define gu_flex_new(ator, type, len_member, flex_member, n_elems)	\
-	(((type)*)gu_malloc((ator),					\
+#define gu_flex_new(pool, type, len_member, flex_member, n_elems)	\
+	(((type)*)gu_malloc((pool),					\
 			    GU_FLEX_SIZE(type, flex_member, n_elems),	\
 			    gu_flex_alignof(t)))
 
@@ -51,11 +51,11 @@
 		t elems[]; \
 	}
 
-gpointer gu_list_alloc(GuAllocator* ator, gsize base_size, gsize elem_size, 
+gpointer gu_list_alloc(GuPool* pool, gsize base_size, gsize elem_size, 
 		       gint n_elems, gsize alignment, goffset len_offset);
 
-#define gu_list_new(t, ator, n)						\
-	((t*) gu_list_alloc(ator,					\
+#define gu_list_new(t, pool, n)						\
+	((t*) gu_list_alloc(pool,					\
 			    sizeof(t),					\
 			    sizeof(((t*)NULL)->elems[0]),		\
 			    (n),					\

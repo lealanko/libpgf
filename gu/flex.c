@@ -21,11 +21,11 @@
 
 #include <string.h>
 
-gpointer gu_list_alloc(GuAllocator* ator, gsize base_size, gsize elem_size, 
+gpointer gu_list_alloc(GuPool* pool, gsize base_size, gsize elem_size, 
 		       gint n_elems, gsize alignment, goffset len_offset)
 {
 	g_assert(n_elems >= 0);
-	gpointer p = gu_malloc_aligned(ator, base_size + elem_size * n_elems,
+	gpointer p = gu_malloc_aligned(pool, base_size + elem_size * n_elems,
 				       alignment);
 	G_STRUCT_MEMBER(gint, p, len_offset) = n_elems;
 	return p;

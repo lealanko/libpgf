@@ -38,55 +38,12 @@ enum {
 	
 
 
-struct GuAllocator {
-	gpointer (*alloc)(GuAllocator* ator, gsize size, gsize alignment);
-};
 
-gpointer gu_malloc_aligned(GuAllocator* ator, gsize size, gsize alignment)
-{
-	if (ator == NULL) {
-		ator = gu_malloc_allocator();
-	}
-	return ator->alloc(ator, size, alignment);
-}
 
-static gpointer
-gu_malloc_alloc_fn(G_GNUC_UNUSED GuAllocator* ator, gsize size, 
-		   G_GNUC_UNUSED gsize alignment)
-{
-	return g_malloc(size);
-}
-
-static GuAllocator gu_malloc_ator = {
-	.alloc = gu_malloc_alloc_fn
-};
-
-GuAllocator* gu_malloc_allocator(void)
-{
-	return &gu_malloc_ator;
-}
-
-static gpointer
-gu_slice_alloc_fn(G_GNUC_UNUSED GuAllocator* ator, gsize size, 
-		  G_GNUC_UNUSED gsize alignment)
-{
-	return g_slice_alloc(size);
-}
-
-static GuAllocator gu_slice_ator = {
-	.alloc = gu_slice_alloc_fn
-};
-
-GuAllocator* gu_slice_allocator(void)
-{
-	return &gu_slice_ator;
-}
-
-struct GuMemPool {
+struct GuPool {
 	guint8* cur;
 	guint8* end;
 	GPtrArray* chunks;
-	GuAllocator ator;
 	GHashTable* finalizers;
 };
 
@@ -103,16 +60,12 @@ enum {
 };
 
 
-static gpointer
-gu_mem_pool_alloc_fn(GuAllocator* ator, gsize size, gsize alignment);
-
-GuMemPool*
-gu_mem_pool_new(void) 
+GuPool*
+gu_pool_new(void) 
 {
-	GuMemPool* pool = g_slice_new(GuMemPool);
+	GuPool* pool = g_slice_new(GuPool);
 	pool->cur = NULL;
 	pool->end = NULL;
-	pool->ator.alloc = gu_mem_pool_alloc_fn;
 	pool->chunks = g_ptr_array_new_with_free_func(g_free);
 	pool->finalizers = g_hash_table_new(NULL, NULL);
 	pool->cur = g_malloc(CHUNK_SIZE);
@@ -121,11 +74,6 @@ gu_mem_pool_new(void)
 	return pool;
 }
 
-GuAllocator*
-gu_mem_pool_allocator(GuMemPool* pool)
-{
-	return &pool->ator;
-}
 
 G_STATIC_ASSERT((CHUNK_SIZE >= MAX_CHUNKABLE_SIZE));
 
@@ -142,8 +90,8 @@ gu_mem_alignment(gsize size)
 
 
 
-static gpointer
-gu_mem_pool_alloc(GuMemPool* pool, gsize size, gsize alignment)
+gpointer
+gu_malloc_aligned(GuPool* pool, gsize size, gsize alignment)
 {
 	if (size > MAX_CHUNKABLE_SIZE) {
 		gpointer p = g_malloc(size);
@@ -165,15 +113,8 @@ gu_mem_pool_alloc(GuMemPool* pool, gsize size, gsize alignment)
 	return p;
 }
 
-static gpointer
-gu_mem_pool_alloc_fn(GuAllocator* ator, gsize size, gsize alignment)
-{
-	GuMemPool* pool = GU_CONTAINER_P(ator, GuMemPool, ator);
-	return gu_mem_pool_alloc(pool, size, alignment);
-}
-
 void 
-gu_mem_pool_register_finalizer(GuMemPool* pool, GDestroyNotify func, gpointer p)
+gu_pool_finally(GuPool* pool, GDestroyNotify func, gpointer p)
 {
 	gpointer key = (gpointer)func; // Not strictly portable
 	GPtrArray* arr = g_hash_table_lookup(pool->finalizers, key);
@@ -185,7 +126,7 @@ gu_mem_pool_register_finalizer(GuMemPool* pool, GDestroyNotify func, gpointer p)
 }
 
 static void
-gu_mem_pool_run_finalizer(gpointer key, gpointer value, 
+gu_pool_run_finalizer(gpointer key, gpointer value, 
 			  G_GNUC_UNUSED gpointer user_data)
 {
 	GDestroyNotify destroy = (GDestroyNotify) key;
@@ -198,12 +139,14 @@ gu_mem_pool_run_finalizer(gpointer key, gpointer value,
 }
 
 void
-gu_mem_pool_free(GuMemPool* pool)
+gu_pool_free(GuPool* pool)
 {
-	g_hash_table_foreach(pool->finalizers, gu_mem_pool_run_finalizer, NULL);
+	g_hash_table_foreach(pool->finalizers, gu_pool_run_finalizer, NULL);
 	g_hash_table_destroy(pool->finalizers);
 	g_ptr_array_free(pool->chunks, TRUE);
-	g_slice_free(GuMemPool, pool);
+	g_slice_free(GuPool, pool);
 }
 
-extern inline gpointer gu_malloc(GuAllocator* ator, gsize size);
+
+extern inline gpointer gu_malloc(GuPool* pool, gsize size);
+

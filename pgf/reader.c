@@ -159,18 +159,16 @@ typedef struct PgfReader PgfReader;
 struct PgfReader {
 	FILE* in;
 	GError* err;
-	GuMemPool* pool;
-	GuAllocator* ator;
+	GuPool* pool;
 	GHashTable* interned_strings;
 	PgfContext ctx;
 };
 
 static PgfReader*
-pgf_reader_new(FILE* in, GuMemPool* pool)
+pgf_reader_new(FILE* in, GuPool* pool)
 {
 	PgfReader* rdr = gu_new(NULL, PgfReader);
 	rdr->pool = pool;
-	rdr->ator = gu_mem_pool_allocator(rdr->pool);
 	rdr->interned_strings = 
 		g_hash_table_new(gu_string_hash,
 				 gu_string_equal);
@@ -705,20 +703,20 @@ typedef struct PgfOwnedPlacer PgfOwnedPlacer;
 struct PgfOwnedPlacer {
 	PgfPlacer placer;
 	gpointer* p;
-	GuAllocator* ator;
+	GuPool* pool;
 };
 
 static gpointer pgf_place_owned(PgfPlacer* placer, gsize size, gsize align) 
 {
 	PgfOwnedPlacer* pplacer = 
 		GU_CONTAINER_P(placer, PgfOwnedPlacer, placer);
-	*(pplacer->p) = gu_malloc_aligned(pplacer->ator, size, align);
+	*(pplacer->p) = gu_malloc_aligned(pplacer->pool, size, align);
 	return *(pplacer->p);
 }
 
-static PgfOwnedPlacer pgf_owned_placer(GuAllocator* ator, gpointer* p)
+static PgfOwnedPlacer pgf_owned_placer(GuPool* pool, gpointer* p)
 {
-	return (PgfOwnedPlacer) { { pgf_place_owned }, p, ator };
+	return (PgfOwnedPlacer) { { pgf_place_owned }, p, pool };
 }
 
 static void
@@ -726,7 +724,7 @@ pgf_unpickle_owned(const PgfTypeBase* info, PgfReader* rdr, PgfPlacer* placer)
 {
 	PgfPointerType* pinfo = GU_CONTAINER_P(info, PgfPointerType, b);
 	gpointer* p = pgf_placer_place_type(placer, gpointer);
-	PgfOwnedPlacer oplacer = pgf_owned_placer(rdr->ator, p);
+	PgfOwnedPlacer oplacer = pgf_owned_placer(rdr->pool, p);
 	pgf_unpickle(rdr, pinfo->type_arg, &oplacer.placer);
 }
 
@@ -790,7 +788,7 @@ struct PgfVariantPlacer {
 	PgfPlacer placer;
 	guint c_tag;
 	GuVariant* to;
-	GuAllocator* ator;
+	GuPool* pool;
 };
 
 static gpointer
@@ -798,7 +796,7 @@ pgf_place_variant(PgfPlacer* placer, gsize size, gsize align)
 {
 	PgfVariantPlacer* vplacer = 
 		GU_CONTAINER_P(placer, PgfVariantPlacer, placer);
-	return gu_variant_alloc(vplacer->ator, vplacer->c_tag, 
+	return gu_variant_alloc(vplacer->pool, vplacer->c_tag, 
 				size, align, vplacer->to);
 }
 
@@ -814,7 +812,7 @@ pgf_unpickle_variant(const PgfTypeBase* base, PgfReader* rdr, PgfPlacer* placer)
 	}
 	const PgfConstructor* ctor = &vtype->ctors.elems[btag];
 	PgfVariantPlacer vplacer = { { pgf_place_variant },
-				     ctor->c_tag, to, rdr->ator };
+				     ctor->c_tag, to, rdr->pool };
 	pgf_unpickle(rdr, ctor->type, &vplacer.placer);
 }
 
@@ -1245,9 +1243,9 @@ pgf_unpickle_map_p(const PgfTypeBase* info, PgfReader* rdr, PgfPlacer* placer)
 	GHashTable* ht = g_hash_table_new(minfo->hash_func,
 					  minfo->compare_func);
 	gint len = 0;
-	gu_mem_pool_register_finalizer(rdr->pool,
-				       (GDestroyNotify)g_hash_table_destroy,
-				       ht);
+	gu_pool_finally(rdr->pool,
+			(GDestroyNotify)g_hash_table_destroy,
+			ht);
 	pgf_unpickle(rdr, &pgf_length_type.b, PGF_CONST_PLACER(&len));
 
 	for (gint i = 0; i < len; i++) {
@@ -1328,7 +1326,7 @@ pgf_unpickle_string_p(G_GNUC_UNUSED const PgfTypeBase* type,
 	pgf_read_chars(rdr, tmp->elems, len);
 	GuString* interned = g_hash_table_lookup(rdr->interned_strings, tmp);
 	if (interned == NULL) {
-		interned = gu_list_new(GuString, rdr->ator, len);
+		interned = gu_list_new(GuString, rdr->pool, len);
 		memcpy(interned->elems, tmp->elems, tmp->len);
 		g_hash_table_insert(rdr->interned_strings, 
 				    interned, interned);
@@ -1743,7 +1741,7 @@ static const PgfStructType pgf_pgf_type = PGF_STRUCT_TYPE(
 
 PgfPGF* pgf_read(FILE* in, GError** err_out)
 {
-	GuMemPool* pool = gu_mem_pool_new();
+	GuPool* pool = gu_pool_new();
 	PgfReader* rdr = pgf_reader_new(in, pool);
 	PgfPGF* pgf = NULL;
 	pgf_unpickle(rdr, 
@@ -1756,7 +1754,7 @@ PgfPGF* pgf_read(FILE* in, GError** err_out)
 	}
 	pgf_reader_free(rdr);
 	if (pgf == NULL) {
-		gu_mem_pool_free(pool);
+		gu_pool_free(pool);
 		return NULL;
 	}
 	pgf->pool = pool;
@@ -1777,7 +1775,7 @@ void pgf_write_yaml(PgfPGF* pgf, FILE* to, GError** err_out)
 }
 
 void pgf_free(PgfPGF* pgf) {
-	gu_mem_pool_free(pgf->pool);
+	gu_pool_free(pgf->pool);
 }
 
 // These are needed to make the compiler include the debug information

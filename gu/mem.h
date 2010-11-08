@@ -30,83 +30,56 @@
 
 G_BEGIN_DECLS
 
-
-/** @name Allocators
- *
- * @{ */
-
-typedef struct GuAllocator GuAllocator;
-/**< An allocator. */
-
-
-gpointer gu_malloc_aligned(GuAllocator* ator, gsize size, gsize alignment);
-/**< Allocate memory with a specified alignment.
- *
- */
-
-
-inline gpointer
-gu_malloc(GuAllocator* ator, gsize size) {
-	return gu_malloc_aligned(ator, size, 0);
-}
-/**< Allocate memory.
- *
- */
-
-#define gu_new(ator, type) \
-	((type*)gu_malloc_aligned((ator), sizeof(type), gu_alignof(type)))
-/**< Allocate memory to store an object of a given type.
- *
- * @hideinitializer
- *
- * @param ator  The GuAllocator to allocate from
- * @param type  The C type of the object to allocate
- * @relates GuAllocator */
-
-GuAllocator* gu_slice_allocator(void);
-/**< Allocator that uses #g_slice_alloc
- */
-
-
-
-GuAllocator* gu_malloc_allocator(void);
-/**< Allocator that uses #g_malloc.
- *
- */
-
-/// @}
-
 /// @name Memory pools
 /// @{
 
-typedef struct GuMemPool GuMemPool;
+typedef struct GuPool GuPool;
 /**< A memory pool. */
 
-GuMemPool* gu_mem_pool_new(void);
+GuPool* gu_pool_new(void);
 /**< Create a new memory pool.
  *
  */
 
 
-GuAllocator* gu_mem_pool_allocator(GuMemPool* pool);
-/**< Allocator for this memory pool.
- *
- * @relates GuMemPool */
-
-
-void gu_mem_pool_register_finalizer(GuMemPool* pool, 
-				    GDestroyNotify func, gpointer p);
+void gu_pool_finally(GuPool* pool, GDestroyNotify func, gpointer p);
 /**< Register a function to be run when the pool is freed.
  *
- * @relates GuMemPool */
+ * @relates GuPool */
 
 
-void gu_mem_pool_free(GuMemPool* pool);
+void gu_pool_free(GuPool* pool);
 /**< Free a memory pool.
  *
- * @relates GuMemPool */
+ * @relates GuPool */
 
 /// @}
+
+
+gpointer 
+gu_malloc_aligned(GuPool* pool, gsize size, gsize alignment);
+/**< Allocate memory with a specified alignment.
+ *
+ */
+
+inline gpointer
+gu_malloc(GuPool* pool, gsize size) {
+	return gu_malloc_aligned(pool, size, 0);
+}
+/**< Allocate memory.
+ *
+ */
+
+#define gu_new(pool, type) \
+	((type*)gu_malloc_aligned((pool), sizeof(type), gu_alignof(type)))
+/**< Allocate memory to store an object of a given type.
+ *
+ * @hideinitializer
+ *
+ * @param pool  The memory pool to allocate from
+ * @param type  The C type of the object to allocate
+ * @relates GuPool */
+
 
 /// @name Miscellaneous
 /// @{

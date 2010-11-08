@@ -24,7 +24,7 @@ enum {
 };
 
 gpointer 
-gu_variant_alloc(GuAllocator* ator, guint8 tag, gsize size, 
+gu_variant_alloc(GuPool* pool, guint8 tag, gsize size, 
 		 gsize align, GuVariant* variant_out)
 {
 	if (align == 0) {
@@ -32,13 +32,13 @@ gu_variant_alloc(GuAllocator* ator, guint8 tag, gsize size,
 	}
 	align = MAX(ALIGNMENT, align);
 	if (((gsize)tag) > ALIGNMENT - 2) {
-		guint8* alloc = gu_malloc_aligned(ator, align + size, align);
+		guint8* alloc = gu_malloc_aligned(pool, align + size, align);
 		alloc[align - 1] = tag;
 		gpointer p = &alloc[align];
 		variant_out->p = (guintptr)p;
 		return p;
 	}
-	gpointer p = gu_malloc_aligned(ator, size, align);
+	gpointer p = gu_malloc_aligned(pool, size, align);
 	variant_out->p = ((guintptr)p) | (tag + 1);
 	return p;
 }

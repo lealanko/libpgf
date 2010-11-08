@@ -26,8 +26,6 @@
 
 typedef GuString PgfCId;
 
-PgfCId* pgf_cid_new(GuAllocator* ator, gint len);
-
 typedef struct PgfAbstr PgfAbstr;
 typedef struct PgfFunDecl PgfFunDecl;
 typedef struct PgfConcr PgfConcr;
@@ -137,7 +135,7 @@ struct PgfPGF {
 	PgfCId* absname;
 	PgfAbstr abstract;
 	PgfCIdMap* concretes; // |-> PgfConcr*
-	GuMemPool* pool;
+	GuPool* pool;
 };
 
 struct PgfFunDecl {

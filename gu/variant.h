@@ -34,13 +34,13 @@
 typedef struct GuVariant GuVariant;
 
 
-gpointer gu_variant_alloc(GuAllocator* ator, guint8 tag, 
+gpointer gu_variant_alloc(GuPool* pool, guint8 tag, 
 			  gsize size, gsize align, 
 			  GuVariant* variant_out);
 
 
-#define gu_variant_new(ator, tag, type, variant_out)	  \
-	((type*)gu_variant_alloc(ator, tag, sizeof(type), \
+#define gu_variant_new(pool, tag, type, variant_out)	  \
+	((type*)gu_variant_alloc(pool, tag, sizeof(type), \
 				 gu_alignof(type), variant_out))
 /**< 
  * @hideinitializer */

@@ -27,7 +27,7 @@ typedef struct PgfLinearizer PgfLinearizer;
 struct PgfLinearizer {
 	PgfPGF* pgf;
 	PgfConcr* cnc;
-	GuMemPool* pool;
+	GuPool* pool;
 	GuMap* prods; // PgfCId |-> GuIntMap |-> GPtrArray |-> PgfProduction
 	/**< Productions per function. This map associates with each
 	 * abstract function (as identified by a CId) the productions
@@ -115,16 +115,15 @@ typedef PgfLinearization PgfLzn;
 
 
 static PgfLzn*
-pgf_lzn_new(PgfLzr* lzr, GuMemPool* pool)
+pgf_lzn_new(PgfLzr* lzr, GuPool* pool)
 {
-	GuAllocator* ator = gu_mem_pool_allocator(pool);
-	PgfLzn* lzn = gu_new(ator, PgfLzn);
+	PgfLzn* lzn = gu_new(pool, PgfLzn);
 	lzn->lzr = lzr;
 	lzn->path = g_byte_array_new();
-	gu_mem_pool_register_finalizer(pool, 
-				       // Not portable
-				       (GDestroyNotify)g_byte_array_unref,
-				       lzn->path);
+	gu_pool_finally(pool, 
+			// Not portable
+			(GDestroyNotify)g_byte_array_unref,
+			lzn->path);
 	return lzn;
 }
 
@@ -155,8 +154,7 @@ typedef PgfLznCtx PgfLzc;
 struct PgfLznCtx {
 	PgfLzn* lzn;
 	PgfExpr expr;
-	GuMemPool* pool;
-	GuAllocator* ator;
+	GuPool* pool;
 	gint path_idx;
 	PgfLinFuncs* handler;
 };

@@ -8,9 +8,9 @@ gu_map_free_cb(gpointer ht)
 }
 
 GuMap*
-gu_map_new(GuMemPool* pool, GHashFunc hash, GEqualFunc equal)
+gu_map_new(GuPool* pool, GHashFunc hash, GEqualFunc equal)
 {
 	GHashTable* ht = g_hash_table_new(hash, equal);
-	gu_mem_pool_register_finalizer(pool, gu_map_free_cb, ht);
+	gu_pool_finally(pool, gu_map_free_cb, ht);
 	return ht;
 }

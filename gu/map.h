@@ -6,7 +6,7 @@
 typedef GHashTable GuMap;
 
 GuMap*
-gu_map_new(GuMemPool* pool, GHashFunc hash, GEqualFunc equal);
+gu_map_new(GuPool* pool, GHashFunc hash, GEqualFunc equal);
 
 static inline gpointer
 gu_map_get(GuMap* map, gpointer key)
@@ -24,7 +24,7 @@ gu_map_set(GuMap* map, gpointer key, gpointer value)
 typedef GuMap GuIntMap;
 
 static inline GuIntMap*
-gu_intmap_new(GuMemPool* pool)
+gu_intmap_new(GuPool* pool)
 {
 	return gu_map_new(pool, NULL, NULL);
 }
