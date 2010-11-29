@@ -52,7 +52,7 @@
 	}
 
 void* gu_list_alloc(GuPool* pool, size_t base_size, size_t elem_size, 
-		       int n_elems, size_t alignment, ptrdiff_t len_offset);
+		    int n_elems, size_t alignment, ptrdiff_t len_offset);
 
 #define gu_list_new(t, pool, n)						\
 	((t*) gu_list_alloc(pool,					\
@@ -77,5 +77,19 @@ typedef GuList(GuString*) GuStrings;
 		            		      
 unsigned gu_string_hash(const void* s);
 gboolean gu_string_equal(const void* s1, const void* s2);
+
+#define GuSList(t)				\
+	const struct {				\
+		int len;			\
+		t* elems;			\
+	}
+
+#define GU_SLIST_0 { .len = 0, .elems = NULL }
+
+#define GU_SLIST(t, ...)						\
+	{								\
+		.len = sizeof((t[]){__VA_ARGS__}) / sizeof(t),	\
+		.elems = ((t[]){__VA_ARGS__})			\
+	}
 
 #endif // GU_FLEX_H_

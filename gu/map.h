@@ -28,15 +28,15 @@ GuMap*
 gu_map_new(GuPool* pool, GHashFunc hash, GEqualFunc equal);
 
 static inline void*
-gu_map_get(GuMap* map, void* key)
+gu_map_get(GuMap* map, const void* key)
 {
 	return g_hash_table_lookup(map, key);
 }
 
 static inline void
-gu_map_set(GuMap* map, void* key, void* value)
+gu_map_set(GuMap* map, const void* key, void* value)
 {
-	g_hash_table_insert(map, key, value);
+	g_hash_table_insert(map, (void*) key, value);
 }
 
 

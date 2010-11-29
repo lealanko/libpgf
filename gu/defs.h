@@ -64,4 +64,6 @@
 
 #define GU_COMMA ,
 
+#define GU_ARRAYLIT_LEN(t,a) (sizeof((const t[])a) / sizeof(t))
+
 #endif // GU_DEFS_H_
