@@ -9,13 +9,19 @@ typedef struct {
 	int y;
 } Point;
 
-GU_DEFINE_TYPE(Point, _struct, 
+#if 0
+GU_DEFINE_TYPE(Point, struct, 
 	       GU_MEMBER(Point, x, int),
 	       GU_MEMBER(Point, y, int));
-
+#else
+GU_DEFINE_TYPEDEF(Point, struct,
+		  GU_MEMBER(Point, x, int),
+		  GU_MEMBER(Point, y, int));
+#endif
 typedef struct {
 	void (*dump)(GuTypeMap* map, GuType* type, void* val);
 } Dumper;
+
 
 static void dump_aux(GuTypeMap* map, GuType* type, void* val)
 {
@@ -28,11 +34,18 @@ static void dump_int(GuTypeMap* map, GuType* type, void* p) {
 	printf("%d\n", *i);
 }
 
+static void dump_typedef(GuTypeMap* map, GuType* type, void* p) {
+	GuType_typedef* td = (GuType_typedef*)type;
+	printf("%s(", td->name);
+	dump_aux(map, td->type, p);
+	printf(")\n");
+}
+
 static void dump_struct(GuTypeMap* map, GuType* type, void* p) {
-	GuType__struct* stype = (GuType__struct*)type;
+	GuType_struct* stype = (GuType_struct*)type;
 	uint8_t* u = p;
 	
-	printf("%s { ", stype->named.name);
+	printf("{ ");
 	
 	for (int i = 0; i < stype->members.len; i++) {
 		GuMember* m = &stype->members.elems[i];
@@ -44,21 +57,13 @@ static void dump_struct(GuTypeMap* map, GuType* type, void* p) {
 	printf("}\n");
 }
 
-static void dump_variant(GuTypeMap* map, GuType* type, void* p) {
-	GuType_GuVariant* vtype = (GuType_GuVariant*)type;
-	GuVariant* v = p;
-	GuVariantInfo i = gu_variant_open(*v);
-	
-	GuConstructor* ctor = &vtype->ctors.elems[i.tag];
-
-	dump_aux(map, ctor->type, i.data);
-}
-
+#define DUMPER(k_, f_) { GU_KIND(k_), (Dumper[1]){{f_}}}
 
 static GuTypeTable dumpers = 
 	GU_TYPETABLE(GU_SLIST_0,
-		     { GU_KIND_P(int), (Dumper[]){{dump_int}}},
-		     { GU_KIND_P(_struct), (Dumper[]){{dump_struct}}});
+		     DUMPER(int, dump_int),
+		     DUMPER(typedef, dump_typedef),
+		     DUMPER(struct, dump_struct));
 
 
 typedef GuVariant Tree;
@@ -78,35 +83,39 @@ typedef struct {
 	Tree right;
 } Branch;
 
-static GU_DECLARE_TYPE(Tree, GuVariant);
+
+static void dump_variant(GuTypeMap* map, GuType* type, void* p) {
+	GuType_GuVariant* vtype = (GuType_GuVariant*)type;
+	GuVariant* v = p;
+	GuVariantInfo i = gu_variant_open(*v);
+	
+	GuConstructor* ctor = &vtype->ctors.elems[i.tag];
+
+	dump_aux(map, ctor->type, i.data);
+}
+
+static GU_DECLARE_TYPE(Tree, typedef);
 
 static
-GU_DEFINE_TYPE(Leaf, _struct, 
-	       GU_MEMBER(Leaf, value, int));
+GU_DEFINE_TYPEDEF(Leaf, struct,
+		  GU_MEMBER(Leaf, value, int));
 
 static
-GU_DEFINE_TYPE(Branch, _struct,
-	       GU_MEMBER(Branch, left, Tree),
-	       GU_MEMBER(Branch, right, Tree));
+GU_DEFINE_TYPEDEF(Branch, struct,
+		  GU_MEMBER(Branch, left, Tree),
+		  GU_MEMBER(Branch, right, Tree));
 
-#if 1
 static
-GU_DEFINE_TYPE(Tree, GuVariant,
-	       GU_CONSTRUCTOR_S(LEAF, Leaf,
-				GU_MEMBER(Leaf, value, int)),
-	       GU_CONSTRUCTOR(BRANCH, Branch));
-#else
-static
-GU_DEFINE_TYPE(Tree, GuVariant,
-	       GU_CONSTRUCTOR(LEAF, Leaf),
-	       GU_CONSTRUCTOR(BRANCH, Branch));
-#endif
+GU_DEFINE_TYPEDEF(Tree, GuVariant,
+		  GU_CONSTRUCTOR(LEAF, Leaf),
+		  GU_CONSTRUCTOR(BRANCH, Branch));
 
 static GuTypeTable dumpers2 = 
 	GU_TYPETABLE(GU_SLIST_0,
-		     { GU_KIND_P(int), (Dumper[]){{dump_int}}},
-		     { GU_KIND_P(_struct), (Dumper[]){{dump_struct}}},
-		     { GU_KIND_P(GuVariant), (Dumper[]){{dump_variant}}});
+		     DUMPER(int, dump_int),
+		     DUMPER(typedef, dump_typedef),
+		     DUMPER(GuVariant, dump_variant),
+		     DUMPER(struct, dump_struct));
 
 static void dump(GuType* t, void* val) 
 {
@@ -115,13 +124,12 @@ static void dump(GuType* t, void* val)
 	dump_aux(map, t, val);
 }
 
-
 				   
 
 int main(void)
 {
 	Point p = { 3, 4 };
-	dump(GU_TYPE_P(Point), &p);
+	dump(GU_TYPE(Point), &p);
 
 	GuPool* pool = gu_pool_new();
 	Tree t1, t2, t3, t4, t5;
@@ -137,7 +145,7 @@ int main(void)
 	Branch* b2 = gu_variant_new(pool, BRANCH, Branch, &t5);
 	b2->left = t1;
 	b2->right = t4;
-	dump(GU_TYPE_P(Tree), &t5);
+	dump(GU_TYPE(Tree), &t5);
 	return 0;
 
 	

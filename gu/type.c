@@ -1,21 +1,28 @@
 
 #include "type.h"
 
-GuKind gu_type__top = { NULL };
+GU_DEFINE_KIND(type, NULL);
 
-GuKind gu_type__named = { &gu_type__top };
+GU_DEFINE_KIND(typedef, GU_KIND(type));
 
-GuKind gu_type__struct = { &gu_type__named };
+GU_DEFINE_KIND(repr, GU_KIND(type));
 
-GuKind gu_type_GuVariant = { &gu_type__named };
+GU_DEFINE_KIND(struct, GU_KIND(repr));
 
-GU_DEFINE_TYPE(int, _named);
+GU_DEFINE_KIND(pointed, GU_KIND(repr));
+
+GU_DEFINE_KIND(primitive, GU_KIND(repr));
+GU_DEFINE_KIND(integer, GU_KIND(primitive));
+
+GU_DEFINE_TYPE(int, integer);
+
+GU_DEFINE_KIND(GuVariant, GU_KIND(repr));
 
 
 
 bool gu_type_has_kind(GuType* type, GuKind* kind)
 {
-	GuKind* k = &type->kind;
+	GuKind* k = (GuKind*)type;
 	while (k != NULL) {
 		if (k == kind) {
 			return true;
@@ -46,7 +53,7 @@ GuTypeMap* gu_type_map_new(GuPool* pool, GuTypeTable* table)
 
 void* gu_type_map_lookup(GuTypeMap* tmap, GuType* type)
 {
-	GuKind* kind = &type->kind;
+	GuKind* kind = (GuKind*)type;
 	while (kind != NULL) {
 		void* val = gu_map_get(tmap, kind);
 		if (val != NULL) {

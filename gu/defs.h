@@ -56,7 +56,7 @@
 #define GU_ALIGNOF_WORKS_ON_FAM_STRUCTS
 #endif
 
-#define GU_PTRLIT(type, expr) \
+#define GU_PLIT(type, expr) \
 	((type[1]){ expr })
 
 #define GU_LVALUE(type, expr) \
@@ -65,5 +65,8 @@
 #define GU_COMMA ,
 
 #define GU_ARRAYLIT_LEN(t,a) (sizeof((const t[])a) / sizeof(t))
+
+#define GU_ARG1(a1, ...) a1
+#define GU_ARG2(a1, a2, ...) a2
 
 #endif // GU_DEFS_H_
