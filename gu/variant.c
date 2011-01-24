@@ -47,7 +47,7 @@ unsigned
 gu_variant_tag(GuVariant variant)
 {
 	if (gu_variant_is_null(variant)) {
-		return GU_VARIANT_NULL;
+		return (unsigned) GU_VARIANT_NULL;
 	}
 	unsigned u = variant.p % ALIGNMENT;
 	if (u == 0) {

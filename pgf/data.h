@@ -22,6 +22,8 @@
 
 #include <gu/flex.h>
 #include <gu/variant.h>
+#include <gu/string.h>
+#include <gu/map.h>
 #include <pgf/pgf.h>
 
 typedef GuString PgfCId;
@@ -51,11 +53,8 @@ typedef GuList(PgfFunId) PgfFunIds;
 
 typedef int PgfId; // second key to PgfConcr.lproductions
 
-typedef GHashTable PgfCIdMap; // PgfCId -> ?
+typedef GuMap PgfCIdMap; // PgfCId -> ?
 typedef PgfCIdMap PgfFlags; // PgfCId -> PgfLiteral
-
-typedef GHashTable PgfIntMap; // int -> ?
-
 
 typedef GuVariant PgfExpr;
 
@@ -187,10 +186,10 @@ struct PgfConcr {
 	PgfCIdMap* printnames; // GString
 	PgfSequences* sequences;
 	PgfCncFuns* cncfuns;
-	PgfIntMap* productions; // |-> PgfProductions*
-	PgfIntMap* lindefs; // |-> PgfFunIds*
+	GuIntMap* productions; // |-> PgfProductions*
+	GuIntMap* lindefs; // |-> PgfFunIds*
 	// Derived from productions
-	PgfIntMap* pproductions;
+	GuIntMap* pproductions;
 	PgfCIdMap* lproductions;
 
 	PgfCIdMap* cnccats;

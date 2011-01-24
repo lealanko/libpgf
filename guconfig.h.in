@@ -4,3 +4,6 @@
 
 /* Define to the name of the alignof operator. */
 #undef gu_alignof
+
+/* Define to 1 if statement expressions are supported. */
+#undef GU_HAVE_STATEMENT_EXPRESSIONS

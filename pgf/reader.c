@@ -161,32 +161,23 @@ struct PgfReader {
 	FILE* in;
 	GError* err;
 	GuPool* pool;
-	GHashTable* interned_strings;
+	GuMap* interned_strings;
 	PgfContext ctx;
 };
 
 static PgfReader*
-pgf_reader_new(FILE* in, GuPool* pool)
+pgf_reader_new(FILE* in, GuPool* pool, GuPool* tmp_pool)
 {
-	PgfReader* rdr = gu_new(NULL, PgfReader);
+	PgfReader* rdr = gu_new(tmp_pool, PgfReader);
 	rdr->pool = pool;
 	rdr->interned_strings = 
-		gu_map_new(pool, gu_string_hash, gu_string_equal);
+		gu_map_new(tmp_pool, gu_string_hash, gu_string_equal);
 	rdr->err = NULL;
 	rdr->in = in;
 	rdr->ctx = (PgfContext){{0, NULL}, {0, NULL}};
 	return rdr;
 }
 
-static void
-pgf_reader_free(PgfReader* rdr)
-{
-	g_hash_table_destroy(rdr->interned_strings);
-	if (rdr->err != NULL) {
-		g_error_free(rdr->err);
-	}
-	g_free(rdr);
-}
 
 static GQuark
 pgf_reader_quark(void)
@@ -1240,12 +1231,8 @@ static void
 pgf_unpickle_map_p(const PgfTypeBase* info, PgfReader* rdr, PgfPlacer* placer)
 {
 	PgfMapType* minfo = GU_CONTAINER_P(info, PgfMapType, b);
-	GHashTable* ht = g_hash_table_new(minfo->hash_func,
-					  minfo->compare_func);
+	GuMap* ht = gu_map_new(rdr->pool, minfo->hash_func, minfo->compare_func);
 	int len = 0;
-	gu_pool_finally(rdr->pool,
-			(GDestroyNotify)g_hash_table_destroy,
-			ht);
 	pgf_unpickle(rdr, &pgf_length_type.b, PGF_CONST_PLACER(&len));
 
 	for (int i = 0; i < len; i++) {
@@ -1259,10 +1246,10 @@ pgf_unpickle_map_p(const PgfTypeBase* info, PgfReader* rdr, PgfPlacer* placer)
 			     PGF_CONST_PLACER(&value));
 		if (pgf_reader_failed(rdr)) 
 			return;
-		g_hash_table_insert(ht, key, value);
+		gu_map_set(ht, key, value);
 	}
 	
-	GHashTable** htp = pgf_placer_place_type(placer, GHashTable*);
+	GuMap** htp = pgf_placer_place_type(placer, GuMap*);
 	*htp = ht;
 }
 
@@ -1291,8 +1278,7 @@ pgf_dump_map_p(const PgfTypeBase* info,
 	       const void* v, PgfWriter* wtr)
 {
 	PgfMapType* mtype = GU_CONTAINER_P(info, PgfMapType, b);
-	// glib doesn't support const hashtables, so must cast const away
-	GHashTable* ht = *(GHashTable**)v; 
+	GuMap* ht = *(GuMap* const *)v; 
 	pgf_write_str(wtr, "{");
 	PgfHashDumpContext ctx = { mtype, wtr, TRUE };
 	g_hash_table_foreach(ht, pgf_dump_hash_entry, &ctx);
@@ -1306,7 +1292,7 @@ static const PgfTypeFuncs pgf_map_p_type_funcs = {
 };
 
 #define PGF_MAP_P_TYPE(key_t, val_t, hash_fn, cmp_fn) {			\
-	.b = PGF_TYPE_BASE(GHashTable*, &pgf_map_p_type_funcs), \
+	.b = PGF_TYPE_BASE(GuMap*, &pgf_map_p_type_funcs), \
 	.key_type = key_t, \
 	.value_type = val_t, \
 	.hash_func = hash_fn, \
@@ -1321,17 +1307,17 @@ pgf_unpickle_string_p(G_GNUC_UNUSED const PgfTypeBase* type,
 {
 	pgf_debug("-> GuString*");
 	int len = pgf_read_len(rdr);
-	GuString* tmp = gu_list_new(GuString, NULL, len);
+	// XXX: temporary pools are not very efficient
+	GuPool* pool = gu_pool_new();
+	GuString* tmp = gu_string_new(pool, len);
 	tmp->len = len;
 	pgf_read_chars(rdr, tmp->elems, len);
-	GuString* interned = g_hash_table_lookup(rdr->interned_strings, tmp);
+	GuString* interned = gu_map_get(rdr->interned_strings, tmp);
 	if (interned == NULL) {
-		interned = gu_list_new(GuString, rdr->pool, len);
-		memcpy(interned->elems, tmp->elems, tmp->len);
-		g_hash_table_insert(rdr->interned_strings, 
-				    interned, interned);
+		interned = gu_string_copy(rdr->pool, tmp);
+		gu_map_set(rdr->interned_strings, interned, interned);
 	}
-	g_free(tmp);
+	gu_pool_free(pool);
 	GuString** to = pgf_placer_place_type(placer, GuString*);
 	*to = interned;
 	pgf_debug("<- GuString*: %.*s", interned->len, interned->elems);
@@ -1742,7 +1728,8 @@ static const PgfStructType pgf_pgf_type = PGF_STRUCT_TYPE(
 PgfPGF* pgf_read(FILE* in, GError** err_out)
 {
 	GuPool* pool = gu_pool_new();
-	PgfReader* rdr = pgf_reader_new(in, pool);
+	GuPool* tmp_pool = gu_pool_new();
+	PgfReader* rdr = pgf_reader_new(in, pool, tmp_pool);
 	PgfPGF* pgf = NULL;
 	pgf_unpickle(rdr, 
 		     PGF_OWNED_TYPE_L(&pgf_pgf_type.b),
@@ -1752,7 +1739,7 @@ PgfPGF* pgf_read(FILE* in, GError** err_out)
 		rdr->err = NULL;
 		pgf = NULL;
 	}
-	pgf_reader_free(rdr);
+	gu_pool_free(tmp_pool);
 	if (pgf == NULL) {
 		gu_pool_free(pool);
 		return NULL;

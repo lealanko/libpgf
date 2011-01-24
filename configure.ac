@@ -6,6 +6,7 @@ AC_CONFIG_AUX_DIR([scripts])
 AC_CONFIG_MACRO_DIR([m4])
 
 AM_INIT_AUTOMAKE([1.7.9])
+AM_SILENT_RULES
 
 AC_CONFIG_HEADERS([config.h guconfig.h])
 
@@ -22,13 +23,14 @@ AC_PROG_CC_C99
 
 # we use DOLT, a libtool wrapper (speed improvement)
 # see m4/dolt.m4
-DOLT
+# DOLT
 
 
 AC_CHECK_FUNCS([alarm gettimeofday memset strndup inet_ntoa])
 AC_CHECK_FUNCS([strstr select strerror])
 AC_C_ALIGNOF
 AC_C_FAM_IN_MEM
+AC_C_STATEMENT_EXPRESSIONS
 
 if test $ac_cv_c_alignof != no; then
   AC_DEFINE_UNQUOTED([gu_alignof], [$ac_cv_c_alignof], [foo])
@@ -36,7 +38,9 @@ fi
 if test $ac_cv_c_fam_in_mem != no; then
   AC_DEFINE([GU_CAN_HAVE_FAM_IN_MEMBER], 1, [foo])
 fi
-
+if test $ac_cv_c_statement_expressions != no; then
+  AC_DEFINE([GU_HAVE_STATEMENT_EXPRESSIONS], 1, [foo])
+fi
 
 
 AC_CHECK_LIB(m, sin)

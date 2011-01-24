@@ -20,7 +20,9 @@
 #ifndef GU_MAP_H_
 #define GU_MAP_H_
 
+#include <glib.h>
 #include <gu/mem.h>
+#include <gu/fun.h>
 
 typedef GHashTable GuMap;
 
@@ -38,6 +40,9 @@ gu_map_set(GuMap* map, const void* key, void* value)
 {
 	g_hash_table_insert(map, (void*) key, value);
 }
+
+void 
+gu_map_iter(GuMap* map, GuFn2* fn);
 
 
 typedef GuMap GuIntMap;
@@ -57,7 +62,70 @@ gu_intmap_get(GuIntMap* m, int key)
 static inline void
 gu_intmap_set(GuIntMap* m, int key, void* value)
 {
-	return gu_map_set(m, GINT_TO_POINTER(key), value);
+	gu_map_set(m, GINT_TO_POINTER(key), value);
 }
+
+
+
+#include <gu/string.h>
+
+typedef GuMap GuStringMap;
+
+static inline GuStringMap*
+gu_stringmap_new(GuPool* pool)
+{
+	return gu_map_new(pool, gu_string_hash, gu_string_equal);
+}
+
+static inline void*
+gu_stringmap_get(GuStringMap* m, const GuString* key)
+{
+	return gu_map_get(m, key);
+}
+
+static inline void
+gu_stringmap_set(GuStringMap* m, const GuString* key, void* value)
+{
+	gu_map_set(m, key, value);
+}
+
+
+
+#include <gu/type.h>
+
+extern GU_DECLARE_KIND(GuMap);
+
+typedef struct GuMapType GuMapType;
+typedef GuMapType GuType_GuMap;
+
+struct GuMapType {
+	GuType type_base;
+	GuType* key_type;
+	GuType* value_type;
+};
+
+#define GU_TYPE_INIT_GuMap(k_, t_, key_type_, value_type_) {	\
+	.type_base = GU_TYPE_INIT_abstract(k_, t_, _),	\
+	.key_type = key_type_, \
+	.value_type = value_type_ \
+}	
+
+typedef void GuMapDirectInt;
+extern GU_DECLARE_TYPE(GuMapDirectInt, abstract);
+
+
+extern GU_DECLARE_KIND(GuIntMap);
+typedef GuType_GuMap GuType_GuIntMap;
+
+#define GU_TYPE_INIT_GuIntMap(k_, t_, value_type_) \
+	GU_TYPE_INIT_GuMap(k_, t_, gu_type(GuMapDirectInt), value_type_)
+
+
+extern GU_DECLARE_KIND(GuStringMap);
+typedef GuType_GuMap GuType_GuStringMap;
+
+#define GU_TYPE_INIT_GuStringMap(k_, t_, value_type_) \
+	GU_TYPE_INIT_GuMap(k_, t_, gu_type(GuString), value_type_)
+
 
 #endif // GU_MAP_H_

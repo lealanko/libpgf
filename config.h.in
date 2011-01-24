@@ -7,6 +7,9 @@
 /* foo */
 #undef GU_CAN_HAVE_FAM_IN_MEMBER
 
+/* foo */
+#undef GU_HAVE_STATEMENT_EXPRESSIONS
+
 /* Define to 1 if you have the `alarm' function. */
 #undef HAVE_ALARM
 
@@ -36,6 +39,9 @@
 
 /* Define to 1 if you have the `select' function. */
 #undef HAVE_SELECT
+
+/* Define to 1 if statement expressions are supported. */
+#undef HAVE_STATEMENT_EXPRESSIONS
 
 /* Define to 1 if you have the <stdint.h> header file. */
 #undef HAVE_STDINT_H

@@ -17,19 +17,33 @@
  * License along with libpgf. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <pgf/data.h>
 
 typedef struct PgfLinFuncs PgfLinFuncs;
 
 struct PgfLinFuncs {
-	void (*symbol_tokens)(PgfLinFuncs* funcs, PgfTokens* toks);
-	void (*symbol_expr)(PgfLinFuncs* funcs, int argno, PgfExpr expr, int lin_idx);
-	void (*expr_apply)(PgfLinFuncs* funcs,
-			   PgfFunDecl* fun,
-			   int n_symbols);
-	void (*expr_literal)(PgfLinFuncs* funcs, PgfLiteral lit);
+	void (*symbol_tokens)(void* ctx, PgfTokens* toks);
+	void (*symbol_expr)(void* ctx, int argno, PgfExpr expr, int lin_idx);
 
-	void (*abort)(PgfLinFuncs* funcs);
-	void (*finish)(PgfLinFuncs* funcs);
+	void (*expr_apply)(void* ctx, PgfFunDecl* fun, int n_symbols);
+	void (*expr_literal)(void* ctx, PgfLiteral lit);
+
+	void (*abort)(void* ctx);
+	void (*finish)(void* ctx);
 };
 
+
+typedef struct PgfLinearizer PgfLinearizer;
+
+PgfLinearizer*
+pgf_linearizer_new(GuPool* pool, PgfPGF* pgf, PgfConcr* cnc);
+
+
+typedef struct PgfLinearization PgfLinearization;
+
+PgfLinearization* pgf_lzn_new(GuPool* pool, PgfLinearizer* lzr);
+
+bool
+pgf_lzn_linearize_to_file(PgfLinearization* lzn, PgfExpr expr, PgfFId fid, int lin_idx, 
+			  FILE* file_out);
 

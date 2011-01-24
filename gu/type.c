@@ -3,20 +3,22 @@
 
 GU_DEFINE_KIND(type, NULL);
 
-GU_DEFINE_KIND(typedef, GU_KIND(type));
+GU_DEFINE_KIND(typedef, gu_kind(type));
 
-GU_DEFINE_KIND(repr, GU_KIND(type));
+GU_DEFINE_KIND(repr, gu_kind(type));
 
-GU_DEFINE_KIND(struct, GU_KIND(repr));
+GU_DEFINE_KIND(abstract, gu_kind(type));
 
-GU_DEFINE_KIND(pointed, GU_KIND(repr));
+GU_DEFINE_KIND(struct, gu_kind(repr));
 
-GU_DEFINE_KIND(primitive, GU_KIND(repr));
-GU_DEFINE_KIND(integer, GU_KIND(primitive));
+GU_DEFINE_KIND(pointer, gu_kind(repr));
 
-GU_DEFINE_TYPE(int, integer);
+GU_DEFINE_KIND(primitive, gu_kind(repr));
+GU_DEFINE_KIND(integer, gu_kind(primitive));
 
-GU_DEFINE_KIND(GuVariant, GU_KIND(repr));
+GU_DEFINE_TYPE(int, integer, _);
+
+GU_DEFINE_KIND(GuVariant, gu_kind(repr));
 
 
 

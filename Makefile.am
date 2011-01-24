@@ -4,18 +4,28 @@ lib_LTLIBRARIES = libgu.la libpgf.la
 include_HEADERS = \
 	pgf/pgf.h \
 	gu/defs.h \
+	gu/dump.h \
+	gu/error.h \
 	gu/flex.h \
 	gu/map.h \
 	gu/mem.h \
+	gu/stack.h \
+	gu/string.h \
 	gu/type.h \
-	gu/variant.h
+	gu/variant.h \
+	gu/yaml.h
 
 libgu_la_SOURCES = \
+	gu/dump.c \
+	gu/error.c \
 	gu/flex.c \
 	gu/map.c \
 	gu/mem.c \
+	gu/stack.c \
+	gu/string.c \
 	gu/type.c \
-	gu/variant.c
+	gu/variant.c \
+	gu/yaml.c
 
 libgu_la_CFLAGS = $(GLIB_CFLAGS) $(AM_CFLAGS)
 libgu_la_LIBADD = $(GLIB_LIBS)
@@ -33,10 +43,22 @@ utils_pgf2yaml_SOURCES = utils/pgf2yaml.c
 utils_pgf2yaml_LDADD = libgu.la libpgf.la $(GLIB_LIBS)
 utils_pgf2yaml_CFLAGS = $(GLIB_CFLAGS) $(AM_CFLAGS)
 
-noinst_PROGRAMS = test/test_type1
+noinst_PROGRAMS = test/test_type1 test/test-lin1 test/test-yaml1 test/test-dump1
 test_test_type1_SOURCES = test/test_type1.c
 test_test_type1_LDADD = libgu.la
 test_test_type1_CFLAGS = $(GLIB_CFLAGS) $(AM_CFLAGS)
+
+test_test_lin1_SOURCES = test/test-lin1.c
+test_test_lin1_LDADD = libgu.la libpgf.la
+test_test_lin1_CFLAGS = $(GLIB_CFLAGS) $(AM_CFLAGS)
+
+test_test_yaml1_SOURCES = test/test-yaml1.c
+test_test_yaml1_LDADD = libgu.la 
+test_test_yaml1_CFLAGS = $(GLIB_CFLAGS) $(AM_CFLAGS)
+
+test_test_dump1_SOURCES = test/test-dump1.c
+test_test_dump1_LDADD = libgu.la 
+test_test_dump1_CFLAGS = $(GLIB_CFLAGS) $(AM_CFLAGS)
 
 
 AUTOMAKE_OPTIONS = foreign

@@ -45,6 +45,9 @@
  *
  * @hideinitializer */
 
+#define gu_container(mem_p, container_type, member) \
+	GU_CONTAINER_P(mem_p, container_type, member)
+
 
 #ifndef gu_alignof
 #define gu_alignof(type) \
@@ -68,5 +71,10 @@
 
 #define GU_ARG1(a1, ...) a1
 #define GU_ARG2(a1, a2, ...) a2
+
+#define GU_BEGIN do {
+#define GU_END } while (false)
+
+
 
 #endif // GU_DEFS_H_

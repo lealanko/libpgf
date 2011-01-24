@@ -31,31 +31,3 @@ void* gu_list_alloc(GuPool* pool, size_t base_size, size_t elem_size,
 	return p;
 }
 
-
-
-unsigned gu_string_hash(const void* p)
-{
-	const GuString* s = p;
-	// Modified from g_string_hash in glib
-	int n = s->len;
-	const gchar* cp = s->elems;
-	unsigned h = 0;
-
-	while (n--) {
-		h = (h << 5) - h + *cp;
-		cp++;
-	}
-
-	return h;
-}
-
-gboolean gu_string_equal(const void* p1, const void* p2)
-{
-	const GuString* s1 = p1;
-	const GuString* s2 = p2;
-	if (s1->len != s2->len) {
-		return FALSE;
-	}
-	int cmp = memcmp(s1->elems, s2->elems, s1->len);
-	return (cmp == 0);
-}

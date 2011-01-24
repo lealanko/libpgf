@@ -26,6 +26,7 @@
 #define GU_MEM_H_
 
 #include <gu/defs.h>
+#include <gu/fun.h>
 
 /// @name Memory pools
 /// @{
@@ -39,7 +40,7 @@ GuPool* gu_pool_new(void);
  */
 
 
-void gu_pool_finally(GuPool* pool, GDestroyNotify func, void* p);
+void gu_pool_finally(GuPool* pool, GuFn0* finalize);
 /**< Register a function to be run when the pool is freed.
  *
  * @relates GuPool */
@@ -53,8 +54,10 @@ void gu_pool_free(GuPool* pool);
 /// @}
 
 
+
 void* 
-gu_malloc_aligned(GuPool* pool, size_t size, size_t alignment);
+gu_malloc_aligned(GuPool* pool, size_t size, size_t alignment); 
+
 /**< Allocate memory with a specified alignment.
  *
  */
@@ -67,8 +70,35 @@ gu_malloc(GuPool* pool, size_t size) {
  *
  */
 
+
+#include <string.h>
+
+inline void* 
+gu_malloc_init_aligned(GuPool* pool, size_t size, size_t alignment, 
+		       const void* init)
+{
+	void* p = gu_malloc_aligned(pool, size, alignment);
+	memcpy(p, init, size);
+	return p;
+}
+
 #define gu_new(pool, type) \
 	((type*)gu_malloc_aligned((pool), sizeof(type), gu_alignof(type)))
+
+#ifdef GU_HAVE_STATEMENT_EXPRESSIONS
+#define gu_new_s(pool, type, ...)			\
+	({						\
+		type *p_ = gu_new(pool, type);		\
+		*p_ = (type) { __VA_ARGS__ };		\
+		p_;					\
+	})
+#else // GU_HAVE_STATEMENT_EXPRESSIONS
+#define gu_new_s(pool, type, ...)					\
+	((type*)gu_malloc_init_aligned((pool), sizeof(type),		\
+				       gu_alignof(type),		\
+				       (type[1]){{ __VA_ARGS__ }}))
+#endif // GU_HAVE_STATEMENT_EXPRESSIONS
+
 /**< Allocate memory to store an object of a given type.
  *
  * @hideinitializer

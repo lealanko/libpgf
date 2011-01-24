@@ -39,10 +39,11 @@
 
 
 // Alas, there's no portable way to get the alignment of flex structs.
-#define gu_flex_new(pool, type, len_member, flex_member, n_elems)	\
-	(((type)*)gu_malloc((pool),					\
-			    GU_FLEX_SIZE(type, flex_member, n_elems),	\
-			    gu_flex_alignof(t)))
+#define gu_flex_new(pool_, type_, flex_member_, n_elems_)		\
+	((type_ *)gu_malloc_aligned(					\
+		(pool_),						\
+		GU_FLEX_SIZE(type_, flex_member_, n_elems_),		\
+		gu_flex_alignof(type_)))
 
 
 #define GuList(t)	   \
@@ -71,13 +72,28 @@ void* gu_list_alloc(GuPool* pool, size_t base_size, size_t elem_size,
 
 typedef GuList(void*) GuPointers; 
 typedef GuList(uint8_t) GuBytes;
-typedef GuList(gchar) GuString;
-typedef GuList(int) GuInts;		      
-typedef GuList(GuString*) GuStrings;
-		            		      
-unsigned gu_string_hash(const void* s);
-gboolean gu_string_equal(const void* s1, const void* s2);
 
+typedef GuList(int) GuInts;		      
+
+
+#define GuListN(t_, len_)			\
+	struct {				\
+	int len;				\
+	t elems[len_];				\
+	}
+
+#define gu_list_(qual_, t_, ...)			\
+	((qual_ GuList(t_) *)				\
+	((qual_ GuListN(t_, (sizeof((t_[]){__VA_ARGS__}) / sizeof(t_)))[]){ \
+	__VA_ARGS__							\
+	}))
+
+#define gu_list(t_, ...)			\
+	gu_list_(, t_, __VA_ARGS__)
+
+#define gu_clist(t_, ...)			\
+	gu_list_(const, t_, __VA_ARGS__)
+			
 #define GuSList(t)				\
 	const struct {				\
 		int len;			\

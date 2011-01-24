@@ -56,7 +56,7 @@ void* gu_variant_alloc(GuPool* pool, uint8_t tag,
  * @hideinitializer */
 
 enum {
-	GU_VARIANT_NULL = (unsigned)-1
+	GU_VARIANT_NULL = -1
 };
 
 unsigned gu_variant_tag(GuVariant variant);

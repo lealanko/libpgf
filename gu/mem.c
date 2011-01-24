@@ -18,7 +18,8 @@
  */
 
 #include "mem.h"
-
+#include "fun.h"
+#include <string.h>
 
 typedef union {
 	long long ll;
@@ -31,16 +32,22 @@ enum {
 	GU_MAX_ALIGNMENT = gu_alignof(GuMaxAligned)
 };
 
-	
 
+typedef struct GuMemFinalizerNode GuMemFinalizerNode;	
 
+struct GuMemFinalizerNode {
+	GuFn0* finalizer;
+	GuMemFinalizerNode* next;
+};
 
+// TODO: include some storage in the buffer object to make temporary
+// pools efficient
 
 struct GuPool {
 	uint8_t* cur;
 	uint8_t* end;
 	GPtrArray* chunks;
-	GHashTable* finalizers;
+	GuMemFinalizerNode* finalizers;
 };
 
 typedef struct Finalizer Finalizer;
@@ -63,7 +70,7 @@ gu_pool_new(void)
 	pool->cur = NULL;
 	pool->end = NULL;
 	pool->chunks = g_ptr_array_new_with_free_func(g_free);
-	pool->finalizers = g_hash_table_new(NULL, NULL);
+	pool->finalizers = NULL;
 	pool->cur = g_malloc(CHUNK_SIZE);
 	pool->end = &pool->cur[CHUNK_SIZE];
 	g_ptr_array_add(pool->chunks, pool->cur);
@@ -110,39 +117,30 @@ gu_malloc_aligned(GuPool* pool, size_t size, size_t alignment)
 }
 
 void 
-gu_pool_finally(GuPool* pool, GDestroyNotify func, void* p)
+gu_pool_finally(GuPool* pool, GuFn0* finalize)
 {
-	void* key = (void*)func; // Not strictly portable
-	GPtrArray* arr = g_hash_table_lookup(pool->finalizers, key);
-	if (arr == NULL) {
-		arr = g_ptr_array_new();
-		g_hash_table_insert(pool->finalizers, key, arr);
-	}
-	g_ptr_array_add(arr, p);
-}
-
-static void
-gu_pool_run_finalizer(void* key, void* value, 
-			  G_GNUC_UNUSED void* user_data)
-{
-	GDestroyNotify destroy = (GDestroyNotify) key;
-	GPtrArray* arr = value;
-	int len = arr->len;
-	for (int i = 0; i < len; i++) {
-		destroy(arr->pdata[i]);
-	}
-	g_ptr_array_free(arr, TRUE);
+	GuMemFinalizerNode* node = gu_new(pool, GuMemFinalizerNode);
+	node->finalizer = finalize;
+	node->next = pool->finalizers;
+	pool->finalizers = node;
 }
 
 void
 gu_pool_free(GuPool* pool)
 {
-	g_hash_table_foreach(pool->finalizers, gu_pool_run_finalizer, NULL);
-	g_hash_table_destroy(pool->finalizers);
+	GuMemFinalizerNode* node = pool->finalizers;
+	while (node != NULL) {
+		(*node->finalizer)(node->finalizer);
+		node = node->next;
+	}
 	g_ptr_array_free(pool->chunks, TRUE);
 	g_slice_free(GuPool, pool);
 }
 
 
 extern inline void* gu_malloc(GuPool* pool, size_t size);
+
+extern inline void* 
+gu_malloc_init_aligned(GuPool* pool, size_t size, size_t alignment, 
+		       const void* init);
 
