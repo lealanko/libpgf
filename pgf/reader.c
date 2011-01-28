@@ -117,7 +117,8 @@ pgf_write_string(PgfWriter* wtr, const GuString* s)
 			pgf_write_esc_exceptions[i] = 128+i;
 		}
 	}
-	gchar* str = g_strndup(s->elems, s->len);
+	gint len = gu_string_length(s);
+	gchar* str = g_strndup(gu_string_cdata(s), len);
 	int i = 0;
 	pgf_write_str(wtr, "\"");
 	// Make sure we print out NULs that the string could in theory contain
@@ -126,10 +127,10 @@ pgf_write_string(PgfWriter* wtr, const GuString* s)
 		pgf_write_str(wtr, esc);
 		g_free(esc);
 		i = i + strlen(str);
-		for (i += strlen(str); str[i] == '\0' && i < s->len; i++) {
+		for (i += strlen(str); str[i] == '\0' && i < len; i++) {
 			pgf_write_str(wtr, "\\0");
 		}
-	} while (i < s->len);
+	} while (i < len);
 	pgf_write_str(wtr, "\"");
 }
 
@@ -1310,8 +1311,8 @@ pgf_unpickle_string_p(G_GNUC_UNUSED const PgfTypeBase* type,
 	// XXX: temporary pools are not very efficient
 	GuPool* pool = gu_pool_new();
 	GuString* tmp = gu_string_new(pool, len);
-	tmp->len = len;
-	pgf_read_chars(rdr, tmp->elems, len);
+	char* data = gu_string_data(tmp);
+	pgf_read_chars(rdr, data, len);
 	GuString* interned = gu_map_get(rdr->interned_strings, tmp);
 	if (interned == NULL) {
 		interned = gu_string_copy(rdr->pool, tmp);
@@ -1320,7 +1321,7 @@ pgf_unpickle_string_p(G_GNUC_UNUSED const PgfTypeBase* type,
 	gu_pool_free(pool);
 	GuString** to = pgf_placer_place_type(placer, GuString*);
 	*to = interned;
-	pgf_debug("<- GuString*: %.*s", interned->len, interned->elems);
+	pgf_debug("<- GuString*: " GU_STRING_FMT, GU_STRING_FMT_ARGS(interned));
 }
 
 static void

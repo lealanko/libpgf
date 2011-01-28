@@ -36,11 +36,14 @@ typedef PgfLinearizer PgfLzr;
 
 
 static void
-pgf_lzr_parr_free_cb(void* p)
+pgf_lzr_parr_free_cb(GuFn* fnp)
 {
-	GPtrArray* parr = p;
+	GuClo1* clo = (GuClo1*) fnp;
+	GPtrArray* parr = clo->env1;
 	g_ptr_array_free(parr, TRUE);
 }
+
+GuFn pgf_lzr_parr_free_fn = pgf_lzr_parr_free_cb;
 
 static void
 pgf_linearizer_add_production(PgfLinearizer* lzr, PgfFId fid,
@@ -58,9 +61,9 @@ pgf_linearizer_add_production(PgfLinearizer* lzr, PgfFId fid,
 		GPtrArray* lin_prods = gu_intmap_get(m, fid);
 		if (lin_prods == NULL) {
 			lin_prods = g_ptr_array_new();
-			gu_pool_finally(lzr->pool, 
-					pgf_lzr_parr_free_cb, 
-					lin_prods);
+			GuClo1* clo = gu_new_s(lzr->pool, GuClo1, 
+					       pgf_lzr_parr_free_cb, lin_prods);
+			gu_pool_finally(lzr->pool, &clo->fn);
 			gu_intmap_set(m, fid, lin_prods);
 		}
 		g_ptr_array_add(lin_prods, gu_variant_to_ptr(prod));
@@ -119,16 +122,21 @@ struct PgfLinearization {
 
 typedef PgfLinearization PgfLzn;
 
+static void 
+pgf_lzn_byte_array_free_cb(GuFn* fnp)
+{
+	GuClo1* clo = (GuClo1*) fnp;
+	g_byte_array_unref(clo->env1);
+}
+
 PgfLzn*
 pgf_lzn_new(GuPool* pool, PgfLzr* lzr)
 {
 	PgfLzn* lzn = gu_new(pool, PgfLzn);
 	lzn->lzr = lzr;
 	lzn->path = g_byte_array_new();
-	gu_pool_finally(pool, 
-			// Not portable
-			(GDestroyNotify)g_byte_array_unref,
-			lzn->path);
+	GuClo1* clo = gu_new_s(pool, GuClo1, pgf_lzn_byte_array_free_cb, lzn->path);
+	gu_pool_finally(pool, &clo->fn);
 	return lzn;
 }
 
@@ -372,7 +380,7 @@ pgf_file_lzn_symbol_tokens(void* ctx, PgfTokens* toks)
 	
 	for (int i = 0; i < toks->len; i++) {
 		PgfToken* tok = toks->elems[i];
-		fprintf(out, "%.*s ", tok->len, tok->elems);
+		fprintf(out, GU_STRING_FMT, GU_STRING_FMT_ARGS(tok));
 	}
 }
 

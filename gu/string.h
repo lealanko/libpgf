@@ -24,6 +24,11 @@
 #include <stdarg.h>
 
 typedef struct GuString GuString;
+
+typedef const GuString GuCString;
+
+typedef GuList(GuString*) GuStrings;
+typedef GuList(GuCString*) GuCStrings;
 		            		      
 unsigned 
 gu_string_hash(const void* s);
