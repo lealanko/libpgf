@@ -44,6 +44,12 @@ gu_map_set(GuMap* map, const void* key, void* value)
 void 
 gu_map_iter(GuMap* map, GuFn2* fn);
 
+static inline bool
+gu_map_has(GuMap* map, const void* key)
+{
+	return g_hash_table_lookup_extended(map, key, NULL, NULL);
+}
+
 
 typedef GuMap GuIntMap;
 
@@ -63,6 +69,12 @@ static inline void
 gu_intmap_set(GuIntMap* m, int key, void* value)
 {
 	gu_map_set(m, GINT_TO_POINTER(key), value);
+}
+
+static inline bool
+gu_intmap_has(GuMap* map, int key)
+{
+	return gu_map_has(map, GINT_TO_POINTER(key));
 }
 
 
@@ -121,11 +133,15 @@ typedef GuType_GuMap GuType_GuIntMap;
 	GU_TYPE_INIT_GuMap(k_, t_, gu_type(GuMapDirectInt), value_type_)
 
 
+
+
 extern GU_DECLARE_KIND(GuStringMap);
 typedef GuType_GuMap GuType_GuStringMap;
 
 #define GU_TYPE_INIT_GuStringMap(k_, t_, value_type_) \
-	GU_TYPE_INIT_GuMap(k_, t_, gu_type(GuString), value_type_)
+	GU_TYPE_INIT_GuMap(k_, t_,  \
+			   GU_TYPE_LIT(pointer, GuString*, gu_type(GuString)), \
+			   value_type_)
 
 
 #endif // GU_MAP_H_

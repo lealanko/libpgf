@@ -17,7 +17,9 @@ GU_DEFINE_TYPE(
 
 typedef GuIntMap Dict;
 
-GU_DEFINE_TYPE(Dict, GuIntMap, gu_type(GuString));
+GU_DEFINE_TYPE(Dict, GuIntMap, 
+	       GU_TYPE_LIT(shared, GuString*,
+			   gu_type(GuString)));
 
 
 int main(void)
@@ -32,11 +34,15 @@ int main(void)
 		.data = NULL,
 		.yaml = yaml 
 	};
+	ctx.data = gu_map_new(pool, NULL, NULL);
 	gu_dump(gu_type(Baz), &b, &ctx);
 	
 	Dict* dict = gu_intmap_new(pool);
+	GuString* fnord = gu_string("fnord");
 	gu_intmap_set(dict, 42, gu_string("fnord"));
 	gu_intmap_set(dict, 7, gu_string("blurh"));
+	gu_intmap_set(dict, 11, fnord);
+	gu_intmap_set(dict, 15, fnord);
 	gu_dump(gu_type(Dict), dict, &ctx);
 
 	gu_pool_free(pool);

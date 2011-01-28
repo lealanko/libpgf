@@ -38,5 +38,3 @@ GU_DEFINE_TYPE(GuMapDirectInt, abstract, _);
 GU_DEFINE_KIND(GuMap, gu_kind(abstract));
 GU_DEFINE_KIND(GuIntMap, gu_kind(GuMap));
 GU_DEFINE_KIND(GuStringMap, gu_kind(GuMap));
-
-	       

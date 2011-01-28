@@ -4,6 +4,7 @@
 GU_DEFINE_KIND(type, NULL);
 
 GU_DEFINE_KIND(typedef, gu_kind(type));
+GU_DEFINE_KIND(referenced, gu_kind(typedef));
 
 GU_DEFINE_KIND(repr, gu_kind(type));
 
@@ -12,6 +13,8 @@ GU_DEFINE_KIND(abstract, gu_kind(type));
 GU_DEFINE_KIND(struct, gu_kind(repr));
 
 GU_DEFINE_KIND(pointer, gu_kind(repr));
+GU_DEFINE_KIND(reference, gu_kind(pointer));
+GU_DEFINE_KIND(shared, gu_kind(pointer));
 
 GU_DEFINE_KIND(primitive, gu_kind(repr));
 GU_DEFINE_KIND(integer, gu_kind(primitive));

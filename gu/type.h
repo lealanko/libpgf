@@ -104,6 +104,19 @@ extern GU_DECLARE_KIND(typedef);
 #define GU_DEFINE_TYPEDEF(t_, ...)	\
 	GU_DEFINE_TYPEDEF_X(t_, typedef, __VA_ARGS__)
 
+
+
+//
+// referenced
+//
+
+extern GU_DECLARE_KIND(referenced);
+
+typedef GuType_typedef GuType_referenced;
+
+#define GU_TYPE_INIT_referenced GU_TYPE_INIT_aliased
+
+
 //
 // repr 
 //
@@ -187,6 +200,27 @@ struct GuPointerType {
 
 extern GU_DECLARE_KIND(pointer);
 
+
+//
+// reference
+//
+
+typedef GuType_pointer GuType_reference;
+
+#define GU_TYPE_INIT_reference GU_TYPE_INIT_pointer
+
+extern GU_DECLARE_KIND(reference);
+
+
+//
+// shared
+//
+
+typedef GuType_pointer GuType_shared;
+
+#define GU_TYPE_INIT_shared GU_TYPE_INIT_pointer
+
+extern GU_DECLARE_KIND(shared);
 
 
 //

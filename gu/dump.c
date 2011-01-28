@@ -25,7 +25,9 @@ gu_dump_direct_int(GuDumpFn* dumper, GuType* type, const void* p,
 {
 	(void) dumper;
 	(void) type;
-	int i = GPOINTER_TO_INT(p);
+	void* const *pp = p;
+	void *vp = *pp;
+	int i = GPOINTER_TO_INT(vp);
 	GuString* str = gu_string_format(ctx->pool, "%d", i);
 	gu_yaml_scalar(ctx->yaml, str);
 }
@@ -58,8 +60,8 @@ gu_dump_map_entry_fn(GuFn* fnp, void* key, void* value)
 	GuClo2* clo = (GuClo2*) fnp;
 	GuMapType* mtype = clo->env1;
 	GuDumpCtx* ctx = clo->env2;
-	gu_dump(mtype->key_type, key, ctx);
-	gu_dump(mtype->value_type, value, ctx);
+	gu_dump(mtype->key_type, &key, ctx);
+	gu_dump(mtype->value_type, &value, ctx);
 }
 
 
@@ -102,6 +104,64 @@ gu_dump_typedef(GuDumpFn* dumper, GuType* type, const void* p,
 	gu_dump(tdef->type, p, ctx);
 }
 
+static const char* gu_dump_reference_key = "reference";
+
+static bool
+gu_dump_anchor(GuDumpCtx* ctx, const void* p) 
+{
+	GuMap* map = gu_map_get(ctx->data, gu_dump_reference_key);
+	if (map == NULL) {
+		map = gu_map_new(ctx->pool, NULL, NULL);
+		gu_map_set(ctx->data, gu_dump_reference_key, map);
+	}
+	GuYamlAnchor* ap = gu_map_get(map, p);
+	if (ap == NULL) {
+		ap = gu_new(ctx->pool, GuYamlAnchor);
+		*ap = gu_yaml_anchor(ctx->yaml);
+		gu_map_set(map, p, ap);
+		return true;
+	} else {
+		gu_yaml_alias(ctx->yaml, *ap);
+		return false;
+	}
+}
+
+static void
+gu_dump_referenced(GuDumpFn* dumper, GuType* type, const void* p,
+		   GuDumpCtx* ctx)
+{
+	(void) dumper;
+	GuTypeDef* tdef = (GuTypeDef*) type;
+	bool created = gu_dump_anchor(ctx, p);
+	g_assert(created);
+	gu_dump(tdef->type, p, ctx);
+}
+
+static void 
+gu_dump_reference(GuDumpFn* dumper, GuType* type, const void* p, 
+		  GuDumpCtx* ctx)
+{
+	(void) dumper;
+	(void) type;
+	void* const* pp = p;
+	bool created = gu_dump_anchor(ctx, *pp);
+	g_assert(!created);
+}
+
+static void 
+gu_dump_shared(GuDumpFn* dumper, GuType* type, const void* p, 
+		  GuDumpCtx* ctx)
+{
+	(void) dumper;
+	void* const* pp = p;
+	bool created = gu_dump_anchor(ctx, *pp);
+	if (created) {
+		GuPointerType* ptype = (GuPointerType*) type;
+		gu_dump(ptype->pointed_type, *pp, ctx);
+	}
+}
+
+
 GuTypeTable
 gu_dump_table = GU_TYPETABLE(
 	GU_SLIST_0,
@@ -112,4 +172,7 @@ gu_dump_table = GU_TYPETABLE(
 	{ gu_kind(pointer), gu_fn(gu_dump_pointer) },
 	{ gu_kind(GuMap), gu_fn(gu_dump_map) },
 	{ gu_kind(typedef), gu_fn(gu_dump_typedef) },
+	{ gu_kind(reference), gu_fn(gu_dump_reference) },
+	{ gu_kind(referenced), gu_fn(gu_dump_referenced) },
+	{ gu_kind(shared), gu_fn(gu_dump_shared) },
 	);
