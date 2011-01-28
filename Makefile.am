@@ -6,7 +6,7 @@ include_HEADERS = \
 	gu/defs.h \
 	gu/dump.h \
 	gu/error.h \
-	gu/flex.h \
+	gu/list.h \
 	gu/map.h \
 	gu/mem.h \
 	gu/stack.h \
@@ -18,7 +18,7 @@ include_HEADERS = \
 libgu_la_SOURCES = \
 	gu/dump.c \
 	gu/error.c \
-	gu/flex.c \
+	gu/list.c \
 	gu/map.c \
 	gu/mem.c \
 	gu/stack.c \

@@ -3,7 +3,6 @@
 #define GU_TYPE_H_
 
 #include <gu/defs.h>
-#include <gu/flex.h>
 
 //
 // kind
@@ -15,8 +14,6 @@ struct GuKind {
 	GuKind* super;
 };
 
-#define GU_TYPE_INIT_kind(t_, k_, super_) { .super = super_ }
-
 #define gu_kind(k_) ((GuKind*)&gu_type_##k_)
 
 #define GU_DECLARE_KIND(k_) \
@@ -24,8 +21,8 @@ struct GuKind {
 
 extern GU_DECLARE_KIND(kind);
 
-#define GU_DEFINE_KIND(k_, super_) \
-	GuKind gu_type_##k_ = { .super = super_ }
+#define GU_DEFINE_KIND(k_, super_k_) \
+	GuKind gu_type_##k_ = { .super = gu_kind(super_k_) }
 
 //
 // type
@@ -41,7 +38,7 @@ typedef GuType GuType_type;
 
 extern GU_DECLARE_KIND(type);
 
-#define GU_TYPE_INIT_type(k_) { .kind_base = { .super = gu_kind(k_) } }
+#define GU_TYPE_INIT_type(k_, t_, _) { .kind_base = { .super = gu_kind(k_) } }
 
 #define gu_type(t_) ((GuType*)gu_kind(t_))
 
@@ -66,7 +63,7 @@ extern GU_DECLARE_KIND(type);
 typedef GuType GuType_abstract;
 
 #define GU_TYPE_INIT_abstract(k_, t_, _)		\
-	GU_TYPE_INIT_type(k_)
+	GU_TYPE_INIT_type(k_, t_, _)
 
 extern GU_DECLARE_KIND(abstract);
 
@@ -91,7 +88,7 @@ struct GuTypeDef {
 };
 
 #define GU_TYPE_INIT_typedef(k_, t_, type_) {			\
-		.type_base = GU_TYPE_INIT_type(k_),	\
+		.type_base = GU_TYPE_INIT_type(k_, t_, _),	\
 		.name = gu_cstring(#t_),		\
 		.type = type_				\
 }
@@ -129,8 +126,8 @@ struct GuTypeRepr {
 	size_t align;
 };
 
-#define GU_TYPE_INIT_repr(k_, t_) {			\
-		.type_base = GU_TYPE_INIT_type(k_),	\
+#define GU_TYPE_INIT_repr(k_, t_, _) {				\
+		.type_base = GU_TYPE_INIT_type(k_, t_, _),	\
 		.size = sizeof(t_), \
 		.align = gu_alignof(t_) \
 		 }
@@ -138,11 +135,12 @@ struct GuTypeRepr {
 extern GU_DECLARE_KIND(repr);
 
 
+
+#include <gu/list.h>
+
 //
 // struct
 //
-
-
 
 typedef const struct GuStructRepr GuStructRepr;
 typedef GuStructRepr GuType_struct;
@@ -173,7 +171,7 @@ extern GU_DECLARE_KIND(struct);
 	GU_MEMBER_V(s_, m_, gu_type(t_))
 
 #define GU_TYPE_INIT_struct(k_, t_, ...)	{		\
-		.repr_base = GU_TYPE_INIT_repr(k_, t_),	\
+		.repr_base = GU_TYPE_INIT_repr(k_, t_, _),	\
 	.members = GU_SLIST(GuMember, __VA_ARGS__)	\
 }
 
@@ -193,7 +191,7 @@ struct GuPointerType {
 
 #define GU_TYPE_INIT_pointer(k_, t_, pointed_)	\
 	{					   \
-		.repr_base = GU_TYPE_INIT_repr(k_, t_),	\
+		.repr_base = GU_TYPE_INIT_repr(k_, t_, _),	\
 	.pointed_type = pointed_ \
 }	
 
@@ -235,7 +233,7 @@ struct GuPrimType {
 };
 
 #define GU_TYPE_INIT_primitive(k_, t_, _) {	\
-	.repr_base = GU_TYPE_INIT_repr(k_, t_),	\
+	.repr_base = GU_TYPE_INIT_repr(k_, t_, _),	\
 	.name = gu_cstring(#t_)			\
 }	
 
@@ -252,21 +250,6 @@ extern GU_DECLARE_TYPE(int, primitive);
 
 typedef int GuLength;
 extern GU_DECLARE_TYPE(GuLength, int);
-
-
-//
-// list
-//
-
-typedef GuType_struct GuType_GuList;
-
-#define GU_TYPE_INIT_GuList(t_, kind_, elem_type_) \
-	GU_TYPE_INIT_struct(t_, kind_, \
-		GU_MEMBER(t_, len, gu_type(GuLength)), \
-	        GU_MEMBER(t_, elems, elem_type_))
-
-extern GU_DECLARE_KIND(GuList);
-
 
 
 // variant
@@ -297,8 +280,8 @@ struct GuVariantType {
 	GuConstructors ctors;
 };
 
-#define GU_TYPE_INIT_GuVariant(k_, ...) {	\
-	.repr_base = GU_TYPE_INIT_repr(k_, GuVariant),	\
+#define GU_TYPE_INIT_GuVariant(k_, t_, ...) {			\
+	.repr_base = GU_TYPE_INIT_repr(k_, GuVariant, _),	\
 	.ctors = GU_SLIST(GuConstructor, __VA_ARGS__) \
 }
 

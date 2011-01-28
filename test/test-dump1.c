@@ -2,9 +2,14 @@
 #include <gu/type.h>
 
 
+typedef GuList(int) Ints;
+
+static GU_DEFINE_TYPE(Ints, GuList, int);
+
 typedef struct {
 	int foo;
 	GuString* bar;
+	Ints* fooh;
 } Baz;
 
 GU_DEFINE_TYPE(
@@ -12,7 +17,11 @@ GU_DEFINE_TYPE(
 	GU_MEMBER(Baz, foo, int),
 	GU_MEMBER_V(Baz, bar, 
 		    GU_TYPE_LIT(pointer, GuString*,
-				gu_type(GuString))));
+				gu_type(GuString))),
+	GU_MEMBER_V(Baz, fooh,
+		    GU_TYPE_LIT(pointer, Ints*,
+				gu_type(Ints)))
+);
 
 
 typedef GuIntMap Dict;
@@ -24,8 +33,13 @@ GU_DEFINE_TYPE(Dict, GuIntMap,
 
 int main(void)
 {
-	Baz b = { 42, gu_string("fnord") };
 	GuPool* pool = gu_pool_new();
+	Ints* fooh = gu_list_new(Ints, pool, 3);
+	Baz b = { 42, gu_string("fnord"), fooh };
+	int* elems = gu_list_elems(fooh);
+	elems[0] = 7;
+	elems[1] = 99;
+	elems[2] = 623;
 	GuTypeMap* tmap = gu_type_map_new(pool, &gu_dump_table);
 	GuYaml* yaml = gu_yaml_new(pool, stdout);
 	GuDumpCtx ctx = {

@@ -19,36 +19,18 @@
 
 /** @file
  *
- * Utilities for structures with flexible array members.
+ * Lists.
  */
 
-#ifndef GU_FLEX_H_
-#define GU_FLEX_H_
+#ifndef GU_LIST_H_
+#define GU_LIST_H_
 
 #include <gu/mem.h>
-
-#ifdef GU_ALIGNOF_WORKS_ON_FAM_STRUCTS
-#define gu_flex_alignof gu_alignof
-#else
-#define gu_flex_alignof(t) 0
-#endif
-
-#define GU_FLEX_SIZE(type, flex_member, n_elems) \
-	(sizeof(type) + ((n_elems) * sizeof(((type *)NULL)->flex_member[0])))
-/**< @hideinitializer */
-
-
-// Alas, there's no portable way to get the alignment of flex structs.
-#define gu_flex_new(pool_, type_, flex_member_, n_elems_)		\
-	((type_ *)gu_malloc_aligned(					\
-		(pool_),						\
-		GU_FLEX_SIZE(type_, flex_member_, n_elems_),		\
-		gu_flex_alignof(type_)))
 
 
 #define GuList(t)	   \
 	struct {	   \
-		int len;  \
+		const int len;  \
 		t elems[]; \
 	}
 
@@ -108,4 +90,34 @@ typedef GuList(int) GuInts;
 		.elems = ((t[]){__VA_ARGS__})			\
 	}
 
-#endif // GU_FLEX_H_
+
+#include <gu/type.h>
+
+//
+// list
+//
+
+typedef const struct GuListType GuListType;
+typedef GuListType GuType_GuList;
+
+struct GuListType {
+	GuType_abstract abstract_base;
+	GuType* elem_type;
+	ptrdiff_t elems_offset;
+	size_t elem_size;
+};
+
+#define GU_TYPE_INIT_GuList(k_, t_, elem_t_) {	\
+	.abstract_base = GU_TYPE_INIT_abstract(k_, t_, _),	\
+	.elem_type = gu_type(elem_t_),	\
+	.elem_size = sizeof(elem_t_),	\
+	.elems_offset = offsetof(t_, elems)	\
+}
+
+extern GU_DECLARE_KIND(GuList);
+
+
+
+
+
+#endif // GU_LIST_H_

@@ -17,17 +17,25 @@
  * License along with libgu. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "flex.h"
+#include "list.h"
 
 #include <string.h>
+
+static const int gu_list_empty = 0;
 
 void* gu_list_alloc(GuPool* pool, size_t base_size, size_t elem_size, 
 		       int n_elems, size_t alignment, ptrdiff_t len_offset)
 {
 	g_assert(n_elems >= 0);
+	if (n_elems == 0 && len_offset == 0) {
+		return (void*) &gu_list_empty;
+	}
 	void* p = gu_malloc_aligned(pool, base_size + elem_size * n_elems,
 				       alignment);
 	G_STRUCT_MEMBER(int, p, len_offset) = n_elems;
 	return p;
 }
+
+
+GU_DEFINE_KIND(GuList, abstract);
 

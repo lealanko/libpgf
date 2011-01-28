@@ -1,5 +1,5 @@
 #include "dump.h"
-#include "flex.h"
+#include "list.h"
 
 void
 gu_dump(GuType* type, const void* value, GuDumpCtx* ctx)
@@ -18,6 +18,8 @@ gu_dump_int(GuDumpFn* dumper, GuType* type, const void* p,
 	GuString* str = gu_string_format(ctx->pool, "%d", *ip);
 	gu_yaml_scalar(ctx->yaml, str);
 }
+
+
 
 static void 
 gu_dump_direct_int(GuDumpFn* dumper, GuType* type, const void* p, 
@@ -78,6 +80,7 @@ gu_dump_map(GuDumpFn* dumper, GuType* type, const void* p,
 	gu_yaml_end(ctx->yaml);
 }
 
+
 static void
 gu_dump_struct(GuDumpFn* dumper, GuType* type, const void* p,
 	       GuDumpCtx* ctx)
@@ -104,7 +107,7 @@ gu_dump_typedef(GuDumpFn* dumper, GuType* type, const void* p,
 	gu_dump(tdef->type, p, ctx);
 }
 
-static const char* gu_dump_reference_key = "reference";
+static const char gu_dump_reference_key[] = "reference";
 
 static bool
 gu_dump_anchor(GuDumpCtx* ctx, const void* p) 
@@ -161,6 +164,22 @@ gu_dump_shared(GuDumpFn* dumper, GuType* type, const void* p,
 	}
 }
 
+static void 
+gu_dump_list(GuDumpFn* dumper, GuType* type, const void* p, 
+	     GuDumpCtx* ctx)
+{
+	(void) dumper;
+	GuListType* ltype = (GuListType*) type;
+	const uint8_t* up = p;
+	int len = * (const int*) p;
+	gu_yaml_begin_sequence(ctx->yaml);
+	for (int i = 0; i < len; i++) {
+		ptrdiff_t offset = ltype->elems_offset + i * ltype->elem_size;
+		gu_dump(ltype->elem_type, &up[offset], ctx);
+	}
+	gu_yaml_end(ctx->yaml);
+}
+
 
 GuTypeTable
 gu_dump_table = GU_TYPETABLE(
@@ -175,4 +194,5 @@ gu_dump_table = GU_TYPETABLE(
 	{ gu_kind(reference), gu_fn(gu_dump_reference) },
 	{ gu_kind(referenced), gu_fn(gu_dump_referenced) },
 	{ gu_kind(shared), gu_fn(gu_dump_shared) },
+	{ gu_kind(GuList), gu_fn(gu_dump_list) },
 	);

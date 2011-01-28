@@ -20,16 +20,13 @@
 #ifndef GU_STRING_H_
 #define GU_STRING_H_
 
-#include <gu/flex.h>
 #include <stdarg.h>
+#include <gu/mem.h>
 
 typedef struct GuString GuString;
 
 typedef const GuString GuCString;
 
-typedef GuList(GuString*) GuStrings;
-typedef GuList(GuCString*) GuCStrings;
-		            		      
 unsigned 
 gu_string_hash(const void* s);
 
@@ -113,7 +110,7 @@ extern GU_DECLARE_TYPE(GuString, abstract);
 		})
 
 #define GU_DEFINE_ATOM(name_, cstr_)		\
-	static const GuStringShortN_(cstr_)	\
+	const GuStringShortN_(cstr_)	\
 	gu_atom_##name_##_ =			\
 	GU_STRING_SHORTN_INIT_(cstr_)
 
@@ -152,6 +149,11 @@ gu_string_data(GuString* s) {
 	return (char*) gu_string_cdata(s);
 }
 
+
+#include <gu/list.h>
+typedef GuList(GuString*) GuStrings;
+typedef GuList(GuCString*) GuCStrings;
+		            		      
 
 
 #endif // GU_STRING_H_

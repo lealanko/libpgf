@@ -85,6 +85,15 @@ gu_malloc_init_aligned(GuPool* pool, size_t size, size_t alignment,
 #define gu_new(pool, type) \
 	((type*)gu_malloc_aligned((pool), sizeof(type), gu_alignof(type)))
 
+/**< Allocate memory to store an object of a given type.
+ *
+ * @hideinitializer
+ *
+ * @param pool  The memory pool to allocate from
+ * @param type  The C type of the object to allocate
+ * @relates GuPool */
+
+
 #ifdef GU_HAVE_STATEMENT_EXPRESSIONS
 #define gu_new_s(pool, type, ...)			\
 	({						\
@@ -99,13 +108,16 @@ gu_malloc_init_aligned(GuPool* pool, size_t size, size_t alignment,
 				       (type[1]){{ __VA_ARGS__ }}))
 #endif // GU_HAVE_STATEMENT_EXPRESSIONS
 
-/**< Allocate memory to store an object of a given type.
- *
- * @hideinitializer
- *
- * @param pool  The memory pool to allocate from
- * @param type  The C type of the object to allocate
- * @relates GuPool */
+
+
+
+// Alas, there's no portable way to get the alignment of flex structs.
+#define gu_flex_new(pool_, type_, flex_member_, n_elems_)		\
+	((type_ *)gu_malloc_aligned(					\
+		(pool_),						\
+		GU_FLEX_SIZE(type_, flex_member_, n_elems_),		\
+		gu_flex_alignof(type_)))
+
 
 
 /// @name Miscellaneous

@@ -16,8 +16,8 @@ static struct {
 };
 
 
-GU_DEFINE_ATOM(bloh, "bloh");
-GU_DEFINE_ATOM(ugga_mugga, "ugga-mugga");
+static GU_DEFINE_ATOM(bloh, "bloh");
+static GU_DEFINE_ATOM(ugga_mugga, "ugga-mugga");
 
 	
 int main(void)

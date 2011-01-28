@@ -111,13 +111,13 @@ typedef struct GuMapType GuMapType;
 typedef GuMapType GuType_GuMap;
 
 struct GuMapType {
-	GuType type_base;
+	GuType_abstract abstract_base;
 	GuType* key_type;
 	GuType* value_type;
 };
 
 #define GU_TYPE_INIT_GuMap(k_, t_, key_type_, value_type_) {	\
-	.type_base = GU_TYPE_INIT_abstract(k_, t_, _),	\
+	.abstract_base = GU_TYPE_INIT_abstract(k_, t_, _),	\
 	.key_type = key_type_, \
 	.value_type = value_type_ \
 }	

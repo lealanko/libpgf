@@ -2,7 +2,7 @@
 #include <limits.h>
 
 #include "string.h"
-#include "flex.h"
+#include "list.h"
 
 GuString* 
 gu_string_new(GuPool* pool, int len)

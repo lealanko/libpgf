@@ -20,7 +20,7 @@
 #ifndef PGF_DATA_H_
 #define PGF_DATA_H_
 
-#include <gu/flex.h>
+#include <gu/list.h>
 #include <gu/variant.h>
 #include <gu/string.h>
 #include <gu/map.h>

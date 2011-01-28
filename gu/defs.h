@@ -75,6 +75,15 @@
 #define GU_BEGIN do {
 #define GU_END } while (false)
 
+#ifdef GU_ALIGNOF_WORKS_ON_FAM_STRUCTS
+#define gu_flex_alignof gu_alignof
+#else
+#define gu_flex_alignof(t) 0
+#endif
+
+#define GU_FLEX_SIZE(type, flex_member, n_elems) \
+	(sizeof(type) + ((n_elems) * sizeof(((type *)NULL)->flex_member[0])))
+/**< @hideinitializer */
 
 
 #endif // GU_DEFS_H_
