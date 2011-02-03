@@ -1,4 +1,4 @@
-
+ 
 #ifndef GU_TYPE_H_
 #define GU_TYPE_H_
 
@@ -151,6 +151,7 @@ struct GuMember {
 	ptrdiff_t offset;
 	const GuString* name;
 	GuType* type;
+	bool is_flex;
 };
 
 struct GuStructRepr {
@@ -160,15 +161,26 @@ struct GuStructRepr {
 
 extern GU_DECLARE_KIND(struct);
 
-#define GU_MEMBER_V(struct_, member_, type_)	      \
+#define GU_MEMBER_AUX_(struct_, member_, type_, is_flex_)      \
 	{					      \
 		.offset = offsetof(struct_, member_), \
 		.name = gu_cstring(#member_),	      \
-		.type = type_		      \
+		.type = type_,		      \
+		.is_flex = is_flex_,  \
 	}
+
+#define GU_MEMBER_V(struct_, member_, type_) \
+	GU_MEMBER_AUX_(struct_, member_, type_, false)
 
 #define GU_MEMBER(s_, m_, t_) \
 	GU_MEMBER_V(s_, m_, gu_type(t_))
+
+#define GU_FLEX_MEMBER_V(struct_, member_, type_) \
+	GU_MEMBER_AUX_(struct_, member_, type_, true)
+
+#define GU_FLEX_MEMBER(s_, m_, t_) \
+	GU_FLEX_MEMBER_V(s_, m_, gu_type(t_))
+
 
 #define GU_TYPE_INIT_struct(k_, t_, ...)	{		\
 		.repr_base = GU_TYPE_INIT_repr(k_, t_, _),	\
@@ -323,5 +335,7 @@ typedef GuMap GuTypeMap;
 GuTypeMap* gu_type_map_new(GuPool* pool, GuTypeTable* table);
 
 void* gu_type_map_lookup(GuTypeMap* tmap, GuType* type);
+
+size_t gu_type_size(GuType* type);
 
 #endif // GU_TYPE_H_

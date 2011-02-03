@@ -19,6 +19,23 @@ gu_dump_int(GuDumpFn* dumper, GuType* type, const void* p,
 	gu_yaml_scalar(ctx->yaml, str);
 }
 
+static GU_DEFINE_ATOM(gu_dump_length_key, "gu_dump_length_key");
+
+static void 
+gu_dump_length(GuDumpFn* dumper, GuType* type, const void* p, 
+	       GuDumpCtx* ctx)
+{
+	(void) dumper;
+	(void) type;
+	const GuLength* ip = p;
+	GuString* str = gu_string_format(ctx->pool, "%d", *ip);
+	gu_yaml_scalar(ctx->yaml, str);
+	GuLength* lenp = gu_map_get(ctx->data, gu_atom(gu_dump_length_key));
+	if (lenp != NULL) {
+		*lenp = *ip;
+	}
+}
+
 
 
 static void 
@@ -89,13 +106,30 @@ gu_dump_struct(GuDumpFn* dumper, GuType* type, const void* p,
 	GuStructRepr* srepr = (GuStructRepr*) type;
 	gu_yaml_begin_mapping(ctx->yaml);
 	const uint8_t* data = p;
+	GuLength* old_lenp = 
+		gu_map_get(ctx->data, gu_atom(gu_dump_length_key));
+	GuLength len = -1;
+	gu_map_set(ctx->data, gu_atom(gu_dump_length_key), &len);
+
 	for (int i = 0; i < srepr->members.len; i++) {
 		const GuMember* member = &srepr->members.elems[i];
 		gu_yaml_scalar(ctx->yaml, member->name);
-		const void* memp = &data[member->offset];
-		gu_dump(member->type, memp, ctx);
+		const uint8_t* memp = &data[member->offset];
+		if (member->is_flex) {
+			// Flexible array member
+			g_assert(len >= 0);
+			size_t mem_s = gu_type_size(member->type);
+			gu_yaml_begin_sequence(ctx->yaml);
+			for (int i = 0; i < len; i++) {
+				gu_dump(member->type, &memp[i * mem_s], ctx);
+			}
+			gu_yaml_end(ctx->yaml);
+		} else {
+			gu_dump(member->type, memp, ctx);
+		}
 	}
 	gu_yaml_end(ctx->yaml);
+	gu_map_set(ctx->data, gu_atom(gu_dump_length_key), old_lenp);
 }
 
 static void
@@ -195,4 +229,5 @@ gu_dump_table = GU_TYPETABLE(
 	{ gu_kind(referenced), gu_fn(gu_dump_referenced) },
 	{ gu_kind(shared), gu_fn(gu_dump_shared) },
 	{ gu_kind(GuList), gu_fn(gu_dump_list) },
+	{ gu_kind(GuLength), gu_fn(gu_dump_length) },
 	);

@@ -21,6 +21,8 @@ GU_DEFINE_KIND(integer, primitive);
 
 GU_DEFINE_TYPE(int, integer, _);
 
+GU_DEFINE_TYPE(GuLength, int, _);
+
 GU_DEFINE_KIND(GuVariant, repr);
 
 
@@ -69,3 +71,15 @@ void* gu_type_map_lookup(GuTypeMap* tmap, GuType* type)
 	return NULL;
 }
 
+
+size_t gu_type_size(GuType* type) {
+	if (gu_type_has_kind(type, gu_kind(repr))) {
+		GuType_repr* repr = (GuType_repr*) type;
+		return repr->size;
+	} else if (gu_type_has_kind(type, gu_kind(typedef))) {
+		GuTypeDef* tdef = (GuTypeDef*) type;
+		return gu_type_size(tdef->type);
+	} else {
+		return 0;
+	}
+}

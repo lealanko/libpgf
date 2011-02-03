@@ -85,5 +85,7 @@
 	(sizeof(type) + ((n_elems) * sizeof(((type *)NULL)->flex_member[0])))
 /**< @hideinitializer */
 
+#define gu_assert(expr) g_assert(expr)
+
 
 #endif // GU_DEFS_H_

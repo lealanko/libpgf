@@ -30,6 +30,16 @@ GU_DEFINE_TYPE(Dict, GuIntMap,
 	       GU_TYPE_LIT(shared, GuString*,
 			   gu_type(GuString)));
 
+typedef struct {
+	GuString* koo;
+	GuLength len;
+	int ints[];
+} Blump;
+
+GU_DEFINE_TYPE(Blump, struct,
+	       GU_MEMBER_V(Blump, koo, GU_TYPE_LIT(pointer, GuString*, gu_type(GuString))),
+	       GU_MEMBER(Blump, len, GuLength),
+	       GU_FLEX_MEMBER(Blump, ints, int));
 
 int main(void)
 {
@@ -59,6 +69,15 @@ int main(void)
 	gu_intmap_set(dict, 15, fnord);
 	gu_dump(gu_type(Dict), dict, &ctx);
 
+
+	Blump* blump = gu_flex_new(pool, Blump, ints, 8);
+	blump->len = 8;
+	blump->koo = gu_string("urk");
+	blump->ints[0] = 42;
+	blump->ints[1] = 25;
+	blump->ints[7] = 77;
+
+	gu_dump(gu_type(Blump), blump, &ctx);
 	gu_pool_free(pool);
 	return 0;
 }
