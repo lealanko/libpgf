@@ -43,13 +43,23 @@ gu_variant_alloc(GuPool* pool, uint8_t tag, size_t size,
 	return p;
 }
 
-unsigned
+GuVariant 
+gu_variant_init_alloc(GuPool* pool, uint8_t tag, 
+		      size_t size, size_t align, const void* init)
+{
+	GuVariant v;
+	void* data = gu_variant_alloc(pool, tag, size, align, &v);
+	memcpy(data, init, size);
+	return v;
+}
+
+int
 gu_variant_tag(GuVariant variant)
 {
 	if (gu_variant_is_null(variant)) {
-		return (unsigned) GU_VARIANT_NULL;
+		return GU_VARIANT_NULL;
 	}
-	unsigned u = variant.p % ALIGNMENT;
+	int u = variant.p % ALIGNMENT;
 	if (u == 0) {
 		uint8_t* mem = (uint8_t*)variant.p;
 		return mem[-1];
@@ -78,7 +88,7 @@ GuVariantInfo gu_variant_open(GuVariant variant)
 int 
 gu_variant_intval(GuVariant variant)
 {
-	unsigned u = variant.p % ALIGNMENT;
+	int u = variant.p % ALIGNMENT;
 	if (u == 0) {
 		int* mem = (int*)variant.p;
 		return *mem;
@@ -97,3 +107,6 @@ gu_variant_from_ptr(void* p);
 
 extern inline bool
 gu_variant_is_null(GuVariant v);
+
+
+GU_DEFINE_KIND(GuVariant, repr);

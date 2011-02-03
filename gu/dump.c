@@ -1,5 +1,6 @@
-#include "dump.h"
-#include "list.h"
+#include <gu/dump.h>
+#include <gu/list.h>
+#include <gu/variant.h>
 
 void
 gu_dump(GuType* type, const void* value, GuDumpCtx* ctx)
@@ -214,6 +215,29 @@ gu_dump_list(GuDumpFn* dumper, GuType* type, const void* p,
 	gu_yaml_end(ctx->yaml);
 }
 
+static void
+gu_dump_variant(GuDumpFn* dumper, GuType* type, const void* p,
+		GuDumpCtx* ctx)
+{
+	(void) dumper;
+	GuVariantType* vtype = gu_type_cast(type, GuVariant);
+	const GuVariant* vp = p;
+	int tag = gu_variant_tag(*vp);
+	for (int i = 0; i < vtype->ctors.len; i++) {
+		GuConstructor* ctor = &vtype->ctors.elems[i];
+		if (ctor->c_tag == tag) {
+			gu_yaml_begin_mapping(ctx->yaml);
+			gu_yaml_scalar(ctx->yaml, ctor->c_name);
+			void* data = gu_variant_data(*vp);
+			gu_dump(ctor->type, data, ctx);
+			gu_yaml_end(ctx->yaml);
+			return;
+		}
+	}
+	gu_assert(false);
+}
+
+
 
 GuTypeTable
 gu_dump_table = GU_TYPETABLE(
@@ -230,4 +254,5 @@ gu_dump_table = GU_TYPETABLE(
 	{ gu_kind(shared), gu_fn(gu_dump_shared) },
 	{ gu_kind(GuList), gu_fn(gu_dump_list) },
 	{ gu_kind(GuLength), gu_fn(gu_dump_length) },
+	{ gu_kind(GuVariant), gu_fn(gu_dump_variant) },
 	);

@@ -23,7 +23,6 @@ GU_DEFINE_TYPE(int, integer, _);
 
 GU_DEFINE_TYPE(GuLength, int, _);
 
-GU_DEFINE_KIND(GuVariant, repr);
 
 
 
@@ -82,4 +81,11 @@ size_t gu_type_size(GuType* type) {
 	} else {
 		return 0;
 	}
+}
+
+const void* 
+gu_type_check_cast(GuType* type, GuKind* kind)
+{
+	g_assert(gu_type_has_kind(type, kind));
+	return type;
 }

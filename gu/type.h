@@ -264,40 +264,37 @@ typedef int GuLength;
 extern GU_DECLARE_TYPE(GuLength, int);
 
 
-// variant
+//
+// enum
+//
 
+extern GU_DECLARE_KIND(enum);
 
-typedef const struct GuConstructor GuConstructor;
+typedef const struct GuEnumConstant GuEnumConstant;
 
-struct GuConstructor {
-	int c_tag;
-	const GuType* type;
+struct GuEnumConstant {
+	const GuString* name;
+	long long value;
 };
 
-#define GU_CONSTRUCTOR_V(ctag, c_type) {		\
-		.c_tag = ctag,	 \
-		.type = c_type \
-}
+typedef const struct GuEnumType GuType_enum;
 
-#define GU_CONSTRUCTOR(ctag, t_) \
-	GU_CONSTRUCTOR_V(ctag, gu_type(t_))
-
-typedef GuSList(GuConstructor) GuConstructors;
-
-
-typedef const struct GuVariantType GuType_GuVariant;
-
-struct GuVariantType {
+struct GuEnumType {
 	GuType_repr repr_base;
-	GuConstructors ctors;
+	GuSList(GuEnumConstant) constants;
 };
 
-#define GU_TYPE_INIT_GuVariant(k_, t_, ...) {			\
-	.repr_base = GU_TYPE_INIT_repr(k_, GuVariant, _),	\
-	.ctors = GU_SLIST(GuConstructor, __VA_ARGS__) \
+#define GU_ENUM_C(x) { .name = gu_cstring(#x), .value = x }
+
+#define GU_TYPE_INIT_enum(k_, t_, ...) { \
+	.repr_base = GU_TYPE_INIT_repr(k_, t_, _),	\
+	.constants = GU_SLIST(GuEnumConstant, __VA_ARGS__) \
 }
 
-extern GU_DECLARE_KIND(GuVariant);
+
+
+
+
 
 
 
@@ -337,5 +334,14 @@ GuTypeMap* gu_type_map_new(GuPool* pool, GuTypeTable* table);
 void* gu_type_map_lookup(GuTypeMap* tmap, GuType* type);
 
 size_t gu_type_size(GuType* type);
+
+const void*
+gu_type_check_cast(GuType* t, GuKind* k);
+
+#define gu_type_cast(type_, k_) \
+	((GuType_##k_*)gu_type_check_cast(type_, gu_kind(k_)))
+
+
+
 
 #endif // GU_TYPE_H_

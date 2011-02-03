@@ -1,5 +1,6 @@
 #include <gu/dump.h>
 #include <gu/type.h>
+#include <gu/variant.h>
 
 
 typedef GuList(int) Ints;
@@ -41,6 +42,35 @@ GU_DEFINE_TYPE(Blump, struct,
 	       GU_MEMBER(Blump, len, GuLength),
 	       GU_FLEX_MEMBER(Blump, ints, int));
 
+typedef GuVariant Tree;
+GU_DECLARE_TYPE(Tree, GuVariant);
+
+typedef enum {
+	LEAF,
+	BRANCH
+} TreeTag;
+
+typedef struct {
+	Tree left;
+	Tree right;
+} Branch;
+
+typedef struct {
+	int val;
+} Leaf;
+
+
+GU_DEFINE_TYPE(Branch, struct,
+	       GU_MEMBER(Branch, left, Tree),
+	       GU_MEMBER(Branch, right, Tree));
+
+GU_DEFINE_TYPE(Leaf, struct,
+	       GU_MEMBER(Leaf, val, int));
+
+GU_DEFINE_TYPE(Tree, GuVariant,
+	       GU_CONSTRUCTOR(LEAF, Leaf),
+	       GU_CONSTRUCTOR(BRANCH, Branch));
+
 int main(void)
 {
 	GuPool* pool = gu_pool_new();
@@ -76,8 +106,12 @@ int main(void)
 	blump->ints[0] = 42;
 	blump->ints[1] = 25;
 	blump->ints[7] = 77;
-
 	gu_dump(gu_type(Blump), blump, &ctx);
+
+	Tree leaf = gu_variant_new_s(pool, LEAF, Leaf, 42);
+	Tree branch = gu_variant_new_s(pool, BRANCH, Branch, leaf, leaf);
+	gu_dump(gu_type(Tree), &branch, &ctx);
+
 	gu_pool_free(pool);
 	return 0;
 }

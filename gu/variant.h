@@ -27,6 +27,7 @@
 
 #include <gu/defs.h>
 #include <gu/mem.h>
+#include <gu/type.h>
 
 /** @name Variants
  * @{
@@ -39,12 +40,21 @@ void* gu_variant_alloc(GuPool* pool, uint8_t tag,
 		       size_t size, size_t align, 
 		       GuVariant* variant_out);
 
+GuVariant gu_variant_init_alloc(GuPool* pool, uint8_t tag, 
+				size_t size, size_t align, 
+				const void* init);
 
 #define gu_variant_new(pool, tag, type, variant_out)	  \
 	((type*)gu_variant_alloc(pool, tag, sizeof(type), \
 				 gu_alignof(type), variant_out))
+
 /**< 
  * @hideinitializer */
+
+#define gu_variant_new_s(pool, tag, t_, ...) \
+	gu_variant_init_alloc(pool, tag, sizeof(t_), gu_alignof(t_), \
+			      ((t_[1]){{ __VA_ARGS__ }}))
+
 
 
 #define gu_variant_flex_new(ator, tag, type, flex_mem, n_elems, variant_out)	\
@@ -59,7 +69,7 @@ enum {
 	GU_VARIANT_NULL = -1
 };
 
-unsigned gu_variant_tag(GuVariant variant);
+int gu_variant_tag(GuVariant variant);
 
 void* gu_variant_data(GuVariant variant);
 
@@ -67,7 +77,7 @@ void* gu_variant_data(GuVariant variant);
 typedef struct GuVariantInfo GuVariantInfo;
 
 struct GuVariantInfo {
-	unsigned tag;
+	int tag;
 	void* data;
 };
 
@@ -100,5 +110,46 @@ inline bool
 gu_variant_is_null(GuVariant v) {
 	return ((void*)v.p == NULL);
 }
+
+
+// variant
+
+typedef const struct GuConstructor GuConstructor;
+
+struct GuConstructor {
+	int c_tag;
+	const GuString* c_name;
+	const GuType* type;
+};
+
+#define GU_CONSTRUCTOR_V(ctag, c_type) {		\
+		.c_tag = ctag,	 \
+		.c_name = gu_cstring(#ctag), \
+		.type = c_type \
+}
+
+#define GU_CONSTRUCTOR(ctag, t_) \
+	GU_CONSTRUCTOR_V(ctag, gu_type(t_))
+
+typedef GuSList(GuConstructor) GuConstructors;
+
+
+typedef const struct GuVariantType GuVariantType;
+typedef GuVariantType GuType_GuVariant;
+
+struct GuVariantType {
+	GuType_repr repr_base;
+	GuConstructors ctors;
+};
+
+#define GU_TYPE_INIT_GuVariant(k_, t_, ...) {			\
+	.repr_base = GU_TYPE_INIT_repr(k_, GuVariant, _),	\
+	.ctors = GU_SLIST(GuConstructor, __VA_ARGS__) \
+}
+
+extern GU_DECLARE_KIND(GuVariant);
+
+
+
 
 #endif // GU_VARIANT_H_
