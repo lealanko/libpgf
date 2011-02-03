@@ -20,6 +20,17 @@ gu_dump_int(GuDumpFn* dumper, GuType* type, const void* p,
 	gu_yaml_scalar(ctx->yaml, str);
 }
 
+static void 
+gu_dump_double(GuDumpFn* dumper, GuType* type, const void* p, 
+	       GuDumpCtx* ctx)
+{
+	(void) dumper;
+	(void) type;
+	const double* dp = p;
+	GuString* str = gu_string_format(ctx->pool, "%lf", *dp);
+	gu_yaml_scalar(ctx->yaml, str);
+}
+
 static GU_DEFINE_ATOM(gu_dump_length_key, "gu_dump_length_key");
 
 static void 
@@ -237,7 +248,16 @@ gu_dump_variant(GuDumpFn* dumper, GuType* type, const void* p,
 	gu_assert(false);
 }
 
-
+static void
+gu_dump_enum(GuDumpFn* dumper, GuType* type, const void* p,
+	     GuDumpCtx* ctx)
+{
+	(void) dumper;
+	GuEnumType* etype = gu_type_cast(type, enum);
+	GuEnumConstant* cp = gu_enum_value(etype, p);
+	gu_assert(cp != NULL);
+	gu_yaml_scalar(ctx->yaml, cp->name);
+}
 
 GuTypeTable
 gu_dump_table = GU_TYPETABLE(
@@ -255,4 +275,6 @@ gu_dump_table = GU_TYPETABLE(
 	{ gu_kind(GuList), gu_fn(gu_dump_list) },
 	{ gu_kind(GuLength), gu_fn(gu_dump_length) },
 	{ gu_kind(GuVariant), gu_fn(gu_dump_variant) },
+	{ gu_kind(double), gu_fn(gu_dump_double) },
+	{ gu_kind(enum), gu_fn(gu_dump_enum) },
 	);

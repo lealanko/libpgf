@@ -31,6 +31,7 @@ libgu_la_CFLAGS = $(GLIB_CFLAGS) $(AM_CFLAGS)
 libgu_la_LIBADD = $(GLIB_LIBS)
 
 libpgf_la_SOURCES = \
+	pgf/data.c \
 	pgf/data.h \
 	pgf/reader.c \
 	pgf/linearize.c

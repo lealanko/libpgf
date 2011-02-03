@@ -16,14 +16,8 @@ typedef struct {
 GU_DEFINE_TYPE(
 	Baz, struct,
 	GU_MEMBER(Baz, foo, int),
-	GU_MEMBER_V(Baz, bar, 
-		    GU_TYPE_LIT(pointer, GuString*,
-				gu_type(GuString))),
-	GU_MEMBER_V(Baz, fooh,
-		    GU_TYPE_LIT(pointer, Ints*,
-				gu_type(Ints)))
-);
-
+	GU_MEMBER_V(Baz, bar, gu_ptr_type(GuString)),
+	GU_MEMBER_V(Baz, fooh, gu_ptr_type(Ints)));
 
 typedef GuIntMap Dict;
 
@@ -38,7 +32,7 @@ typedef struct {
 } Blump;
 
 GU_DEFINE_TYPE(Blump, struct,
-	       GU_MEMBER_V(Blump, koo, GU_TYPE_LIT(pointer, GuString*, gu_type(GuString))),
+	       GU_MEMBER_V(Blump, koo, gu_ptr_type(GuString)),
 	       GU_MEMBER(Blump, len, GuLength),
 	       GU_FLEX_MEMBER(Blump, ints, int));
 
@@ -59,6 +53,9 @@ typedef struct {
 	int val;
 } Leaf;
 
+GU_DEFINE_TYPE(TreeTag, enum,
+	       GU_ENUM_C(TreeTag, LEAF),
+	       GU_ENUM_C(TreeTag, BRANCH));
 
 GU_DEFINE_TYPE(Branch, struct,
 	       GU_MEMBER(Branch, left, Tree),
@@ -68,8 +65,11 @@ GU_DEFINE_TYPE(Leaf, struct,
 	       GU_MEMBER(Leaf, val, int));
 
 GU_DEFINE_TYPE(Tree, GuVariant,
-	       GU_CONSTRUCTOR(LEAF, Leaf),
-	       GU_CONSTRUCTOR(BRANCH, Branch));
+	       GU_CONSTRUCTOR_S(LEAF, Leaf,
+				GU_MEMBER(Leaf, val, int)),
+	       GU_CONSTRUCTOR_S(BRANCH, Branch,
+				GU_MEMBER(Branch, left, Tree),
+				GU_MEMBER(Branch, right, Tree)));
 
 int main(void)
 {
@@ -111,6 +111,9 @@ int main(void)
 	Tree leaf = gu_variant_new_s(pool, LEAF, Leaf, 42);
 	Tree branch = gu_variant_new_s(pool, BRANCH, Branch, leaf, leaf);
 	gu_dump(gu_type(Tree), &branch, &ctx);
+
+	TreeTag tag = BRANCH;
+	gu_dump(gu_type(TreeTag), &tag, &ctx);
 
 	gu_pool_free(pool);
 	return 0;

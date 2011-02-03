@@ -131,6 +131,10 @@ struct GuConstructor {
 #define GU_CONSTRUCTOR(ctag, t_) \
 	GU_CONSTRUCTOR_V(ctag, gu_type(t_))
 
+#define GU_CONSTRUCTOR_S(ctag, t_, ...)		\
+	GU_CONSTRUCTOR_V(ctag, GU_TYPE_LIT(struct, t_, __VA_ARGS__))
+
+
 typedef GuSList(GuConstructor) GuConstructors;
 
 

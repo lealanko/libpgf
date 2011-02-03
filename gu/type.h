@@ -78,8 +78,7 @@ extern GU_DECLARE_KIND(abstract);
 
 #include <gu/string.h>
 
-typedef const struct GuTypeDef GuTypeDef;
-typedef GuTypeDef GuType_typedef;
+typedef const struct GuTypeDef GuTypeDef, GuType_typedef;
 
 struct GuTypeDef {
 	GuType type_base;
@@ -142,8 +141,7 @@ extern GU_DECLARE_KIND(repr);
 // struct
 //
 
-typedef const struct GuStructRepr GuStructRepr;
-typedef GuStructRepr GuType_struct;
+typedef const struct GuStructRepr GuStructRepr, GuType_struct;
 
 typedef const struct GuMember GuMember;
 
@@ -193,8 +191,7 @@ extern GU_DECLARE_KIND(struct);
 // pointer
 //
 
-typedef const struct GuPointerType GuPointerType;
-typedef GuPointerType GuType_pointer;
+typedef const struct GuPointerType GuPointerType, GuType_pointer;
 
 struct GuPointerType {
 	GuType_repr repr_base;
@@ -209,6 +206,9 @@ struct GuPointerType {
 
 
 extern GU_DECLARE_KIND(pointer);
+
+#define gu_ptr_type(t_) \
+	GU_TYPE_LIT(pointer, t_*, gu_type(t_))
 
 
 //
@@ -237,7 +237,7 @@ extern GU_DECLARE_KIND(shared);
 // primitives
 //
 
-typedef const struct GuPrimType GuType_primitive;
+typedef const struct GuPrimType GuPrimType, GuType_primitive;
 
 struct GuPrimType {
 	GuType_repr repr_base;
@@ -264,6 +264,10 @@ typedef int GuLength;
 extern GU_DECLARE_TYPE(GuLength, int);
 
 
+extern GU_DECLARE_TYPE(float, primitive);
+extern GU_DECLARE_TYPE(double, primitive);
+
+
 //
 // enum
 //
@@ -274,26 +278,30 @@ typedef const struct GuEnumConstant GuEnumConstant;
 
 struct GuEnumConstant {
 	const GuString* name;
-	long long value;
+	int value;
+	const void* enum_value;
 };
 
-typedef const struct GuEnumType GuType_enum;
+typedef const struct GuEnumType GuEnumType, GuType_enum;
 
 struct GuEnumType {
 	GuType_repr repr_base;
 	GuSList(GuEnumConstant) constants;
 };
 
-#define GU_ENUM_C(x) { .name = gu_cstring(#x), .value = x }
+#define GU_ENUM_C(t_, x) {		\
+		.name = gu_cstring(#x), \
+		.value = x,		\
+		.enum_value = (const t_[1]){ x } \
+ }
 
 #define GU_TYPE_INIT_enum(k_, t_, ...) { \
 	.repr_base = GU_TYPE_INIT_repr(k_, t_, _),	\
 	.constants = GU_SLIST(GuEnumConstant, __VA_ARGS__) \
 }
 
-
-
-
+GuEnumConstant*
+gu_enum_value(GuEnumType* etype, const void* enump);
 
 
 

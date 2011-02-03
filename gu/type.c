@@ -23,8 +23,11 @@ GU_DEFINE_TYPE(int, integer, _);
 
 GU_DEFINE_TYPE(GuLength, int, _);
 
+GU_DEFINE_TYPE(float, primitive, _);
+GU_DEFINE_TYPE(double, primitive, _);
 
 
+GU_DEFINE_KIND(enum, repr);
 
 bool gu_type_has_kind(GuType* type, GuKind* kind)
 {
@@ -88,4 +91,31 @@ gu_type_check_cast(GuType* type, GuKind* kind)
 {
 	g_assert(gu_type_has_kind(type, kind));
 	return type;
+}
+
+GuEnumConstant*
+gu_enum_value(GuEnumType* etype, const void* enump)
+{
+	size_t esize = etype->repr_base.size;
+#define CHECK_ENUM_TYPE(t_) do {					\
+		if (esize == sizeof(t_)) {				\
+			t_ c = *(const t_*)enump;			\
+			for (int i = 0; i < etype->constants.len; i++) { \
+				GuEnumConstant* cp = &etype->constants.elems[i]; \
+				t_ d = *(const t_*)cp->enum_value;	\
+				if (c == d) {				\
+					return cp;			\
+				}					\
+			}						\
+			return NULL;					\
+		}							\
+	} while (false)
+
+	CHECK_ENUM_TYPE(int);
+	CHECK_ENUM_TYPE(char);
+	CHECK_ENUM_TYPE(short);
+	CHECK_ENUM_TYPE(long);
+	CHECK_ENUM_TYPE(long long);
+
+	return NULL;
 }
