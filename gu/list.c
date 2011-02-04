@@ -39,3 +39,6 @@ void* gu_list_alloc(GuPool* pool, size_t base_size, size_t elem_size,
 
 GU_DEFINE_KIND(GuList, abstract);
 
+GU_DEFINE_TYPE(GuStrings, GuList, gu_type(GuStringP));
+GU_DEFINE_TYPE(GuStringsP, pointer, gu_type(GuStrings));
+

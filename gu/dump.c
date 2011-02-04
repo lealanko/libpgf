@@ -1,6 +1,20 @@
 #include <gu/dump.h>
 #include <gu/list.h>
 #include <gu/variant.h>
+#include <inttypes.h>
+
+GuDumpCtx*
+gu_dump_ctx_new(GuPool* pool, FILE* out, GuTypeTable* dumpers) {
+	GuDumpCtx* ctx = gu_new(pool, GuDumpCtx);
+	ctx->pool = pool;
+	if (dumpers == NULL) {
+		dumpers = &gu_dump_table;
+	}
+	ctx->dumpers = gu_type_map_new(pool, dumpers);
+	ctx->yaml = gu_yaml_new(pool, out);
+	ctx->data = gu_map_new(pool, NULL, NULL);
+	return ctx;
+}
 
 void
 gu_dump(GuType* type, const void* value, GuDumpCtx* ctx)
@@ -19,6 +33,19 @@ gu_dump_int(GuDumpFn* dumper, GuType* type, const void* p,
 	GuString* str = gu_string_format(ctx->pool, "%d", *ip);
 	gu_yaml_scalar(ctx->yaml, str);
 }
+
+static void 
+gu_dump_uint16(GuDumpFn* dumper, GuType* type, const void* p, 
+	       GuDumpCtx* ctx)
+{
+	(void) dumper;
+	(void) type;
+	const uint16_t* ip = p;
+	GuString* str = gu_string_format(ctx->pool, "%" PRIu16, *ip);
+	gu_yaml_scalar(ctx->yaml, str);
+}
+
+
 
 static void 
 gu_dump_double(GuDumpFn* dumper, GuType* type, const void* p, 
@@ -82,7 +109,12 @@ gu_dump_pointer(GuDumpFn* dumper, GuType* type, const void* p,
 	(void) dumper;
 	GuPointerType* ptype = (GuPointerType*) type;
 	void* const* pp = p;
-	gu_dump(ptype->pointed_type, *pp, ctx);
+	if (*pp == NULL) {
+		gu_yaml_tag_secondary(ctx->yaml, gu_cstring("null"));
+		gu_yaml_scalar(ctx->yaml, gu_cstring(""));
+	} else {
+		gu_dump(ptype->pointed_type, *pp, ctx);
+	}
 }
 
 static void
@@ -145,12 +177,13 @@ gu_dump_struct(GuDumpFn* dumper, GuType* type, const void* p,
 }
 
 static void
-gu_dump_typedef(GuDumpFn* dumper, GuType* type, const void* p,
-		GuDumpCtx* ctx)
+gu_dump_alias(GuDumpFn* dumper, GuType* type, const void* p,
+	      GuDumpCtx* ctx)
 {
 	(void) dumper;
-	GuTypeDef* tdef = (GuTypeDef*) type;
-	gu_dump(tdef->type, p, ctx);
+	GuTypeAlias* alias = gu_type_cast(type, alias);
+
+	gu_dump(alias->type, p, ctx);
 }
 
 static const char gu_dump_reference_key[] = "reference";
@@ -180,10 +213,10 @@ gu_dump_referenced(GuDumpFn* dumper, GuType* type, const void* p,
 		   GuDumpCtx* ctx)
 {
 	(void) dumper;
-	GuTypeDef* tdef = (GuTypeDef*) type;
+	GuTypeAlias* alias = gu_type_cast(type, alias);
 	bool created = gu_dump_anchor(ctx, p);
 	g_assert(created);
-	gu_dump(tdef->type, p, ctx);
+	gu_dump(alias->type, p, ctx);
 }
 
 static void 
@@ -218,9 +251,10 @@ gu_dump_list(GuDumpFn* dumper, GuType* type, const void* p,
 	GuListType* ltype = (GuListType*) type;
 	const uint8_t* up = p;
 	int len = * (const int*) p;
+	size_t elem_size = gu_type_size(ltype->elem_type);
 	gu_yaml_begin_sequence(ctx->yaml);
 	for (int i = 0; i < len; i++) {
-		ptrdiff_t offset = ltype->elems_offset + i * ltype->elem_size;
+		ptrdiff_t offset = ltype->elems_offset + i * elem_size;
 		gu_dump(ltype->elem_type, &up[offset], ctx);
 	}
 	gu_yaml_end(ctx->yaml);
@@ -249,6 +283,15 @@ gu_dump_variant(GuDumpFn* dumper, GuType* type, const void* p,
 }
 
 static void
+gu_dump_variant_as_ptr(GuDumpFn* dumper, GuType* type, const void* p,
+		       GuDumpCtx* ctx)
+{
+	void* const* pp = p;
+	GuVariantAsPtrType* vptype = gu_type_cast(type, GuVariantAsPtr);
+	GuVariant var = gu_variant_from_ptr(*pp);
+	gu_dump_variant(dumper, vptype->vtype, &var, ctx);
+}
+static void
 gu_dump_enum(GuDumpFn* dumper, GuType* type, const void* p,
 	     GuDumpCtx* ctx)
 {
@@ -263,18 +306,20 @@ GuTypeTable
 gu_dump_table = GU_TYPETABLE(
 	GU_SLIST_0,
 	{ gu_kind(int), gu_fn(gu_dump_int) },
+	{ gu_kind(uint16_t), gu_fn(gu_dump_uint16) },
 	{ gu_kind(GuMapDirectInt), gu_fn(gu_dump_direct_int) },
 	{ gu_kind(GuString), gu_fn(gu_dump_string) },
 	{ gu_kind(struct), gu_fn(gu_dump_struct) },
 	{ gu_kind(pointer), gu_fn(gu_dump_pointer) },
 	{ gu_kind(GuMap), gu_fn(gu_dump_map) },
-	{ gu_kind(typedef), gu_fn(gu_dump_typedef) },
+	{ gu_kind(alias), gu_fn(gu_dump_alias) },
 	{ gu_kind(reference), gu_fn(gu_dump_reference) },
 	{ gu_kind(referenced), gu_fn(gu_dump_referenced) },
 	{ gu_kind(shared), gu_fn(gu_dump_shared) },
 	{ gu_kind(GuList), gu_fn(gu_dump_list) },
 	{ gu_kind(GuLength), gu_fn(gu_dump_length) },
 	{ gu_kind(GuVariant), gu_fn(gu_dump_variant) },
+	{ gu_kind(GuVariantAsPtr), gu_fn(gu_dump_variant_as_ptr) },
 	{ gu_kind(double), gu_fn(gu_dump_double) },
 	{ gu_kind(enum), gu_fn(gu_dump_enum) },
 	);

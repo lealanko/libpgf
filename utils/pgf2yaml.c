@@ -1,5 +1,7 @@
 #include <pgf/pgf.h>
 
+#include <gu/dump.h>
+
 int main(void) {
 	GError* err = NULL;
 	PgfPGF* pgf= pgf_read(stdin, &err);
@@ -7,7 +9,10 @@ int main(void) {
 		g_printerr("Reading PGF failed: %s\n", err->message);
 		goto fail_read;
 	}
-	pgf_write_yaml(pgf, stdout, &err);
+	// pgf_write_yaml(pgf, stdout, &err);
+	GuPool* pool = gu_pool_new();
+	GuDumpCtx* ctx = gu_dump_ctx_new(pool, stdout, NULL);
+	gu_dump(gu_type(PgfPGF), pgf, ctx);
 	if (err != NULL) {
 		g_printerr("YAML output failed: %s\n", err->message);
 		goto fail_write;

@@ -137,9 +137,7 @@ struct GuConstructor {
 
 typedef GuSList(GuConstructor) GuConstructors;
 
-
-typedef const struct GuVariantType GuVariantType;
-typedef GuVariantType GuType_GuVariant;
+typedef const struct GuVariantType GuVariantType, GuType_GuVariant;
 
 struct GuVariantType {
 	GuType_repr repr_base;
@@ -154,6 +152,18 @@ struct GuVariantType {
 extern GU_DECLARE_KIND(GuVariant);
 
 
+typedef const struct GuVariantAsPtrType 
+GuVariantAsPtrType, GuType_GuVariantAsPtr;
 
+struct GuVariantAsPtrType {
+	GuType_repr repr_base;
+	GuType* vtype;
+};
+
+extern GU_DECLARE_KIND(GuVariantAsPtr);
+#define GU_TYPE_INIT_GuVariantAsPtr(k_, vtype_) { \
+	.repr_base = GU_TYPE_INIT_repr(k_, void*, _), \
+	.vtype = vtype_, \
+ }
 
 #endif // GU_VARIANT_H_

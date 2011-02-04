@@ -97,27 +97,33 @@ typedef GuList(int) GuInts;
 // list
 //
 
-typedef const struct GuListType GuListType;
-typedef GuListType GuType_GuList;
+typedef const struct GuListType GuListType, GuType_GuList;
 
 struct GuListType {
 	GuType_abstract abstract_base;
 	GuType* elem_type;
 	ptrdiff_t elems_offset;
-	size_t elem_size;
 };
 
-#define GU_TYPE_INIT_GuList(k_, t_, elem_t_) {	\
+#define GU_TYPE_INIT_GuList(k_, t_, elem_type_) {	\
 	.abstract_base = GU_TYPE_INIT_abstract(k_, t_, _),	\
-	.elem_type = gu_type(elem_t_),	\
-	.elem_size = sizeof(elem_t_),	\
+	.elem_type = elem_type_,	\
 	.elems_offset = offsetof(t_, elems)	\
 }
 
 extern GU_DECLARE_KIND(GuList);
 
 
+#include <gu/string.h>
 
+typedef GuList(GuString*) GuStrings;
+typedef const GuList(GuCString*) GuCStrings;
+
+typedef GuStrings* GuStringsP;
+typedef GuCStrings* GuCStringsP;
+
+extern GU_DECLARE_TYPE(GuStrings, GuList);
+extern GU_DECLARE_TYPE(GuStringsP, pointer);
 
 
 #endif // GU_LIST_H_

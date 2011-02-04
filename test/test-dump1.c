@@ -1,11 +1,11 @@
 #include <gu/dump.h>
 #include <gu/type.h>
 #include <gu/variant.h>
-
+#include <gu/map.h>
 
 typedef GuList(int) Ints;
 
-static GU_DEFINE_TYPE(Ints, GuList, int);
+static GU_DEFINE_TYPE(Ints, GuList, gu_type(int));
 
 typedef struct {
 	int foo;
@@ -80,16 +80,8 @@ int main(void)
 	elems[0] = 7;
 	elems[1] = 99;
 	elems[2] = 623;
-	GuTypeMap* tmap = gu_type_map_new(pool, &gu_dump_table);
-	GuYaml* yaml = gu_yaml_new(pool, stdout);
-	GuDumpCtx ctx = {
-		.pool = pool,
-		.dumpers = tmap,
-		.data = NULL,
-		.yaml = yaml 
-	};
-	ctx.data = gu_map_new(pool, NULL, NULL);
-	gu_dump(gu_type(Baz), &b, &ctx);
+	GuDumpCtx* ctx = gu_dump_ctx_new(pool, stdout, NULL);
+	gu_dump(gu_type(Baz), &b, ctx);
 	
 	Dict* dict = gu_intmap_new(pool);
 	GuString* fnord = gu_string("fnord");
@@ -97,7 +89,7 @@ int main(void)
 	gu_intmap_set(dict, 7, gu_string("blurh"));
 	gu_intmap_set(dict, 11, fnord);
 	gu_intmap_set(dict, 15, fnord);
-	gu_dump(gu_type(Dict), dict, &ctx);
+	gu_dump(gu_type(Dict), dict, ctx);
 
 
 	Blump* blump = gu_flex_new(pool, Blump, ints, 8);
@@ -106,14 +98,19 @@ int main(void)
 	blump->ints[0] = 42;
 	blump->ints[1] = 25;
 	blump->ints[7] = 77;
-	gu_dump(gu_type(Blump), blump, &ctx);
+	gu_dump(gu_type(Blump), blump, ctx);
 
 	Tree leaf = gu_variant_new_s(pool, LEAF, Leaf, 42);
 	Tree branch = gu_variant_new_s(pool, BRANCH, Branch, leaf, leaf);
-	gu_dump(gu_type(Tree), &branch, &ctx);
+	gu_dump(gu_type(Tree), &branch, ctx);
 
 	TreeTag tag = BRANCH;
-	gu_dump(gu_type(TreeTag), &tag, &ctx);
+	gu_dump(gu_type(TreeTag), &tag, ctx);
+
+
+	void* branch_as_p = gu_variant_to_ptr(branch);
+	GuType* vp = GU_TYPE_LIT(GuVariantAsPtr, gu_type(Tree));
+	gu_dump(vp, &branch_as_p, ctx);
 
 	gu_pool_free(pool);
 	return 0;

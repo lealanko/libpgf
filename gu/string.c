@@ -124,3 +124,4 @@ gu_string_format(GuPool* pool, const char* fmt, ...)
 // type
 
 GU_DEFINE_TYPE(GuString, abstract, _);
+GU_DEFINE_TYPE(GuStringP, pointer, gu_type(GuString));

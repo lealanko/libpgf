@@ -27,6 +27,9 @@ typedef struct GuString GuString;
 
 typedef const GuString GuCString;
 
+typedef GuString* GuStringP;
+typedef GuCString* GuCStringP;
+
 unsigned 
 gu_string_hash(const void* s);
 
@@ -70,6 +73,7 @@ gu_string_cdata(const GuString* s);
 
 #include <gu/type.h>
 extern GU_DECLARE_TYPE(GuString, abstract);
+extern GU_DECLARE_TYPE(GuStringP, pointer);
 
 
 
@@ -150,10 +154,6 @@ gu_string_data(GuString* s) {
 }
 
 
-#include <gu/list.h>
-typedef GuList(GuString*) GuStrings;
-typedef GuList(GuCString*) GuCStrings;
-		            		      
 
 
 #endif // GU_STRING_H_

@@ -3,8 +3,9 @@
 
 GuKind gu_type_type = { .super = NULL };
 
-GU_DEFINE_KIND(typedef, type);
-GU_DEFINE_KIND(referenced, typedef);
+GU_DEFINE_KIND(alias, type);
+GU_DEFINE_KIND(typedef, alias);
+GU_DEFINE_KIND(referenced, alias);
 
 GU_DEFINE_KIND(repr, type);
 
@@ -20,11 +21,13 @@ GU_DEFINE_KIND(primitive, repr);
 GU_DEFINE_KIND(integer, primitive);
 
 GU_DEFINE_TYPE(int, integer, _);
+GU_DEFINE_TYPE(uint16_t, integer, _);
 
 GU_DEFINE_TYPE(GuLength, int, _);
 
 GU_DEFINE_TYPE(float, primitive, _);
 GU_DEFINE_TYPE(double, primitive, _);
+GU_DEFINE_TYPE(void, primitive, _);
 
 
 GU_DEFINE_KIND(enum, repr);
@@ -78,9 +81,9 @@ size_t gu_type_size(GuType* type) {
 	if (gu_type_has_kind(type, gu_kind(repr))) {
 		GuType_repr* repr = (GuType_repr*) type;
 		return repr->size;
-	} else if (gu_type_has_kind(type, gu_kind(typedef))) {
-		GuTypeDef* tdef = (GuTypeDef*) type;
-		return gu_type_size(tdef->type);
+	} else if (gu_type_has_kind(type, gu_kind(alias))) {
+		GuTypeAlias* alias = gu_type_cast(type, alias);
+		return gu_type_size(alias->type);
 	} else {
 		return 0;
 	}

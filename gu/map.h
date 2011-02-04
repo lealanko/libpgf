@@ -134,14 +134,13 @@ typedef GuType_GuMap GuType_GuIntMap;
 
 
 
+#include <gu/string.h>
 
 extern GU_DECLARE_KIND(GuStringMap);
 typedef GuType_GuMap GuType_GuStringMap;
 
 #define GU_TYPE_INIT_GuStringMap(k_, t_, value_type_) \
-	GU_TYPE_INIT_GuMap(k_, t_,  \
-			   GU_TYPE_LIT(pointer, GuString*, gu_type(GuString)), \
-			   value_type_)
+	GU_TYPE_INIT_GuMap(k_, t_, gu_type(GuStringP), value_type_)
 
 
 #endif // GU_MAP_H_

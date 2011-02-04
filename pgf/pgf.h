@@ -95,6 +95,10 @@ void pgf_free(PgfPGF* pgf);
 
 /// @}
 
+
+#include <gu/type.h>
+GU_DECLARE_TYPE(PgfPGF, struct);
+
 G_END_DECLS
 
 #endif // PGF_H_

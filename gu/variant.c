@@ -110,3 +110,4 @@ gu_variant_is_null(GuVariant v);
 
 
 GU_DEFINE_KIND(GuVariant, repr);
+GU_DEFINE_KIND(GuVariantAsPtr, repr);

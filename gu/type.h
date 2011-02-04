@@ -68,51 +68,6 @@ typedef GuType GuType_abstract;
 extern GU_DECLARE_KIND(abstract);
 
 
-
-//
-// typedef
-//
-
-
-// We must include string.h only after abstract has been defined.
-
-#include <gu/string.h>
-
-typedef const struct GuTypeDef GuTypeDef, GuType_typedef;
-
-struct GuTypeDef {
-	GuType type_base;
-	const GuString* name;
-	GuType* type;
-};
-
-#define GU_TYPE_INIT_typedef(k_, t_, type_) {			\
-		.type_base = GU_TYPE_INIT_type(k_, t_, _),	\
-		.name = gu_cstring(#t_),		\
-		.type = type_				\
-}
-
-extern GU_DECLARE_KIND(typedef);
-
-#define GU_DEFINE_TYPEDEF_X(t_, dk_, ...)	\
-	GU_DEFINE_TYPE(t_, dk_, t_, GU_TYPE_LIT(__VA_ARGS__))
-
-#define GU_DEFINE_TYPEDEF(t_, ...)	\
-	GU_DEFINE_TYPEDEF_X(t_, typedef, __VA_ARGS__)
-
-
-
-//
-// referenced
-//
-
-extern GU_DECLARE_KIND(referenced);
-
-typedef GuType_typedef GuType_referenced;
-
-#define GU_TYPE_INIT_referenced GU_TYPE_INIT_aliased
-
-
 //
 // repr 
 //
@@ -132,6 +87,99 @@ struct GuTypeRepr {
 		 }
 
 extern GU_DECLARE_KIND(repr);
+
+
+//
+// pointer
+//
+
+typedef const struct GuPointerType GuPointerType, GuType_pointer;
+
+struct GuPointerType {
+	GuType_repr repr_base;
+	GuType* pointed_type;
+};
+
+#define GU_TYPE_INIT_pointer(k_, t_, pointed_)	\
+	{					   \
+		.repr_base = GU_TYPE_INIT_repr(k_, t_, _),	\
+	.pointed_type = pointed_ \
+}	
+
+
+extern GU_DECLARE_KIND(pointer);
+
+#define gu_ptr_type(t_) \
+	GU_TYPE_LIT(pointer, t_*, gu_type(t_))
+
+
+
+
+
+
+
+//
+// alias
+//
+
+
+typedef const struct GuTypeAlias GuTypeAlias, GuType_alias;
+
+struct GuTypeAlias {
+	GuType type_base;
+	GuType* type;
+};
+
+#define GU_TYPE_INIT_alias(k_, t_, type_) {			\
+	.type_base = GU_TYPE_INIT_type(k_, t_, _),	\
+	.type = type_				\
+}
+
+extern GU_DECLARE_KIND(alias);
+
+
+
+
+
+//
+// typedef
+//
+
+// We must include string.h only after abstract has been defined.
+
+#include <gu/string.h>
+
+typedef const struct GuTypeDef GuTypeDef, GuType_typedef;
+
+struct GuTypeDef {
+        GuType_alias alias_base;
+	const GuString* name;
+};
+
+#define GU_TYPE_INIT_typedef(k_, t_, type_) {			\
+	.alias_base = GU_TYPE_INIT_alias(k_, t_, _),	\
+	.name = gu_cstring(#t_),		\
+}
+
+extern GU_DECLARE_KIND(typedef);
+
+#define GU_DEFINE_TYPEDEF_X(t_, dk_, ...)	\
+	GU_DEFINE_TYPE(t_, dk_, t_, GU_TYPE_LIT(__VA_ARGS__))
+
+#define GU_DEFINE_TYPEDEF(t_, ...)	\
+	GU_DEFINE_TYPEDEF_X(t_, typedef, __VA_ARGS__)
+
+
+
+//
+// referenced
+//
+
+extern GU_DECLARE_KIND(referenced);
+
+typedef GuType_alias GuType_referenced;
+
+#define GU_TYPE_INIT_referenced GU_TYPE_INIT_alias
 
 
 
@@ -187,29 +235,6 @@ extern GU_DECLARE_KIND(struct);
 
 
 
-//
-// pointer
-//
-
-typedef const struct GuPointerType GuPointerType, GuType_pointer;
-
-struct GuPointerType {
-	GuType_repr repr_base;
-	GuType* pointed_type;
-};
-
-#define GU_TYPE_INIT_pointer(k_, t_, pointed_)	\
-	{					   \
-		.repr_base = GU_TYPE_INIT_repr(k_, t_, _),	\
-	.pointed_type = pointed_ \
-}	
-
-
-extern GU_DECLARE_KIND(pointer);
-
-#define gu_ptr_type(t_) \
-	GU_TYPE_LIT(pointer, t_*, gu_type(t_))
-
 
 //
 // reference
@@ -263,10 +288,13 @@ extern GU_DECLARE_TYPE(int, primitive);
 typedef int GuLength;
 extern GU_DECLARE_TYPE(GuLength, int);
 
+extern GU_DECLARE_TYPE(uint16_t, integer);
+
 
 extern GU_DECLARE_TYPE(float, primitive);
 extern GU_DECLARE_TYPE(double, primitive);
 
+extern GU_DECLARE_TYPE(void, primitive);
 
 //
 // enum
