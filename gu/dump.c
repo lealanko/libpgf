@@ -215,7 +215,7 @@ gu_dump_referenced(GuDumpFn* dumper, GuType* type, const void* p,
 	(void) dumper;
 	GuTypeAlias* alias = gu_type_cast(type, alias);
 	bool created = gu_dump_anchor(ctx, p);
-	g_assert(created);
+	// g_assert(created);
 	gu_dump(alias->type, p, ctx);
 }
 
@@ -227,7 +227,7 @@ gu_dump_reference(GuDumpFn* dumper, GuType* type, const void* p,
 	(void) type;
 	void* const* pp = p;
 	bool created = gu_dump_anchor(ctx, *pp);
-	g_assert(!created);
+	// g_assert(!created);
 }
 
 static void 

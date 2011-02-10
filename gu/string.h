@@ -23,6 +23,14 @@
 #include <stdarg.h>
 #include <gu/mem.h>
 
+// This is not fully portable: GuString* pointers are actually char
+// pointers so they are char-aligned, whereas a struct pointer might
+// have a different representation. But typedefing a GuString to char 
+// or void diminishes type safety.
+//
+// We could of course create a struct for the pointers themselves, but
+// then we lose the convenient void*-compatibility,
+
 typedef struct GuString GuString;
 
 typedef const GuString GuCString;
@@ -81,50 +89,59 @@ extern GU_DECLARE_TYPE(GuStringP, pointer);
 
 #include <limits.h>
 
-#define GuStringShortN_(cstr_)				\
+
+#define GuStringShortN_(len_)				\
 	struct {					\
 		unsigned char len;			\
-		char data[sizeof(cstr_)-1];		\
+		char data[len_];		\
 	}
-#define GuStringLongN_(cstr_)				\
+#define GuStringLongN_(len_)				\
 	struct {					\
 		int true_len;				\
-		GuStringShortN_(cstr_) ss;		\
+		GuStringShortN_(len_) ss;		\
 	}
 
+const GuStringLongN_(1) gu_string_empty_;
 
-#define GU_STRING_SHORTN_INIT_(cstr_) {				\
-		.len = (unsigned char)(sizeof(cstr_)-1),	\
-		.data = cstr_,					\
-		}
+#define GU_STRING_SHORTN_INIT_(cstr_,len_) {			\
+		.len = (unsigned char)len_,			\
+		.data = cstr_,				\
+}
 
-#define gu_string_short_(qual_,cstr_)			\
-	((qual_ GuStringShortN_(cstr_)[1]) {		\
-	GU_STRING_SHORTN_INIT_(cstr_)			\
+#define gu_string_short_(qual_,cstr_,len_)			\
+       ((qual_ GuStringShortN_(len_)[1]) {	\
+       GU_STRING_SHORTN_INIT_(cstr_,len_)	\
 	})
 
-#define GU_STRING_LONGN_INIT_(cstr_) {			\
-		.true_len = (sizeof(cstr_)-1),		\
-		.ss = GU_STRING_SHORTN_INIT_(cstr_),	\
-		}
+#define GU_STRING_LONGN_INIT_(cstr_,len_) {			\
+		.true_len = len_,				\
+		.ss = GU_STRING_SHORTN_INIT_(cstr_,0),	\
+}
 
-#define gu_string_long_(qual_,cstr_)			\
-	((qual_ GuStringLongN_(cstr_)[1]) {	\
-		GU_STRING_LONGN_INIT_(cstr_)		\
+#define gu_string_long_(qual_,cstr_,len_)			\
+       ((qual_ GuStringLongN_(len_)[1]) {	\
+	       GU_STRING_LONGN_INIT_(cstr_,len_)	\
 		})
 
-#define GU_DEFINE_ATOM(name_, cstr_)		\
-	const GuStringShortN_(cstr_)	\
-	gu_atom_##name_##_ =			\
-	GU_STRING_SHORTN_INIT_(cstr_)
+#define GU_DEFINE_ATOM_(name_, cstr_, len_)		\
+	const GuStringShortN_(len_)			\
+	gu_atom_##name_##_ = GU_STRING_SHORTN_INIT_(cstr_, len_)
+
+#define GU_DEFINE_ATOM(name_, cstr_) \
+	GU_DEFINE_ATOM_(name_, cstr_, sizeof(cstr_)-1)
 
 #define gu_atom(name_)				\
 	((const GuString*)&gu_atom_##name_##_)
 
-#define gu_string_(qual_,cstr_)					\
-	((sizeof(cstr_)-1 > 0 && sizeof(cstr_)-1 <= UCHAR_MAX)	\
-	 ? (qual_ GuString*) gu_string_short_(qual_,cstr_)	\
-	 : (qual_ GuString*) &gu_string_long_(qual_,cstr_)->ss)
+#define gu_string__(qual_,cstr_,len_)					\
+	(len_ == 0							\
+	 ? (qual_ GuString*) &gu_string_empty_				\
+	 : len_ <= UCHAR_MAX						\
+	 ? (qual_ GuString*) gu_string_short_(qual_,cstr_,len_)		\
+	 : (qual_ GuString*) &gu_string_long_(qual_,cstr_,len_)->ss)
+
+#define gu_string_(qual_,cstr_) \
+	gu_string__(qual_,cstr_,(sizeof(cstr_)-1))
 
 #define gu_string(cstr_)				\
 	gu_string_(,cstr_)

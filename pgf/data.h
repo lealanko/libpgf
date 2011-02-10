@@ -24,6 +24,7 @@
 #include <gu/variant.h>
 #include <gu/string.h>
 #include <gu/map.h>
+#include <gu/type.h>
 #include <pgf/pgf.h>
 
 typedef GuString PgfCId;
@@ -137,6 +138,8 @@ struct PgfPGF {
 	GuPool* pool;
 };
 
+GU_DECLARE_TYPE(PgfPGF, struct);
+
 struct PgfFunDecl {
 	PgfType* type;
 	int arity;
@@ -196,6 +199,7 @@ struct PgfConcr {
 	int totalcats;
 };
 
+GU_DECLARE_TYPE(PgfConcr, struct);
 
 typedef enum {
 	PGF_SYMBOL_CAT,
@@ -272,7 +276,7 @@ typedef struct {
 } PgfProductionConst;
 
 
-	
+GU_DECLARE_TYPE(PgfProduction, GuVariant);
 
 
 // PgfLiteral

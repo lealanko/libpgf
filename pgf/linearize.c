@@ -22,11 +22,60 @@
 #include <gu/map.h>
 
 
+
+// Type and dump for GPtrArray
+
+typedef const struct PgfGPtrArrayType PgfGPtrArrayType, GuType_GPtrArray;
+
+struct PgfGPtrArrayType {
+	GuType_abstract abstract_base;
+	GuType* elem_type;
+};
+
+#define GU_TYPE_INIT_GPtrArray(k_, t_, elem_type_) {	   \
+	.abstract_base = GU_TYPE_INIT_abstract(k_, t_, _), \
+	.elem_type = elem_type_,		   	\
+}
+
+GU_DEFINE_KIND(GPtrArray, abstract);
+
+static void
+pgf_dump_gptrarray(GuDumpFn* dumper, GuType* type, const void* p, 
+		   GuDumpCtx* ctx)
+{
+	(void) dumper;
+	PgfGPtrArrayType* atype = gu_type_cast(type, GPtrArray);
+	const GPtrArray* arr = p;
+	gu_yaml_begin_sequence(ctx->yaml);
+	for (int i = 0; i < (int) arr->len; i++) {
+		gu_dump(atype->elem_type, &arr->pdata[i], ctx);
+	}
+	gu_yaml_end(ctx->yaml);
+}
+
+GuTypeTable
+pgf_linearize_dump_table = GU_TYPETABLE(
+	GU_SLIST_0,
+	{ gu_kind(GPtrArray), gu_fn(pgf_dump_gptrarray) },
+	);
+
+
+typedef GuStringMap PgfLinProds;
+
+GU_DEFINE_TYPE(
+	PgfLinProds, GuStringMap,
+	GU_TYPE_LIT(pointer, GuIntMap*,
+	GU_TYPE_LIT(GuIntMap, GuIntMap,
+	GU_TYPE_LIT(pointer, GPtrArray*,
+	GU_TYPE_LIT(GPtrArray, GPtrArray, 
+	GU_TYPE_LIT(GuVariantAsPtr,
+	gu_type(PgfProduction)))))));
+
 struct PgfLinearizer {
 	PgfPGF* pgf;
 	PgfConcr* cnc;
 	GuPool* pool;
-	GuMap* prods; // PgfCId |-> GuIntMap |-> GPtrArray |-> PgfProduction
+	PgfLinProds* prods; // PgfCId |-> GuIntMap |-> GPtrArray |-> PgfProduction
 	/**< Productions per function. This map associates with each
 	 * abstract function (as identified by a CId) the productions
 	 * that apply that function's linearization. */
@@ -34,6 +83,19 @@ struct PgfLinearizer {
 
 typedef PgfLinearizer PgfLzr;
 
+GU_DEFINE_TYPE(
+	PgfLinearizer, struct,
+	GU_MEMBER_P(PgfLzr, pgf, PgfPGF),
+	GU_MEMBER_P(PgfLzr, cnc, PgfConcr),
+	GU_MEMBER_P(PgfLzr, prods, PgfLinProds));
+ 
+/*
+GU_DEFINE_TYPE(
+	PgfLinearizer, struct,
+	GU_MEMBER_P(PgfLinearizer, pgf, PgfPGF),
+	GU_MEMBER_P(PgfLinearizer, cnc, PgfConcr),
+	GU_MEMBER_V(PgfLinearizer, 
+*/
 
 static void
 pgf_lzr_parr_free_cb(GuFn* fnp)

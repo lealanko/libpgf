@@ -4,10 +4,25 @@
 #include "string.h"
 #include "list.h"
 
+
+const GuStringLongN_(1)
+gu_string_empty = {
+	.true_len = 0,
+	.ss = {
+		.len = 0,
+		.data = "\0",
+	},
+};
+
+// the second element is just for neatness, it's nice that
+// gu_string_data always returns a pointer to something sensible
+
 GuString* 
 gu_string_new(GuPool* pool, int len)
 {
-	if (len > 0 && len <= UCHAR_MAX) {
+	if (len == 0) {
+		return (GuString*) &gu_string_empty;
+	} else if (len > 0 && len <= UCHAR_MAX) {
 		unsigned char* up = gu_malloc_aligned(pool, 1 + len, 1);
 		up[0] = len;
 		return (GuString*) up;

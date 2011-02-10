@@ -27,8 +27,20 @@ GU_DEFINE_TYPE(GuLength, int, _);
 
 GU_DEFINE_TYPE(float, primitive, _);
 GU_DEFINE_TYPE(double, primitive, _);
-GU_DEFINE_TYPE(void, primitive, _);
 
+// sizeof(void) is illegal, so do this manually
+GuPrimType gu_type_void = {
+	.repr_base = {
+		.type_base = {
+			.kind_base = {
+				.super = &gu_type_primitive,
+			},
+		},
+		.size = 0,
+		.align = 1,
+	},
+	.name = gu_cstring("void"),
+};
 
 GU_DEFINE_KIND(enum, repr);
 

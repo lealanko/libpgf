@@ -17,6 +17,8 @@
  * License along with libpgf. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <gu/type.h>
+#include <gu/dump.h>
 #include <pgf/data.h>
 
 typedef struct PgfLinFuncs PgfLinFuncs;
@@ -47,3 +49,8 @@ bool
 pgf_lzn_linearize_to_file(PgfLinearization* lzn, PgfExpr expr, PgfFId fid, int lin_idx, 
 			  FILE* file_out);
 
+
+extern GuTypeTable
+pgf_linearize_dump_table;
+
+GU_DECLARE_TYPE(PgfLinearizer, struct);

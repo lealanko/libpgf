@@ -221,6 +221,9 @@ extern GU_DECLARE_KIND(struct);
 #define GU_MEMBER(s_, m_, t_) \
 	GU_MEMBER_V(s_, m_, gu_type(t_))
 
+#define GU_MEMBER_P(s_, m_, t_) \
+	GU_MEMBER_V(s_, m_, gu_ptr_type(t_))
+
 #define GU_FLEX_MEMBER_V(struct_, member_, type_) \
 	GU_MEMBER_AUX_(struct_, member_, type_, true)
 

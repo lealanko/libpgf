@@ -107,8 +107,7 @@ gu_stringmap_set(GuStringMap* m, const GuString* key, void* value)
 
 extern GU_DECLARE_KIND(GuMap);
 
-typedef struct GuMapType GuMapType;
-typedef GuMapType GuType_GuMap;
+typedef const struct GuMapType GuMapType, GuType_GuMap;
 
 struct GuMapType {
 	GuType_abstract abstract_base;
