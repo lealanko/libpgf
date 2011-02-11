@@ -51,9 +51,12 @@ GuVariant gu_variant_init_alloc(GuPool* pool, uint8_t tag,
 /**< 
  * @hideinitializer */
 
+#define gu_variant_new_i(pool, tag, t_, e_) \
+	gu_variant_init_alloc(pool, tag, sizeof(t_), gu_alignof(t_), ((t_[1]){ e_ }))
+
 #define gu_variant_new_s(pool, tag, t_, ...) \
-	gu_variant_init_alloc(pool, tag, sizeof(t_), gu_alignof(t_), \
-			      ((t_[1]){{ __VA_ARGS__ }}))
+	gu_variant_init_alloc(pool, tag, sizeof(t_), gu_alignof(t_), ((t_[1]){{__VA_ARGS__}}))
+
 
 
 

@@ -20,7 +20,7 @@
 #include "data.h"
 #include "linearize.h"
 #include <gu/map.h>
-
+#include <gu/fun.h>
 
 
 // Type and dump for GPtrArray
@@ -209,15 +209,15 @@ static bool
 pgf_lzn_advance(PgfLzn* lzn)
 {
 	GByteArray* path = lzn->path;
-	while (path->len > 0 && path->data[path->len - 1] == 1) {
+	while (path->len > 0 && path->data[path->len - 1] == 0) {
 		g_byte_array_set_size(path, path->len - 1);
 	}
 	if (path->len == 0) {
-		return FALSE;
+		return false;
 	} else {
-		g_assert(path->data[path->len - 1] > 1);
+		g_assert(path->data[path->len - 1] > 0);
 		path->data[path->len - 1]--;
-		return TRUE;
+		return true;
 	}
 }
 
@@ -244,6 +244,7 @@ static bool
 pgf_lzc_apply(PgfLzc* lzc, PgfExpr src_expr, PgfFId fid,
 	      int lin_idx, PgfCId* fun_cid, GPtrArray* args);
 
+
 bool
 pgf_lzn_linearize(PgfLzn* lzn, PgfExpr expr, PgfFId fid, int lin_idx, 
 		  PgfLinFuncs* cb_fns, void* cb_ctx)
@@ -255,9 +256,60 @@ pgf_lzn_linearize(PgfLzn* lzn, PgfExpr expr, PgfFId fid, int lin_idx,
 		.cb_fns = cb_fns,
 		.cb_ctx = cb_ctx,
 	};
-	return pgf_lzc_linearize(&lzc, expr, fid, lin_idx);
+	// XXX: do status reporting sensibly
+	bool ret = pgf_lzc_linearize(&lzc, expr, fid, lin_idx);
+	bool cont = pgf_lzn_advance(lzn);
+	return ret && cont;
 }
 
+
+int pgf_lzc_next_choice(PgfLzc* lzc, int n_choices) {
+	g_assert(n_choices > 0);
+	if (n_choices == 1) {
+		return 0;
+	}
+	GByteArray* path = lzc->lzn->path;
+	if (lzc->path_idx == (int) path->len) {
+		int next_choice = n_choices - 1;
+		g_assert(next_choice <= UINT8_MAX);
+		uint8_t n = (uint8_t) next_choice;
+		g_byte_array_append(path, &n, 1);
+	}
+	return n_choices - 1 - path->data[lzc->path_idx++];
+}
+
+static void
+pgf_lzc_choose_fid_cb(GuFn* fnp, void* key, void* value) {
+	GuClo3* clo = (GuClo3*) fnp;
+	int* next_fid_seqno_p = clo->env1;
+	int* count_p = clo->env2;
+	PgfFId* ret_fid = clo->env3;
+	PgfFId fid = GPOINTER_TO_INT(key);
+	(void) value;
+	if (*count_p == *next_fid_seqno_p) {
+		*ret_fid = fid;
+	}
+	++*count_p;
+}
+
+static PgfFId
+pgf_lzc_choose_fid(PgfLzc* lzc, PgfCId* cid)
+{
+	PgfLzn* lzn = lzc->lzn;
+	PgfLzr* lzr = lzn->lzr;
+	GuIntMap* prod_map = gu_map_get(lzr->prods, cid);
+	if (prod_map == NULL) {
+		// XXX: error reporting
+		return -1;
+	}
+	int next_fid_seqno = pgf_lzc_next_choice(lzc, gu_map_size(prod_map));
+	int count = 0;
+	PgfFId fid = -1;
+	GuClo3 clo = { pgf_lzc_choose_fid_cb, &next_fid_seqno, &count, &fid };
+	gu_map_iter(prod_map, &clo.fn);
+	g_assert(fid >= 0);
+	return fid;
+}
 
 
 // TODO: check for invalid lin_idx. For literals, only 0 is legal.
@@ -266,7 +318,7 @@ pgf_lzc_linearize(PgfLzc* lzc, PgfExpr expr, PgfFId fid, int lin_idx)
 {
 	GPtrArray* args = g_ptr_array_new();
 	bool succ = FALSE;
-
+	
 	while (TRUE) {
 		GuVariantInfo i = gu_variant_open(expr);
 		switch (i.tag) {
@@ -317,6 +369,7 @@ exit:
 	return succ;
 }
 
+
 static PgfProductionApply*
 pgf_lzc_choose_production(PgfLzc* lzc, PgfCId* cid, PgfFId fid)
 {
@@ -327,26 +380,18 @@ pgf_lzc_choose_production(PgfLzc* lzc, PgfCId* cid, PgfFId fid)
 	if (prod_map == NULL) {
 		return NULL;
 	}
-	
+
+	if (fid == -1) {
+		fid = pgf_lzc_choose_fid(lzc, cid);
+	}
+
 	while (TRUE) {
 		GPtrArray* prods = gu_intmap_get(prod_map, fid);
 		if (prods == NULL || prods->len == 0) {
 			return NULL;
 		}
-
-		int idx = 0;
-		if (prods->len > 1) {
-			if (lzc->path_idx == (int) lzn->path->len) {
-				uint8_t n = (uint8_t)prods->len;
-				g_byte_array_append(lzn->path, &n, 1);
-			}
-			g_assert(lzc->path_idx < (int) lzn->path->len);
-			uint8_t n = lzn->path->data[lzc->path_idx];
-			idx = prods->len - n;
-			lzc->path_idx++;
-		}
+		int idx = pgf_lzc_next_choice(lzc, prods->len);
 		PgfProduction prod = gu_variant_from_ptr(prods->pdata[idx]);
-		
 		GuVariantInfo prod_i = gu_variant_open(prod);
 		switch (prod_i.tag) {
 		case PGF_PRODUCTION_APPLY: {
@@ -375,7 +420,6 @@ pgf_lzc_apply(PgfLzc* lzc, PgfExpr src_expr, PgfFId fid,
 
 	PgfFunDecl* fdecl = gu_map_get(pgf->abstract.funs, fun_cid);
 	g_assert(fdecl != NULL); // XXX: turn this into a proper check
-	g_assert(nargs == fdecl->arity); // XXX: ditto
 	
 	PgfProductionApply* papply = 
 		pgf_lzc_choose_production(lzc, fun_cid, fid);
@@ -402,8 +446,10 @@ pgf_lzc_apply(PgfLzc* lzc, PgfExpr src_expr, PgfFId fid,
 		case PGF_SYMBOL_LIT: {
 			PgfSymbolIdx* sidx = sym_i.data;
 			g_assert(sidx->d < nargs);
-			PgfExpr arg = 
-				gu_variant_from_ptr(args->pdata[sidx->d]);
+			// The arguments are accumulated in args 
+			// in _reverse order_!
+			PgfExpr arg = gu_variant_from_ptr(
+				args->pdata[nargs - 1 - sidx->d]);
 			if (fns->symbol_expr)
 				fns->symbol_expr(lzc->cb_ctx, sidx->d,
 						 arg, sidx->r);
@@ -442,7 +488,7 @@ pgf_file_lzn_symbol_tokens(void* ctx, PgfTokens* toks)
 	
 	for (int i = 0; i < toks->len; i++) {
 		PgfToken* tok = toks->elems[i];
-		fprintf(out, GU_STRING_FMT, GU_STRING_FMT_ARGS(tok));
+		fprintf(out, GU_STRING_FMT " ", GU_STRING_FMT_ARGS(tok));
 	}
 }
 

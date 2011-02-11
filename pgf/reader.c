@@ -39,6 +39,8 @@ struct PgfContext {
 	PgfIdContext cncfuns;
 };
 
+#define PGF_DEBUG
+
 //
 // PgfWriter
 //
@@ -803,9 +805,11 @@ pgf_unpickle_variant(const PgfTypeBase* base, PgfReader* rdr, PgfPlacer* placer)
 		return;
 	}
 	const PgfConstructor* ctor = &vtype->ctors.elems[btag];
+	pgf_debug("-> variant %s", ctor->name);
 	PgfVariantPlacer vplacer = { { pgf_place_variant },
 				     ctor->c_tag, to, rdr->pool };
 	pgf_unpickle(rdr, ctor->type, &vplacer.placer);
+	pgf_debug("<- variant %s", ctor->name);
 }
 
 static void
@@ -1056,8 +1060,11 @@ static void
 pgf_unpickle_length(G_GNUC_UNUSED const PgfTypeBase* info, 
 		    PgfReader* rdr, PgfPlacer* placer) 
 {
+	pgf_debug("-> length");
 	int* to = pgf_placer_place_type(placer, int);
 	*to = pgf_read_len(rdr);
+	pgf_debug("<- length: %d", *to);
+
 }
 
 static const PgfMiscType pgf_length_type = 
@@ -1307,12 +1314,14 @@ pgf_unpickle_string_p(G_GNUC_UNUSED const PgfTypeBase* type,
 		      PgfReader* rdr, PgfPlacer* placer)
 {
 	pgf_debug("-> GuString*");
-	int len = pgf_read_len(rdr);
+	GString* tmpg = pgf_read_tmp_string(rdr);
 	// XXX: temporary pools are not very efficient
 	GuPool* pool = gu_pool_new();
-	GuString* tmp = gu_string_new(pool, len);
+	GuString* tmp = gu_string_new(pool, tmpg->len);
 	char* data = gu_string_data(tmp);
-	pgf_read_chars(rdr, data, len);
+	memcpy(data, tmpg->str, tmpg->len);
+	g_string_free(tmpg, TRUE);
+
 	GuString* interned = gu_map_get(rdr->interned_strings, tmp);
 	if (interned == NULL) {
 		interned = gu_string_copy(rdr->pool, tmp);
@@ -1552,8 +1561,11 @@ static const PgfVariantType pgf_expr_type = PGF_VARIANT_TYPE(
 static const PgfMapType pgf_flags_p_type =
 	PGF_CIDMAP_P_TYPE(PGF_VARIANT_AS_PTR_TYPE_L(&pgf_literal_type.b));
 
+static const PgfListType pgf_strings_type =
+	PGF_LIST_TYPE(GuStrings, &pgf_string_p_type.b);
+
 static const PgfPointerType pgf_strings_p_type =
-	PGF_OWNED_LIST_TYPE(GuStrings, &pgf_string_p_type.b);
+	PGF_OWNED_TYPE(&pgf_strings_type.b);
 
 static const PgfStructType pgf_alternative_type = PGF_STRUCT_TYPE(
 	PgfAlternative,
@@ -1575,7 +1587,7 @@ static const PgfVariantType pgf_symbol_type = PGF_VARIANT_TYPE(
 		PGF_MEMBER(PgfSymbolVar, d, &pgf_int_type.b), 
 		PGF_MEMBER(PgfSymbolVar, r, &pgf_int_type.b)),
 	PGF_CONSTRUCTOR(
-		PGF_SYMBOL_KS, SymKS, &pgf_strings_p_type.b),
+		PGF_SYMBOL_KS, SymKS, &pgf_strings_type.b),
 	PGF_STRUCT_CONSTRUCTOR(
 		PGF_SYMBOL_KP, SymKP, PgfSymbolKP,
 		PGF_MEMBER(PgfSymbolKP, default_form, &pgf_strings_p_type.b),
@@ -1591,7 +1603,8 @@ static const PgfStructType pgf_cnccat_type = PGF_STRUCT_TYPE(
 	PGF_MEMBER(PgfCncCat, labels, &pgf_string_p_type.b));
 
 static const PgfListType pgf_sequence_type =
-	PGF_LIST_TYPE(PgfSequence, PGF_OWNED_TYPE_L(&pgf_symbol_type.b));
+	// PGF_LIST_TYPE(PgfSequence, PGF_OWNED_TYPE_L(&pgf_symbol_type.b));
+	PGF_LIST_TYPE(PgfSequence, &pgf_symbol_type.b);
 
 static const PgfIdArrayType pgf_sequences_type = 
 	PGF_ID_ARRAY_TYPE(PgfSequences,

@@ -36,11 +36,18 @@ struct GuClo1 {
 };
 
 typedef struct GuClo2 GuClo2;
-
 struct GuClo2 {
 	GuFn fn;
 	void *env1;
 	void *env2;
+};
+
+typedef struct GuClo3 GuClo3;
+struct GuClo3 {
+	GuFn fn;
+	void *env1;
+	void *env2;
+	void *env3;
 };
 
 #define gu_fn(fn) ((GuFn[1]){ fn })

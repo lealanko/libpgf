@@ -79,7 +79,7 @@ GU_DEFINE_TYPE(
 		GU_MEMBER(PgfSymbolVar, d, int),
 		GU_MEMBER(PgfSymbolVar, r, int)),
 	GU_CONSTRUCTOR(
-		PGF_SYMBOL_KS, GuStringsP),
+		PGF_SYMBOL_KS, GuStrings),
 	GU_CONSTRUCTOR_S(
 		PGF_SYMBOL_KP, PgfSymbolKP,
 		GU_MEMBER(PgfSymbolKP, default_form, GuStringsP),
@@ -94,7 +94,8 @@ GU_DEFINE_TYPE(
 	GU_FLEX_MEMBER(PgfCncCat, labels, GuStringP));
 
 
-GU_DEFINE_TYPE(PgfSequence, GuList, gu_ptr_type(PgfSymbol));
+// GU_DEFINE_TYPE(PgfSequence, GuList, gu_ptr_type(PgfSymbol));
+GU_DEFINE_TYPE(PgfSequence, GuList, gu_type(PgfSymbol));
 
 GU_DEFINE_TYPE(PgfFlags, GuStringMap, 
 	       GU_TYPE_LIT(GuVariantAsPtr, gu_type(PgfLiteral)));

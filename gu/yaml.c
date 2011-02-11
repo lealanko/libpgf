@@ -75,6 +75,7 @@ struct GuYaml {
 	int next_anchor;
 	bool indent;
 	int indent_level;
+	bool indented;
 	GuStack* stack;
 };
 
@@ -93,6 +94,7 @@ gu_yaml_new(GuPool* pool, FILE* out)
 	yaml->stack = gu_stack_new(pool, GuYamlFrame);
 	yaml->indent = true;
 	yaml->indent_level = 0;
+	yaml->indented = false;
 	return yaml;
 }
 
@@ -100,10 +102,11 @@ gu_yaml_new(GuPool* pool, FILE* out)
 static void
 gu_yaml_begin_line(GuYaml* yaml)
 {
-	if (yaml->indent) {
+	if (yaml->indent && !yaml->indented) {
 		for (int i = 0; i < yaml->indent_level; i++) {
 			fputc(' ', yaml->out);
 		}
+		yaml->indented = true;
 	}
 }
 
@@ -113,14 +116,15 @@ gu_yaml_end_line(GuYaml* yaml)
 	if (yaml->indent) {
 		fputc('\n', yaml->out);
 	}
+	yaml->indented = false;
 }
 
 
 static void 
 gu_yaml_begin_node(GuYaml* yaml)
 {
+	gu_yaml_begin_line(yaml);
 	if (!yaml->in_node) {
-		gu_yaml_begin_line(yaml);
 		if (yaml->state->prefix != NULL) {
 			fputs(yaml->state->prefix, yaml->out);
 		}
@@ -275,3 +279,11 @@ gu_yaml_alias(GuYaml* yaml, GuYamlAnchor anchor)
 	gu_yaml_end_node(yaml);
 	return;
 }
+
+void gu_yaml_comment(GuYaml* yaml, const GuString* comment)
+{
+	gu_yaml_begin_line(yaml);
+	fprintf(yaml->out, "# " GU_STRING_FMT "\n", GU_STRING_FMT_ARGS(comment));
+	yaml->indented = false;
+}
+

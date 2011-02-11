@@ -16,6 +16,7 @@ void gu_yaml_tag_secondary(GuYaml* yaml, const GuString* tag);
 void gu_yaml_tag_named(GuYaml* yaml, const GuString* handle, const GuString* tag);
 void gu_yaml_tag_verbatim(GuYaml* yaml, const GuString* uri);
 void gu_yaml_tag_non_specific(GuYaml* yaml);
+void gu_yaml_comment(GuYaml* yaml, const GuString* comment);
 
 
 void gu_yaml_scalar(GuYaml* yaml, const GuString* str);

@@ -27,7 +27,7 @@
 #include <gu/type.h>
 #include <pgf/pgf.h>
 
-typedef GuString PgfCId;
+typedef const GuString PgfCId;
 
 typedef struct PgfAbstr PgfAbstr;
 typedef struct PgfFunDecl PgfFunDecl;
@@ -142,7 +142,7 @@ GU_DECLARE_TYPE(PgfPGF, struct);
 
 struct PgfFunDecl {
 	PgfType* type;
-	int arity;
+	int arity; // Only for computational defs?
 	PgfEquations* defns; // maybe null
 };
 

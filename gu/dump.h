@@ -13,6 +13,7 @@ struct GuDumpCtx {
 	GuYaml* yaml;
 	GuMap* data;
 	GuTypeMap* dumpers;
+	bool print_address;
 };
 
 typedef void (*GuDumpFn)(GuFn* self, GuType* type, const void* value, GuDumpCtx* ctx);

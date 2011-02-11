@@ -5,8 +5,8 @@
 #include "list.h"
 
 
-const GuStringLongN_(1)
-gu_string_empty = {
+const GuStringEmpty_
+gu_string_empty_ = {
 	.true_len = 0,
 	.ss = {
 		.len = 0,
@@ -21,7 +21,7 @@ GuString*
 gu_string_new(GuPool* pool, int len)
 {
 	if (len == 0) {
-		return (GuString*) &gu_string_empty;
+		return (GuString*)gu_string_empty;
 	} else if (len > 0 && len <= UCHAR_MAX) {
 		unsigned char* up = gu_malloc_aligned(pool, 1 + len, 1);
 		up[0] = len;

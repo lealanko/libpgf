@@ -13,6 +13,7 @@ gu_dump_ctx_new(GuPool* pool, FILE* out, GuTypeTable* dumpers) {
 	ctx->dumpers = gu_type_map_new(pool, dumpers);
 	ctx->yaml = gu_yaml_new(pool, out);
 	ctx->data = gu_map_new(pool, NULL, NULL);
+	ctx->print_address = false;
 	return ctx;
 }
 
@@ -20,6 +21,10 @@ void
 gu_dump(GuType* type, const void* value, GuDumpCtx* ctx)
 {
 	GuDumpFn* dumper = gu_type_map_lookup(ctx->dumpers, type);
+	if (ctx->print_address) {
+		GuString* str = gu_string_format(ctx->pool, "%p", value);
+		gu_yaml_comment(ctx->yaml, str);
+	}
 	(*dumper)(dumper, type, value, ctx);
 }
 
@@ -111,7 +116,7 @@ gu_dump_pointer(GuDumpFn* dumper, GuType* type, const void* p,
 	void* const* pp = p;
 	if (*pp == NULL) {
 		gu_yaml_tag_secondary(ctx->yaml, gu_cstring("null"));
-		gu_yaml_scalar(ctx->yaml, gu_cstring(""));
+		gu_yaml_scalar(ctx->yaml, gu_string_empty);
 	} else {
 		gu_dump(ptype->pointed_type, *pp, ctx);
 	}
@@ -136,7 +141,7 @@ gu_dump_map(GuDumpFn* dumper, GuType* type, const void* p,
 	GuMapType* mtype = (GuMapType*) type;
 	GuMap* map = (GuMap*) p;
 	gu_yaml_begin_mapping(ctx->yaml);
-	GuClo2 clo = { gu_dump_map_entry_fn, mtype, ctx };
+	GuClo2 clo = { gu_dump_map_entry_fn, (void*) mtype, ctx };
 	gu_map_iter(map, &clo.fn);
 	gu_yaml_end(ctx->yaml);
 }
@@ -215,8 +220,11 @@ gu_dump_referenced(GuDumpFn* dumper, GuType* type, const void* p,
 	(void) dumper;
 	GuTypeAlias* alias = gu_type_cast(type, alias);
 	bool created = gu_dump_anchor(ctx, p);
-	// g_assert(created);
-	gu_dump(alias->type, p, ctx);
+	if (created) {
+		gu_dump(alias->type, p, ctx);
+	} else {
+		// gu_assert(false);
+	}
 }
 
 static void 
@@ -227,7 +235,11 @@ gu_dump_reference(GuDumpFn* dumper, GuType* type, const void* p,
 	(void) type;
 	void* const* pp = p;
 	bool created = gu_dump_anchor(ctx, *pp);
-	// g_assert(!created);
+	if (created) {
+		// gu_assert(false);
+		GuPointerType* ptype = (GuPointerType*) type;
+		gu_dump(ptype->pointed_type, *pp, ctx);
+	}
 }
 
 static void 

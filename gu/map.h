@@ -77,6 +77,12 @@ gu_intmap_has(GuMap* map, int key)
 	return gu_map_has(map, GINT_TO_POINTER(key));
 }
 
+static inline int
+gu_map_size(GuMap* map) 
+{
+	return (int) g_hash_table_size(map);
+}
+
 
 
 #include <gu/string.h>

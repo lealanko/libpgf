@@ -101,7 +101,11 @@ extern GU_DECLARE_TYPE(GuStringP, pointer);
 		GuStringShortN_(len_) ss;		\
 	}
 
-const GuStringLongN_(1) gu_string_empty_;
+typedef GuStringLongN_(1) GuStringEmpty_;
+
+extern const GuStringEmpty_ gu_string_empty_;
+
+#define gu_string_empty ((const GuString*)&gu_string_empty_)
 
 #define GU_STRING_SHORTN_INIT_(cstr_,len_) {			\
 		.len = (unsigned char)len_,			\
