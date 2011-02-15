@@ -339,7 +339,7 @@ pgf_lzc_linearize(PgfLzc* lzc, PgfExpr expr, PgfFId fid, int lin_idx)
 		}
 		case PGF_EXPR_IMPL_ARG: {
 			PgfExprImplArg* eimplarg = i.data;
-			expr = *eimplarg;
+			expr = eimplarg->expr;
 			break;
 		}
 		case PGF_EXPR_TYPED: {
@@ -349,17 +349,15 @@ pgf_lzc_linearize(PgfLzc* lzc, PgfExpr expr, PgfFId fid, int lin_idx)
 		}
 		case PGF_EXPR_FUN: {
 			PgfExprFun* fun = i.data;
-			PgfCId* fun_cid = *fun;
 			succ = pgf_lzc_apply(lzc, expr, fid, lin_idx, 
-					     fun_cid, args);
+					     fun->fun, args);
 			goto exit;
 			
 	 	}
 		case PGF_EXPR_LIT: {
 			PgfExprLit* elit = i.data;
-			PgfLiteral lit = *elit;
 			g_assert(args->len == 0); // XXX: fail nicely
-			lzc->cb_fns->expr_literal(lzc->cb_ctx, lit);
+			lzc->cb_fns->expr_literal(lzc->cb_ctx, elit->lit);
 			succ = TRUE;
 			goto exit;
 		}
@@ -476,7 +474,7 @@ pgf_lzc_apply(PgfLzc* lzc, PgfExpr src_expr, PgfFId fid,
 		case PGF_SYMBOL_KS: {
 			PgfSymbolKS* ks = sym_i.data;
 			if (fns->symbol_tokens)
-				fns->symbol_tokens(lzc->cb_ctx, ks);
+				fns->symbol_tokens(lzc->cb_ctx, ks->tokens);
 			break;
 		}
 		case PGF_SYMBOL_KP:

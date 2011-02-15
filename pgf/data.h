@@ -224,7 +224,9 @@ typedef struct PgfSymbolIdx PgfSymbolCat;
 typedef struct PgfSymbolIdx PgfSymbolLit;
 typedef struct PgfSymbolIdx PgfSymbolVar;
 
-typedef PgfTokens PgfSymbolKS;
+typedef struct {
+	PgfTokens* tokens;
+} PgfSymbolKS;
 
 typedef struct PgfSymbolKP
 /** A prefix-dependent symbol. The form that this symbol takes
@@ -296,9 +298,17 @@ typedef enum {
 	PGF_LITERAL_NUM_TAGS
 } PgfLiteralTag;
 
-typedef GuString* PgfLiteralStr;
-typedef int PgfLiteralInt;
-typedef gdouble PgfLiteralFlt;
+typedef struct {
+	GuString* val;
+} PgfLiteralStr;
+
+typedef struct {
+	int val;
+} PgfLiteralInt;
+
+typedef struct {
+	double val;
+} PgfLiteralFlt;
 
 
 // PgfPatt
@@ -320,8 +330,13 @@ typedef	struct {
 	PgfPatt args[];
 } PgfPattApp;
 
-typedef PgfLiteral* PgfPattLit;
-typedef PgfCId*  PgfPattVar;
+typedef struct {
+	PgfLiteral* lit;
+} PgfPattLit;
+
+typedef struct {
+	PgfCId* var;
+} PgfPattVar;
 
 typedef struct {
 	PgfCId* var;
@@ -330,8 +345,13 @@ typedef struct {
 
 typedef void PgfPattWild;
 
-typedef PgfPatt PgfPattImplArg;
-typedef PgfExpr PgfPattTilde;
+typedef struct {
+	PgfPatt patt;
+} PgfPattImplArg;
+
+typedef struct {
+	PgfExpr expr;
+} PgfPattTilde;
 
 struct PgfEquation {
 	PgfExpr body;

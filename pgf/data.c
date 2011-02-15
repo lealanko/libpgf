@@ -4,9 +4,12 @@
 #include <gu/variant.h>
 
 GU_DEFINE_TYPE(PgfLiteral, GuVariant,
-	       GU_CONSTRUCTOR_P(PGF_LITERAL_STR, GuString),
-	       GU_CONSTRUCTOR(PGF_LITERAL_INT, int),
-	       GU_CONSTRUCTOR(PGF_LITERAL_FLT, double));
+	       GU_CONSTRUCTOR_S(PGF_LITERAL_STR, PgfLiteralStr,
+				GU_MEMBER_P(PgfLiteralStr, val, GuString)),
+	       GU_CONSTRUCTOR_S(PGF_LITERAL_INT, PgfLiteralInt,
+				GU_MEMBER(PgfLiteralInt, val, int)),
+	       GU_CONSTRUCTOR_S(PGF_LITERAL_FLT, PgfLiteralFlt,
+				GU_MEMBER(PgfLiteralFlt, val, double)));
 
 GU_DEFINE_TYPE(PgfBindType, enum,
 	       GU_ENUM_C(PgfBindType, PGF_BIND_TYPE_EXPLICIT),
@@ -51,8 +54,9 @@ GU_DEFINE_TYPE(
 		PGF_SYMBOL_VAR, PgfSymbolVar,
 		GU_MEMBER(PgfSymbolVar, d, int),
 		GU_MEMBER(PgfSymbolVar, r, int)),
-	GU_CONSTRUCTOR(
-		PGF_SYMBOL_KS, GuStrings),
+	GU_CONSTRUCTOR_S(
+		PGF_SYMBOL_KS, PgfSymbolKS,
+		GU_MEMBER_P(PgfSymbolKS, tokens, GuStrings)),
 	GU_CONSTRUCTOR_S(
 		PGF_SYMBOL_KP, PgfSymbolKP,
 		GU_MEMBER(PgfSymbolKP, default_form, GuStringsP),
@@ -129,20 +133,24 @@ GU_DEFINE_TYPE(
 		GU_MEMBER_P(PgfPattApp, ctor, GuString),
 		GU_MEMBER(PgfPattApp, n_args, GuLength),
 		GU_MEMBER(PgfPattApp, args, PgfPatt)),
-	GU_CONSTRUCTOR_V(
-		PGF_PATT_LIT, gu_ptr_type(PgfLiteral)),
-	GU_CONSTRUCTOR(
-		PGF_PATT_VAR, GuStringP),
+	GU_CONSTRUCTOR_S(
+		PGF_PATT_LIT, PgfPattLit,
+		GU_MEMBER(PgfPattLit, lit, PgfLiteral)),
+	GU_CONSTRUCTOR_S(
+		PGF_PATT_VAR, PgfPattVar,
+		GU_MEMBER_P(PgfPattVar, var, GuString)),
 	GU_CONSTRUCTOR_S(
 		PGF_PATT_AS, PgfPattAs,
 		GU_MEMBER_P(PgfPattAs, var, GuString),
 		GU_MEMBER(PgfPattAs, patt, PgfPatt)),
 	GU_CONSTRUCTOR(
 		PGF_PATT_WILD, void),
-	GU_CONSTRUCTOR(
-		PGF_PATT_IMPL_ARG, PgfPatt),
-	GU_CONSTRUCTOR(
-		PGF_PATT_TILDE, PgfExpr));
+	GU_CONSTRUCTOR_S(
+		PGF_PATT_IMPL_ARG, PgfPattImplArg,
+		GU_MEMBER(PgfPattImplArg, patt, PgfPatt)),
+	GU_CONSTRUCTOR_S(
+		PGF_PATT_TILDE, PgfPattTilde,
+		GU_MEMBER(PgfPattTilde, expr, PgfExpr)));
 
 GU_DEFINE_TYPE(
 	PgfEquation, struct, 

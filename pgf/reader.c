@@ -1588,7 +1588,7 @@ static const PgfVariantType pgf_symbol_type = PGF_VARIANT_TYPE(
 		PGF_MEMBER(PgfSymbolVar, d, &pgf_int_type.b), 
 		PGF_MEMBER(PgfSymbolVar, r, &pgf_int_type.b)),
 	PGF_CONSTRUCTOR(
-		PGF_SYMBOL_KS, SymKS, &pgf_strings_type.b),
+		PGF_SYMBOL_KS, SymKS, &pgf_strings_p_type.b),
 	PGF_STRUCT_CONSTRUCTOR(
 		PGF_SYMBOL_KP, SymKP, PgfSymbolKP,
 		PGF_MEMBER(PgfSymbolKP, default_form, &pgf_strings_p_type.b),
@@ -1660,8 +1660,7 @@ static const PgfVariantType pgf_patt_type = PGF_VARIANT_TYPE(
 		PGF_MEMBER(PgfPattApp, n_args, &pgf_length_type.b),
 		PGF_MEMBER(PgfPattApp, args, &pgf_patt_type.b)),
 	PGF_CONSTRUCTOR(
-		PGF_PATT_LIT, PLit, 
-		PGF_OWNED_TYPE_L(&pgf_literal_type.b)),
+		PGF_PATT_LIT, PLit, &pgf_literal_type.b),
 	PGF_CONSTRUCTOR(
 		PGF_PATT_VAR, PVar, 
 		&pgf_string_p_type.b),
