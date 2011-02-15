@@ -230,6 +230,9 @@ extern GU_DECLARE_KIND(struct);
 #define GU_FLEX_MEMBER(s_, m_, t_) \
 	GU_FLEX_MEMBER_V(s_, m_, gu_type(t_))
 
+#define GU_FLEX_MEMBER_P(s_, m_, t_) \
+	GU_FLEX_MEMBER_V(s_, m_, gu_ptr_type(t_))
+
 
 #define GU_TYPE_INIT_struct(k_, t_, ...)	{		\
 		.repr_base = GU_TYPE_INIT_repr(k_, t_, _),	\

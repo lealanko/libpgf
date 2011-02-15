@@ -21,7 +21,7 @@
 #include "linearize.h"
 #include <gu/map.h>
 #include <gu/fun.h>
-
+#include <pgf/expr.h>
 
 // Type and dump for GPtrArray
 
@@ -163,6 +163,15 @@ pgf_linearizer_add_production_cb(void* key, void* value,
 	}
 }
 
+
+
+
+
+
+
+
+
+
 PgfLinearizer*
 pgf_linearizer_new(GuPool* pool, PgfPGF* pgf, PgfConcr* cnc)
 {
@@ -257,9 +266,9 @@ pgf_lzn_linearize(PgfLzn* lzn, PgfExpr expr, PgfFId fid, int lin_idx,
 		.cb_ctx = cb_ctx,
 	};
 	// XXX: do status reporting sensibly
-	bool ret = pgf_lzc_linearize(&lzc, expr, fid, lin_idx);
+	bool succ = pgf_lzc_linearize(&lzc, expr, fid, lin_idx);
 	bool cont = pgf_lzn_advance(lzn);
-	return ret && cont;
+	return cont;
 }
 
 
@@ -319,7 +328,7 @@ pgf_lzc_linearize(PgfLzc* lzc, PgfExpr expr, PgfFId fid, int lin_idx)
 	GPtrArray* args = g_ptr_array_new();
 	bool succ = FALSE;
 	
-	while (TRUE) {
+	while (true) {
 		GuVariantInfo i = gu_variant_open(expr);
 		switch (i.tag) {
 		case PGF_EXPR_APP: {
@@ -401,6 +410,7 @@ pgf_lzc_choose_production(PgfLzc* lzc, PgfCId* cid, PgfFId fid)
 		case PGF_PRODUCTION_COERCE: {
 			PgfProductionCoerce* pcoerce = prod_i.data;
 			fid = pcoerce->coerce;
+			continue;
 		}
 		default:
 			g_assert_not_reached();

@@ -33,6 +33,8 @@ libgu_la_LIBADD = $(GLIB_LIBS)
 libpgf_la_SOURCES = \
 	pgf/data.c \
 	pgf/data.h \
+	pgf/edsl.h \
+	pgf/expr.c \
 	pgf/expr.h \
 	pgf/reader.c \
 	pgf/linearize.c

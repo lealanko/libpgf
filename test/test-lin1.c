@@ -4,7 +4,7 @@
 #include <pgf/pgf.h>
 #include "pgf/data.h"
 #include "pgf/linearize.h"
-#include <pgf/expr.h>
+#include <pgf/edsl.h>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -47,14 +47,17 @@ int main(int argc, char* argv[]) {
 
 	PgfLinearization* lzn = pgf_lzn_new(pool, lzr);
 
-#define PGF_EXPR_POOL pool
+#define PGF_EDSL_POOL pool
 	// PgfExpr expr = APPV(s, APPV(s, VAR(o)));
 	// PgfExpr expr = VAR(Pizza);
 	// PgfExpr expr = APPV2(Is, APPV(This, VAR(Pizza)), VAR(Delicious));
-	PgfExpr expr = APPV2(Is, APPV(This, APPV2(QKind, VAR(Warm), VAR(Pizza))), VAR(Delicious));
+	// PgfExpr expr = APPV2(Is, APPV(This, APPV2(QKind, VAR(Warm), VAR(Pizza))), VAR(Delicious));
+	// PgfExpr expr = APPV2(Is, APPV(This, APPV2(QKind, APPV(Very, VAR(Expensive)), VAR(Wine))), VAR(Boring));
 	// PgfExpr expr = APPV(Very, VAR(Delicious));
+	// PgfExpr expr = APPV(This, VAR(Pizza));
 	// PgfExpr expr = APPV2(QKind, VAR(Warm), VAR(Pizza));
 	// PgfExpr expr = VAR(Warm);
+	PgfExpr expr = APPV(PQuestion, APPV(WherePerson, VAR(YouFamMale)));
 
 	while (pgf_lzn_linearize_to_file(lzn, expr, -1, 0, stdout));
 	fputc('\n', stdout);

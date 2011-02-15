@@ -18,6 +18,7 @@
  */
 
 #include "data.h"
+#include "expr.h"
 #include <gu/defs.h>
 #include <gu/map.h>
 #include <string.h>

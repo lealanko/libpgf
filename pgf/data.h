@@ -63,6 +63,8 @@ typedef struct PgfHypo PgfHypo;
 
 
 typedef struct PgfType PgfType;
+extern GU_DECLARE_TYPE(PgfType, struct);
+
 
 typedef GuVariant PgfProduction;
 
@@ -80,6 +82,8 @@ typedef enum {
 	PGF_BIND_TYPE_EXPLICIT,
 	PGF_BIND_TYPE_IMPLICIT
 } PgfBindType;
+
+extern GU_DECLARE_TYPE(PgfBindType, enum);
 
 struct PgfHypo {
 	PgfBindType bindtype;
@@ -138,7 +142,7 @@ struct PgfPGF {
 	GuPool* pool;
 };
 
-GU_DECLARE_TYPE(PgfPGF, struct);
+extern GU_DECLARE_TYPE(PgfPGF, struct);
 
 struct PgfFunDecl {
 	PgfType* type;
@@ -283,6 +287,8 @@ GU_DECLARE_TYPE(PgfProduction, GuVariant);
 
 typedef GuVariant PgfLiteral;
 
+extern GU_DECLARE_TYPE(PgfLiteral, GuVariant);
+
 typedef enum {
 	PGF_LITERAL_STR,
 	PGF_LITERAL_INT,
@@ -293,48 +299,6 @@ typedef enum {
 typedef GuString* PgfLiteralStr;
 typedef int PgfLiteralInt;
 typedef gdouble PgfLiteralFlt;
-
-// PgfExpr
-
-typedef enum {
-	PGF_EXPR_ABS,
-	PGF_EXPR_APP,
-	PGF_EXPR_LIT,
-	PGF_EXPR_META,
-	PGF_EXPR_FUN,
-	PGF_EXPR_VAR,
-	PGF_EXPR_TYPED,
-	PGF_EXPR_IMPL_ARG,
-	PGF_EXPR_NUM_TAGS
-} PgfExprTag;
-
-typedef struct {
-	PgfBindType bind_type;
-	PgfCId* id; // 
-	PgfExpr body;
-} PgfExprAbs;
-		
-typedef struct {
-	PgfExpr fun;
-	PgfExpr arg;
-} PgfExprApp;
-
-typedef PgfLiteral PgfExprLit;
-
-typedef PgfMetaId PgfExprMeta;
-
-typedef PgfCId* PgfExprFun;
-
-typedef int PgfExprVar;
-/**< A variable. The value is a de Bruijn index to the environment,
- * beginning from the innermost variable. */
-
-typedef struct {
-	PgfExpr expr;
-	PgfType* type;
-} PgfExprTyped;
-
-typedef PgfExpr PgfExprImplArg;
 
 
 // PgfPatt
