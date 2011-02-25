@@ -50,8 +50,8 @@
 
 
 #ifndef gu_alignof
-#define gu_alignof(type) \
-	((size_t)(offsetof(struct { char _c; type _t; }, _t)))
+#define gu_alignof(t_) \
+	((size_t)(offsetof(struct { char c_; t_ e_; }, e_)))
 #ifdef GU_CAN_HAVE_FAM_IN_MEMBER
 #define GU_ALIGNOF_WORKS_ON_FAM_STRUCTS
 #endif
@@ -87,5 +87,30 @@
 
 #define gu_assert(expr) g_assert(expr)
 
+#define GU_MAX(a_, b_) ((a_) > (b_) ? (a_) : (b_))
+#define GU_MIN(a_, b_) ((a_) < (b_) ? (a_) : (b_))
+
+static inline int
+gu_max(int a, int b) {
+	return GU_MAX(a, b);
+}
+
+static inline int
+gu_min(int a, int b) {
+	return GU_MIN(a, b);
+}
+
+// The following are directly from gmacros.h in GLib
+
+#define GU_PASTE_ARGS(id1_,id2_)	\
+	id1_ ## id2_
+
+#define GU_PASTE(id1_, id2_)			\
+	GU_PASTE_ARGS(id1_, id2_)
+
+#define GU_STATIC_ASSERT(expr_)						\
+	typedef struct {						\
+		char static_assert[(expr_) ? 1 : -1];			\
+	} GU_PASTE(GuStaticAssert_, __LINE__)
 
 #endif // GU_DEFS_H_

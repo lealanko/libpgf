@@ -13,6 +13,7 @@ int main(void) {
 	GuPool* pool = gu_pool_new();
 	GuDumpCtx* ctx = gu_dump_ctx_new(pool, stdout, NULL);
 	gu_dump(gu_type(PgfPGF), pgf, ctx);
+	gu_pool_free(pool);
 	if (err != NULL) {
 		g_printerr("YAML output failed: %s\n", err->message);
 		goto fail_write;

@@ -251,7 +251,7 @@ pgf_lzc_linearize(PgfLzc* lzc, PgfExpr expr, PgfFId fid, int lin_idx);
 
 static bool
 pgf_lzc_apply(PgfLzc* lzc, PgfExpr src_expr, PgfFId fid,
-	      int lin_idx, PgfCId* fun_cid, GPtrArray* args);
+	      int lin_idx, PgfApplication* appl);
 
 
 bool
@@ -325,54 +325,36 @@ pgf_lzc_choose_fid(PgfLzc* lzc, PgfCId* cid)
 static bool
 pgf_lzc_linearize(PgfLzc* lzc, PgfExpr expr, PgfFId fid, int lin_idx) 
 {
-	GPtrArray* args = g_ptr_array_new();
+	PgfExpr uexpr = pgf_expr_unwrap(expr);
+	GuPool* tpool = gu_pool();
 	bool succ = FALSE;
 	
-	while (true) {
-		GuVariantInfo i = gu_variant_open(expr);
-		switch (i.tag) {
-		case PGF_EXPR_APP: {
-			PgfExprApp* app = i.data;
-			g_ptr_array_add(args, gu_variant_to_ptr(app->arg));
-			expr = app->fun;
-			break;
-		}
-		case PGF_EXPR_IMPL_ARG: {
-			PgfExprImplArg* eimplarg = i.data;
-			expr = eimplarg->expr;
-			break;
-		}
-		case PGF_EXPR_TYPED: {
-			PgfExprTyped* etyped = i.data;
-			expr = etyped->expr;
-			break;
-		}
-		case PGF_EXPR_FUN: {
-			PgfExprFun* fun = i.data;
-			succ = pgf_lzc_apply(lzc, expr, fid, lin_idx, 
-					     fun->fun, args);
-			goto exit;
-			
-	 	}
-		case PGF_EXPR_LIT: {
-			PgfExprLit* elit = i.data;
-			g_assert(args->len == 0); // XXX: fail nicely
-			lzc->cb_fns->expr_literal(lzc->cb_ctx, elit->lit);
-			succ = TRUE;
-			goto exit;
-		}
-		case PGF_EXPR_ABS:
-		case PGF_EXPR_VAR:
-		case PGF_EXPR_META:
-			g_assert_not_reached(); // XXX
-			break;
-			
-		default:
-			g_assert_not_reached();
-		}
+	PgfApplication* appl = pgf_expr_unapply(uexpr, tpool);
+
+	if (appl != NULL) {
+		succ = pgf_lzc_apply(lzc, expr, fid, lin_idx, appl);
+		goto exit;
+	} 
+
+	GuVariantInfo i = gu_variant_open(uexpr);	
+	switch (i.tag) {
+	case PGF_EXPR_LIT: {
+		PgfExprLit* elit = i.data;
+		lzc->cb_fns->expr_literal(lzc->cb_ctx, elit->lit);
+		succ = true;
+		goto exit;
+	}
+	case PGF_EXPR_ABS:
+	case PGF_EXPR_VAR:
+	case PGF_EXPR_META:
+		// XXX: TODO
+		g_assert_not_reached(); 
+		break;
+	default:
+		g_assert_not_reached();
 	}
 exit:
-	g_ptr_array_free(args, FALSE);
+	gu_pool_free(tpool);
 	return succ;
 }
 
@@ -418,24 +400,23 @@ pgf_lzc_choose_production(PgfLzc* lzc, PgfCId* cid, PgfFId fid)
 
 static bool
 pgf_lzc_apply(PgfLzc* lzc, PgfExpr src_expr, PgfFId fid,
-	      int lin_idx, PgfCId* fun_cid, GPtrArray* args)
+	      int lin_idx, PgfApplication* appl)
 {
 	PgfLzn* lzn = lzc->lzn;
 	PgfLzr* lzr = lzn->lzr;
 	PgfPGF* pgf = lzr->pgf;
 	PgfLinFuncs* fns = lzc->cb_fns;
-	int nargs = (int) args->len;
 
-	PgfFunDecl* fdecl = gu_map_get(pgf->abstract.funs, fun_cid);
+	PgfFunDecl* fdecl = gu_map_get(pgf->abstract.funs, appl->fun);
 	g_assert(fdecl != NULL); // XXX: turn this into a proper check
 	
 	PgfProductionApply* papply = 
-		pgf_lzc_choose_production(lzc, fun_cid, fid);
+		pgf_lzc_choose_production(lzc, appl->fun, fid);
 	if (papply == NULL) {
 		return FALSE;
 	}
 
-	g_assert(papply->n_args == nargs);
+	g_assert(papply->n_args == appl->n_args);
 	
 	PgfCncFun* cfun = *papply->fun;
 	g_assert(lin_idx < cfun->n_lins);
@@ -453,11 +434,10 @@ pgf_lzc_apply(PgfLzc* lzc, PgfExpr src_expr, PgfFId fid,
 		case PGF_SYMBOL_VAR:
 		case PGF_SYMBOL_LIT: {
 			PgfSymbolIdx* sidx = sym_i.data;
-			g_assert(sidx->d < nargs);
+			g_assert(sidx->d < appl->n_args);
 			// The arguments are accumulated in args 
 			// in _reverse order_!
-			PgfExpr arg = gu_variant_from_ptr(
-				args->pdata[nargs - 1 - sidx->d]);
+			PgfExpr arg = appl->args[sidx->d];
 			if (fns->symbol_expr)
 				fns->symbol_expr(lzc->cb_ctx, sidx->d,
 						 arg, sidx->r);

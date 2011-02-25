@@ -103,9 +103,10 @@ GU_DEFINE_TYPE(PgfFunIds, GuList, gu_type(PgfFunId));
 
 GU_DEFINE_TYPE(
 	PgfPArg, struct,
+	GU_MEMBER(PgfPArg, fid, PgfFId),
 	GU_MEMBER(PgfPArg, n_hypos, GuLength),
-	GU_MEMBER(PgfPArg, hypos, PgfFId),
-	GU_FLEX_MEMBER(PgfPArg, fid, PgfFId));
+	GU_FLEX_MEMBER(PgfPArg, hypos, PgfFId));
+
 
 GU_DEFINE_TYPE(
 	PgfProduction, GuVariant,

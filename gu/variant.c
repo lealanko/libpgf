@@ -18,20 +18,18 @@
  */
 
 #include "variant.h"
+#include "bits.h"
 
 enum {
-	ALIGNMENT = sizeof(uintptr_t)
+	GU_VARIANT_ALIGNMENT = sizeof(uintptr_t)
 };
 
 void* 
 gu_variant_alloc(GuPool* pool, uint8_t tag, size_t size, 
 		 size_t align, GuVariant* variant_out)
 {
-	if (align == 0) {
-		align = gu_mem_alignment(size);
-	}
-	align = MAX(ALIGNMENT, align);
-	if (((size_t)tag) > ALIGNMENT - 2) {
+	align = gu_max(align, GU_VARIANT_ALIGNMENT);
+	if (((size_t)tag) > GU_VARIANT_ALIGNMENT - 2) {
 		uint8_t* alloc = gu_malloc_aligned(pool, align + size, align);
 		alloc[align - 1] = tag;
 		void* p = &alloc[align];
@@ -59,7 +57,7 @@ gu_variant_tag(GuVariant variant)
 	if (gu_variant_is_null(variant)) {
 		return GU_VARIANT_NULL;
 	}
-	int u = variant.p % ALIGNMENT;
+	int u = variant.p % GU_VARIANT_ALIGNMENT;
 	if (u == 0) {
 		uint8_t* mem = (uint8_t*)variant.p;
 		return mem[-1];
@@ -73,7 +71,7 @@ gu_variant_data(GuVariant variant)
 	if (gu_variant_is_null(variant)) {
 		return NULL;
 	}
-	return (void*)((variant.p / ALIGNMENT) * ALIGNMENT);
+	return (void*)gu_align_backward(variant.p, GU_VARIANT_ALIGNMENT);
 }
 
 GuVariantInfo gu_variant_open(GuVariant variant)
@@ -88,12 +86,12 @@ GuVariantInfo gu_variant_open(GuVariant variant)
 int 
 gu_variant_intval(GuVariant variant)
 {
-	int u = variant.p % ALIGNMENT;
+	int u = variant.p % GU_VARIANT_ALIGNMENT;
 	if (u == 0) {
 		int* mem = (int*)variant.p;
 		return *mem;
 	}
-	return (variant.p / ALIGNMENT);
+	return (variant.p / GU_VARIANT_ALIGNMENT);
 }
 
 GuVariant gu_variant_null = { (uintptr_t) NULL };

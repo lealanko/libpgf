@@ -44,22 +44,27 @@ pgf_expr_arity(PgfExpr expr)
 	}
 }
 
-PgfCId*
-pgf_expr_unapp(PgfExpr expr, PgfExprs* args_out)
+PgfApplication*
+pgf_expr_unapply(PgfExpr expr, GuPool* pool)
 {
-	gu_assert(gu_list_length(args_out) == pgf_expr_arity(expr));
-	for (int n = gu_list_length(args_out); n > 0; n--) {
+	int arity = pgf_expr_arity(expr);
+	if (arity < 0) {
+		return NULL;
+	}
+	PgfApplication* appl = gu_flex_new(pool, PgfApplication, args, arity);
+	appl->n_args = arity;
+	for (int n = arity - 1; n >= 0; n--) {
 		PgfExpr e = pgf_expr_unwrap(expr);
 		gu_assert(gu_variant_tag(e) == PGF_EXPR_APP);
 		PgfExprApp* app = gu_variant_data(e);
-		gu_list_elems(args_out)[n - 1] = app->arg;
+		appl->args[n] = app->arg;
 		expr = app->fun;
-		n--;
 	}
 	PgfExpr e = pgf_expr_unwrap(expr);
 	gu_assert(gu_variant_tag(e) == PGF_EXPR_FUN);
 	PgfExprFun* fun = gu_variant_data(e);
-	return fun->fun;
+	appl->fun = fun->fun;
+	return appl;
 }
 
 

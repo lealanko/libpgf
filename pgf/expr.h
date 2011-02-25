@@ -65,7 +65,15 @@ pgf_expr_arity(PgfExpr expr);
 PgfExpr
 pgf_expr_unwrap(PgfExpr expr);
 
-PgfCId*
-pgf_expr_unapp(PgfExpr expr, PgfExprs* args_out);
+typedef struct PgfApplication PgfApplication;
+
+struct PgfApplication {
+	PgfCId* fun;
+	int n_args;
+	PgfExpr args[];
+};
+
+PgfApplication*
+pgf_expr_unapply(PgfExpr expr, GuPool* pool);
 
 #endif /* EXPR_H_ */

@@ -1317,7 +1317,8 @@ pgf_unpickle_string_p(G_GNUC_UNUSED const PgfTypeBase* type,
 	pgf_debug("-> GuString*");
 	GString* tmpg = pgf_read_tmp_string(rdr);
 	// XXX: temporary pools are not very efficient
-	GuPool* pool = gu_pool_new();
+	// GuPool* pool = gu_pool_new();
+	GuPool* pool = gu_pool();
 	GuString* tmp = gu_string_new(pool, tmpg->len);
 	char* data = gu_string_data(tmp);
 	memcpy(data, tmpg->str, tmpg->len);
