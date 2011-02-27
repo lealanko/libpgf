@@ -72,7 +72,7 @@ gu_intmap_set(GuIntMap* m, int key, void* value)
 }
 
 static inline bool
-gu_intmap_has(GuMap* map, int key)
+gu_intmap_has(GuIntMap* map, int key)
 {
 	return gu_map_has(map, GINT_TO_POINTER(key));
 }

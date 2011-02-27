@@ -261,6 +261,8 @@ struct PgfPArg {
 	PgfFId hypos[]; // XXX: Change to GuList(PgfFId) since usually empty
 };
 
+typedef GuList(PgfPArg*) PgfPArgs;
+
 typedef struct {
 	PgfFunId fun; 
 	int n_args;
@@ -283,6 +285,12 @@ typedef struct {
 
 
 GU_DECLARE_TYPE(PgfProduction, GuVariant);
+
+gboolean pgf_production_equal(const void* p1, const void* p2);
+
+unsigned pgf_production_hash(const void* p1);
+
+
 
 
 // PgfLiteral

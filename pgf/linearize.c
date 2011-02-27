@@ -61,6 +61,7 @@ pgf_linearize_dump_table = GU_TYPETABLE(
 
 
 typedef GuStringMap PgfLinProds;
+typedef GuStringMap PgfLinInfer;
 
 GU_DEFINE_TYPE(
 	PgfLinProds, GuStringMap,
@@ -71,14 +72,18 @@ GU_DEFINE_TYPE(
 	GU_TYPE_LIT(GuVariantAsPtr,
 	gu_type(PgfProduction)))))));
 
+typedef struct PgfLinIndex PgfLinIndex;
+
+struct PgfLinIndex {
+	GuIntMap* prods; // FId |-> GPtrArray [PgfProduction]
+	GuMap* infer; // [CId...] |-> GPtrArray [CId]
+};
+
 struct PgfLinearizer {
 	PgfPGF* pgf;
 	PgfConcr* cnc;
 	GuPool* pool;
-	PgfLinProds* prods; // PgfCId |-> GuIntMap |-> GPtrArray |-> PgfProduction
-	/**< Productions per function. This map associates with each
-	 * abstract function (as identified by a CId) the productions
-	 * that apply that function's linearization. */
+	GuStringMap* fun_indices; // PgfCId |-> PgfLinIndex
 };
 
 typedef PgfLinearizer PgfLzr;
@@ -87,7 +92,8 @@ GU_DEFINE_TYPE(
 	PgfLinearizer, struct,
 	GU_MEMBER_P(PgfLzr, pgf, PgfPGF),
 	GU_MEMBER_P(PgfLzr, cnc, PgfConcr),
-	GU_MEMBER_P(PgfLzr, prods, PgfLinProds));
+//	GU_MEMBER_P(PgfLzr, prods, PgfLinProds)
+	);
  
 /*
 GU_DEFINE_TYPE(
@@ -107,28 +113,154 @@ pgf_lzr_parr_free_cb(GuFn* fnp)
 
 GuFn pgf_lzr_parr_free_fn = pgf_lzr_parr_free_cb;
 
+static GPtrArray*
+pgf_lzr_parr_new(GuPool* pool)
+{
+	GPtrArray* parr = g_ptr_array_new();
+	GuClo1* clo = gu_new_s(pool, GuClo1, 
+			       pgf_lzr_parr_free_cb, parr);
+	gu_pool_finally(pool, &clo->fn);
+	return parr;
+}
+
+
 static void
-pgf_linearizer_add_production(PgfLinearizer* lzr, PgfFId fid,
-			      PgfProduction prod, PgfProduction from)
+pgf_lzr_arr_free_cb(GuFn* fnp)
+{
+	GuClo1* clo = (GuClo1*) fnp;
+	GArray* parr = clo->env1;
+	g_array_free(parr, TRUE);
+}
+
+GuFn pgf_lzr_arr_free_fn = pgf_lzr_arr_free_cb;
+
+static GArray*
+pgf_lzr_arr_new(GuPool* pool, size_t elem_size)
+{
+	GArray* arr = g_array_new(FALSE, FALSE, elem_size);
+	GuClo1* clo = gu_new_s(pool, GuClo1, 
+			       pgf_lzr_arr_free_cb, arr);
+	gu_pool_finally(pool, &clo->fn);
+	return arr;
+}
+
+
+
+static unsigned
+pgf_lzr_pargs_hash(gconstpointer p)
+{
+	const PgfPArgs* pargs = p;
+	int len = gu_list_length(pargs);
+	unsigned h = 0;
+	for (int i = 0; i < len; i++) {
+		PgfPArg* parg = gu_list_elems(pargs)[i];
+		h = gu_hash_mix(h, parg->fid);
+		for (int j = 0; j < parg->n_hypos; j++) {
+			h = gu_hash_mix(h, parg->hypos[j]);
+		}
+	}
+	return h;
+}
+
+static gboolean
+pgf_lzr_pargs_equal(gconstpointer p1, gconstpointer p2)
+{
+	const PgfPArgs* pargs1 = p1;
+	const PgfPArgs* pargs2 = p2;
+	int len = gu_list_length(pargs1);
+	if (gu_list_length(pargs2) != len) {
+		return FALSE;
+	}
+	for (int i = 0; i < len; i++) {
+		PgfPArg* parg1 = gu_list_elems(pargs1)[i];
+		PgfPArg* parg2 = gu_list_elems(pargs2)[i];
+		if (parg1->fid != parg2->fid) {
+			return FALSE;
+		}
+		if (parg1->n_hypos != parg2->n_hypos) {
+			return FALSE;
+		}
+		for (int j = 0; j < parg1->n_hypos; j++) {
+			if (parg1->hypos[j] != parg2->hypos[j]) {
+				return FALSE;
+			}
+		}
+	}
+	return TRUE;
+}
+
+static void
+pgf_lzr_add_infer_entry(PgfLinearizer* lzr,
+			GuMap* infer_table,
+			PgfFId fid,
+			PgfProductionApply* papply)
+{
+	// XXX: it's silly we have to allocate and copy this. TODO:
+	// make PgfProductionApply have PgfPArgs directly.
+	PgfPArgs* pargs =
+		gu_list_new(PgfPArgs, lzr->pool, papply->n_args);
+	for (int i = 0; i < papply->n_args; i++) {
+		gu_list_elems(pargs)[i] = papply->args[i];
+	}
+	GArray* infer_fids = gu_map_get(infer_table, pargs);
+	if (infer_fids == NULL) {
+		infer_fids = pgf_lzr_arr_new(lzr->pool, sizeof(PgfFId));
+		gu_map_set(infer_table, pargs, infer_fids);
+	} else {
+		// XXX: pargs is duplicate, we ought to free it
+	}
+	
+	bool have = false;
+	// Now check that fid is not already in infer_fids
+	for (int i = 0; i < (int) infer_fids->len; i++) {
+		if (g_array_index(infer_fids, PgfFId, i) == fid) {
+			have = true;
+			break;
+		}
+	}
+	if (!have) {
+		g_array_append_vals(infer_fids, &fid, 1);
+	}
+}
+			
+
+static void
+pgf_lzr_add_linprods_entry(PgfLinearizer* lzr,
+			   GuIntMap* linprods,
+			   PgfFId fid,
+			   PgfProduction prod)
+{
+	GPtrArray* prods = gu_intmap_get(linprods, fid);
+	if (prods == NULL) {
+		prods = pgf_lzr_parr_new(lzr->pool);
+		gu_intmap_set(linprods, fid, prods);
+	}
+	g_ptr_array_add(prods, gu_variant_to_ptr(prod));
+}
+
+
+static void
+pgf_lzr_index(PgfLinearizer* lzr, PgfFId fid,
+	      PgfProduction prod, PgfProduction from)
 {
 	void* data = gu_variant_data(from);
 	switch (gu_variant_tag(from)) {
 	case PGF_PRODUCTION_APPLY: {
 		PgfProductionApply* papply = data;
-		GuMap* m = gu_map_get(lzr->prods, papply->fun[0]->fun);
-		if (m == NULL) {
-			m = gu_intmap_new(lzr->pool);
-			gu_map_set(lzr->prods, papply->fun[0]->fun, m);
+		PgfLinIndex* idx =
+			gu_map_get(lzr->fun_indices, papply->fun[0]->fun);
+		if (idx == NULL) {
+			idx = gu_new(lzr->pool, PgfLinIndex);
+			idx->prods = gu_intmap_new(lzr->pool);
+			idx->infer = gu_map_new(lzr->pool,
+						pgf_lzr_pargs_hash,
+						pgf_lzr_pargs_equal);
+			gu_map_set(lzr->fun_indices,
+				   papply->fun[0]->fun, idx);
 		}
-		GPtrArray* lin_prods = gu_intmap_get(m, fid);
-		if (lin_prods == NULL) {
-			lin_prods = g_ptr_array_new();
-			GuClo1* clo = gu_new_s(lzr->pool, GuClo1, 
-					       pgf_lzr_parr_free_cb, lin_prods);
-			gu_pool_finally(lzr->pool, &clo->fn);
-			gu_intmap_set(m, fid, lin_prods);
-		}
-		g_ptr_array_add(lin_prods, gu_variant_to_ptr(prod));
+
+		pgf_lzr_add_linprods_entry(lzr, idx->prods, fid, prod);
+		pgf_lzr_add_infer_entry(lzr, idx->infer, fid, papply);
 		return;
 	}
 	case PGF_PRODUCTION_COERCE: {
@@ -139,8 +271,7 @@ pgf_linearizer_add_production(PgfLinearizer* lzr, PgfFId fid,
 			return;
 		}
 		for (int i = 0; i < c_prods->len; i++) {
-			pgf_linearizer_add_production(lzr, fid, prod,
-						      c_prods->elems[i]);
+			pgf_lzr_index(lzr, fid, prod, c_prods->elems[i]);
 		}
 		return;
 	}
@@ -150,8 +281,7 @@ pgf_linearizer_add_production(PgfLinearizer* lzr, PgfFId fid,
 }
 
 static void
-pgf_linearizer_add_production_cb(void* key, void* value, 
-				 void* user_data)
+pgf_lzr_create_index_cb(void* key, void* value, void* user_data)
 {
 	PgfFId fid = GPOINTER_TO_INT(key);
 	PgfProductions* prods = value;
@@ -159,14 +289,9 @@ pgf_linearizer_add_production_cb(void* key, void* value,
 
 	for (int i = 0; i < prods->len; i++) {
 		PgfProduction prod = prods->elems[i];
-		pgf_linearizer_add_production(lzr, fid, prod, prod);
+		pgf_lzr_index(lzr, fid, prod, prod);
 	}
 }
-
-
-
-
-
 
 
 
@@ -179,9 +304,8 @@ pgf_linearizer_new(GuPool* pool, PgfPGF* pgf, PgfConcr* cnc)
 	lzr->pgf = pgf;
 	lzr->cnc = cnc;
 	lzr->pool = pool;
-	lzr->prods = gu_map_new(pool, gu_string_hash, gu_string_equal);
-	g_hash_table_foreach(cnc->productions, pgf_linearizer_add_production_cb,
-			     lzr);
+	lzr->fun_indices = gu_stringmap_new(pool);
+	g_hash_table_foreach(cnc->productions, pgf_lzr_create_index_cb, lzr);
 	// TODO: prune productions with zero linearizations
 	return lzr;
 }
@@ -306,16 +430,17 @@ pgf_lzc_choose_fid(PgfLzc* lzc, PgfCId* cid)
 {
 	PgfLzn* lzn = lzc->lzn;
 	PgfLzr* lzr = lzn->lzr;
-	GuIntMap* prod_map = gu_map_get(lzr->prods, cid);
-	if (prod_map == NULL) {
+	PgfLinIndex* idx = gu_map_get(lzr->fun_indices, cid);
+	if (idx == NULL) {
 		// XXX: error reporting
 		return -1;
 	}
-	int next_fid_seqno = pgf_lzc_next_choice(lzc, gu_map_size(prod_map));
+	int next_fid_seqno =
+		pgf_lzc_next_choice(lzc, gu_map_size(idx->prods));
 	int count = 0;
 	PgfFId fid = -1;
 	GuClo3 clo = { pgf_lzc_choose_fid_cb, &next_fid_seqno, &count, &fid };
-	gu_map_iter(prod_map, &clo.fn);
+	gu_map_iter(idx->prods, &clo.fn);
 	g_assert(fid >= 0);
 	return fid;
 }
@@ -365,17 +490,16 @@ pgf_lzc_choose_production(PgfLzc* lzc, PgfCId* cid, PgfFId fid)
 	PgfLzn* lzn = lzc->lzn;
 	PgfLzr* lzr = lzn->lzr;
 
-	GuIntMap* prod_map = gu_map_get(lzr->prods, cid);
-	if (prod_map == NULL) {
+	PgfLinIndex* idx = gu_map_get(lzr->fun_indices, cid);
+	if (idx == NULL) {
 		return NULL;
 	}
-
 	if (fid == -1) {
 		fid = pgf_lzc_choose_fid(lzc, cid);
 	}
 
 	while (TRUE) {
-		GPtrArray* prods = gu_intmap_get(prod_map, fid);
+		GPtrArray* prods = gu_intmap_get(idx->prods, fid);
 		if (prods == NULL || prods->len == 0) {
 			return NULL;
 		}
@@ -435,8 +559,6 @@ pgf_lzc_apply(PgfLzc* lzc, PgfExpr src_expr, PgfFId fid,
 		case PGF_SYMBOL_LIT: {
 			PgfSymbolIdx* sidx = sym_i.data;
 			g_assert(sidx->d < appl->n_args);
-			// The arguments are accumulated in args 
-			// in _reverse order_!
 			PgfExpr arg = appl->args[sidx->d];
 			if (fns->symbol_expr)
 				fns->symbol_expr(lzc->cb_ctx, sidx->d,

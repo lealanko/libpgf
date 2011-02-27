@@ -113,4 +113,10 @@ gu_min(int a, int b) {
 		char static_assert[(expr_) ? 1 : -1];			\
 	} GU_PASTE(GuStaticAssert_, __LINE__)
 
+static inline unsigned
+gu_hash_mix(unsigned h, unsigned v)
+{
+	return h * 101 + v;
+}
+
 #endif // GU_DEFS_H_
