@@ -43,9 +43,8 @@ int main(int argc, char* argv[]) {
 
 	GuDumpCtx* ctx = gu_dump_ctx_new(pool, stdout, &dump_table);
 	ctx->print_address = true;
-	gu_dump(gu_type(PgfLinearizer), lzr, ctx);
+	// gu_dump(gu_type(PgfLinearizer), lzr, ctx);
 
-	PgfLinearization* lzn = pgf_lzn_new(pool, lzr);
 
 #define PGF_EDSL_POOL pool
 	// PgfExpr expr = APPV(s, APPV(s, VAR(o)));
@@ -59,7 +58,11 @@ int main(int argc, char* argv[]) {
 	// PgfExpr expr = VAR(Warm);
 	PgfExpr expr = APPV(PQuestion, APPV(WherePerson, VAR(YouFamMale)));
 
-	while (pgf_lzn_linearize_to_file(lzn, expr, -1, 0, stdout));
+	PgfLinearization* lzn = pgf_lzn_new(lzr, expr, pool);
+
+	do {
+		pgf_lzn_linearize_to_file(lzn, 0, stdout);
+	} while (pgf_lzn_advance(lzn));
 	fputc('\n', stdout);
 	return 0;
 fail_write:

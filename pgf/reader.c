@@ -40,7 +40,7 @@ struct PgfContext {
 	PgfIdContext cncfuns;
 };
 
-#define PGF_DEBUG
+// #define PGF_DEBUG
 
 //
 // PgfWriter

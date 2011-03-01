@@ -34,6 +34,15 @@ typedef struct PgfFunDecl PgfFunDecl;
 typedef struct PgfConcr PgfConcr;
 
 typedef int PgfFId;
+enum {
+	PGF_FID_STRING = -1,
+	PGF_FID_INT = -2,
+	PGF_FID_FLOAT = -3,
+	PGF_FID_VAR = -4,
+	PGF_FID_INVALID = -999
+};
+
+typedef GuList(PgfFId) PgfFIds;
 
 typedef int PgfLength;
 
@@ -318,6 +327,8 @@ typedef struct {
 	double val;
 } PgfLiteralFlt;
 
+PgfFId
+pgf_literal_fid(PgfLiteral lit);
 
 // PgfPatt
 

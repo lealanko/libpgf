@@ -189,6 +189,45 @@ pgf_lzr_pargs_equal(gconstpointer p1, gconstpointer p2)
 	return TRUE;
 }
 
+
+static unsigned
+pgf_lzr_fids_hash(gconstpointer p)
+{
+	const PgfFIds* fids = p;
+	int len = gu_list_length(fids);
+	unsigned h = 0;
+	for (int i = 0; i < len; i++) {
+		h = gu_hash_mix(h, gu_list_elems(fids)[i]);
+	}
+	return h;
+}
+
+static gboolean
+pgf_lzr_fids_equal(gconstpointer p1, gconstpointer p2)
+{
+	const PgfFIds* fids1 = p1;
+	const PgfFIds* fids2 = p2;
+	int len = gu_list_length(fids1);
+	if (gu_list_length(fids2) != len) {
+		return FALSE;
+	}
+	for (int i = 0; i < len; i++) {
+		PgfFId fid1 = gu_list_elems(fids1)[i];
+		PgfFId fid2 = gu_list_elems(fids2)[i];
+		if (fid1 != fid2) {
+			return FALSE;
+		}
+	}
+	return TRUE;
+}
+
+typedef struct PgfLinInferEntry PgfLinInferEntry;
+
+struct PgfLinInferEntry {
+	PgfFId cat_id;
+	PgfFId fun_id;
+};
+
 static void
 pgf_lzr_add_infer_entry(PgfLinearizer* lzr,
 			GuMap* infer_table,
@@ -197,30 +236,26 @@ pgf_lzr_add_infer_entry(PgfLinearizer* lzr,
 {
 	// XXX: it's silly we have to allocate and copy this. TODO:
 	// make PgfProductionApply have PgfPArgs directly.
-	PgfPArgs* pargs =
-		gu_list_new(PgfPArgs, lzr->pool, papply->n_args);
+	PgfFIds* arg_fids =
+		gu_list_new(PgfFIds, lzr->pool, papply->n_args);
 	for (int i = 0; i < papply->n_args; i++) {
-		gu_list_elems(pargs)[i] = papply->args[i];
+		// XXX: What about the hypos in the args?
+		gu_list_elems(arg_fids)[i] = papply->args[i]->fid;
 	}
-	GArray* infer_fids = gu_map_get(infer_table, pargs);
-	if (infer_fids == NULL) {
-		infer_fids = pgf_lzr_arr_new(lzr->pool, sizeof(PgfFId));
-		gu_map_set(infer_table, pargs, infer_fids);
+	GArray* entries = gu_map_get(infer_table, arg_fids);
+	if (entries == NULL) {
+		infer_fids = pgf_lzr_arr_new(lzr->pool,
+					     sizeof(PgfLinInferEntry));
+		gu_map_set(infer_table, arg_fids, infer_fids);
 	} else {
-		// XXX: pargs is duplicate, we ought to free it
+		// XXX: arg_fids is duplicate, we ought to free it
 	}
-	
-	bool have = false;
-	// Now check that fid is not already in infer_fids
-	for (int i = 0; i < (int) infer_fids->len; i++) {
-		if (g_array_index(infer_fids, PgfFId, i) == fid) {
-			have = true;
-			break;
-		}
-	}
-	if (!have) {
-		g_array_append_vals(infer_fids, &fid, 1);
-	}
+
+	PgfLinInferEntry entry = {
+		.cat_id = fid,
+		.fun_id = papply->fun,
+	};
+	g_array_append_val(entries, entry);
 }
 			
 
@@ -253,13 +288,15 @@ pgf_lzr_index(PgfLinearizer* lzr, PgfFId fid,
 			idx = gu_new(lzr->pool, PgfLinIndex);
 			idx->prods = gu_intmap_new(lzr->pool);
 			idx->infer = gu_map_new(lzr->pool,
-						pgf_lzr_pargs_hash,
-						pgf_lzr_pargs_equal);
+						pgf_lzr_fids_hash,
+						pgf_lzr_fids_equal);
 			gu_map_set(lzr->fun_indices,
 				   papply->fun[0]->fun, idx);
 		}
 
 		pgf_lzr_add_linprods_entry(lzr, idx->prods, fid, prod);
+		// XXX: we are duplicating the same entries for
+		// all C -> _C, TODO: add a reverse _C -> C index
 		pgf_lzr_add_infer_entry(lzr, idx->infer, fid, papply);
 		return;
 	}
@@ -313,9 +350,183 @@ pgf_linearizer_new(GuPool* pool, PgfPGF* pgf, PgfConcr* cnc)
 struct PgfLinearization {
 	PgfLinearizer* lzr;
 	GByteArray* path;
+	PgfExpr expr;
+	PgfFIds* fids;
 };
 
 typedef PgfLinearization PgfLzn;
+
+
+//
+// PgfLinTree
+//
+
+typedef GuVariant PgfLinTree;
+
+typedef enum {
+	PGF_LIN_TREE_APP,
+	PGF_LIN_TREE_LIT,
+} PgfLinTreeTag;
+
+typedef struct PgfLinTreeApp PgfLinTreeApp;
+struct PgfLinTreeApp {
+	PgfFId fun_id;
+	GuLength n_args;
+	PgfLinTree args[];
+};
+
+typedef struct PgfLinTreeLit PgfLinTreeLit;
+struct PgfLinTreeLit {
+	PgfLiteral lit;
+};
+
+typedef struct PgfLinInfer PgfLinInfer;
+
+struct PgfLinInfer {
+	PgfFId c_id;
+	PgfLinTree tree;
+};
+
+static PgfLinInfer
+pgf_lzc_infer_arg(PgfLzc* lzc, PgfApplication* appl, PgfLinInfer* args,
+		  int argno, GuPool* pool)
+{
+	if (argno == appl->n_args) {
+		
+		
+}
+
+static PgfLinInfer
+pgf_lzc_infer_application(PgfLzc* lzc, PgfApplication* appl, GuPool* pool)
+{
+	PgfLinInfer ret = { PGF_FID_INVALID, gu_variant_null };
+	PgfLinIndex* idx = gu_map_get(lzr->fun_indices, appl->fun);
+	if (idx == NULL) {
+		return ret;
+	}
+		
+	int n = appl->n_args;
+
+	PgfLinInfer args[n];
+	
+	for (int i = 0; i < n; i++) {
+		args[i] = pgf_lzc_infer(lzc, appl->args[i], pool);
+	}
+	
+	
+	int mods[n];
+	int j = 1;
+	for (int i = 0; i < n; i++) {
+			mods[i] = j;
+			j = j * (int) arrs[i]->len;
+	}
+	PgfFIds* arg_fids = gu_list_new(PgfFIds, pool, n);
+	while (j > 0) {
+		for (int i = 0; i < n; i++) {
+				GArray* a = arrs[i];
+				int idx = (j / mods[i]) % (int) a->len;
+				gu_list_elems(arg_fids)[i] =
+					g_array_index(a, PgfFId, idx);
+			}
+			GArray* res_fids = gu_map_get(idx->infer, arg_fids);
+			if (res_fids != NULL) {
+				g_array_append_vals(fids_out,
+						    (PgfFId*) res_fids->data,
+						    res_fids->len);
+			}
+			j--;
+		}
+}
+
+static PgfLinInfer
+pgf_lzc_infer(PgfLzc* lzc, PgfExpr expr, GuPool* pool)
+{
+	GuPool* tmp_pool = gu_pool_new();
+	PgfApplication* appl = pgf_expr_unapply(expr, tmp_pool);
+	PgfLinInfer ret = { .c_id = PGF_FID_INVALID,
+			    .tree = gu_variant_null };
+	if (appl != NULL) {
+		ret = pgf_lzc_infer_application(lzc, expr, appl);
+	} else {
+		GuVariantInfo i = gu_variant_open(pgf_expr_unwrap(expr));
+		switch (i.tag) {
+		case PGF_EXPR_LIT: {
+			PgfExprLit* elit = i.data;
+			if (pool != NULL) {
+				ret.tree = gu_variant_new_s(
+					pool, PGF_LIN_TREE_LIT,
+					.lit = elit->lit);
+			}
+			ret.c_id = pgf_literal_fid(elit->lit);
+			break;
+		}
+		default:
+			// XXX: should we do something here?
+			break;
+		}
+	}
+	gu_pool_free(tmp_pool);
+
+	return ret;
+}
+
+
+
+static void
+pgf_lzr_infer_fids(PgfLzr* lzr, PgfExpr expr, GArray* fids_out)
+{
+	GuPool* pool = gu_pool_new();
+	PgfApplication* appl = pgf_expr_unapply(expr, pool);
+	if (appl == NULL) {
+		GuVariantInfo i = gu_variant_open(pgf_expr_unwrap(expr));
+		switch (i.tag) {
+		case PGF_EXPR_LIT: {
+			PgfExprLit* elit = i.data;
+			PgfFId fid = pgf_literal_fid(elit->lit);
+			g_array_append_val(fids_out, fid);
+			break;
+		}
+		default:
+			// XXX: should we do something here?
+			break;
+		}
+		goto exit;
+	}
+	PgfLinIndex* idx = gu_map_get(lzr->fun_indices, appl->fun);
+	if (idx != NULL) {
+		int n = appl->n_args;
+		GArray* arrs[n];
+		for (int i = 0; i < n; i++) {
+			arrs[i] = pgf_lzr_arr_new(pool, sizeof(PgfFId));
+			pgf_lzr_infer_fids(lzr, appl->args[i], arrs[i]);
+		}
+		int mods[n];
+		int j = 1;
+		for (int i = 0; i < n; i++) {
+			mods[i] = j;
+			j = j * (int) arrs[i]->len;
+		}
+		PgfFIds* arg_fids = gu_list_new(PgfFIds, pool, n);
+		while (j > 0) {
+			for (int i = 0; i < n; i++) {
+				GArray* a = arrs[i];
+				int idx = (j / mods[i]) % (int) a->len;
+				gu_list_elems(arg_fids)[i] =
+					g_array_index(a, PgfFId, idx);
+			}
+			GArray* res_fids = gu_map_get(idx->infer, arg_fids);
+			if (res_fids != NULL) {
+				g_array_append_vals(fids_out,
+						    (PgfFId*) res_fids->data,
+						    res_fids->len);
+			}
+			j--;
+		}
+	}
+exit:
+	gu_pool_free(pool);
+}
+
 
 static void 
 pgf_lzn_byte_array_free_cb(GuFn* fnp)
@@ -325,33 +536,27 @@ pgf_lzn_byte_array_free_cb(GuFn* fnp)
 }
 
 PgfLzn*
-pgf_lzn_new(GuPool* pool, PgfLzr* lzr)
+pgf_lzn_new(PgfLinearizer* lzr, PgfExpr expr, GuPool* pool)
 {
-	PgfLzn* lzn = gu_new(pool, PgfLzn);
-	lzn->lzr = lzr;
-	lzn->path = g_byte_array_new();
-	GuClo1* clo = gu_new_s(pool, GuClo1, pgf_lzn_byte_array_free_cb, lzn->path);
-	gu_pool_finally(pool, &clo->fn);
+	PgfLzn* lzn = NULL;
+	GuPool* tmp_pool = gu_pool_new();
+	GArray* fids = pgf_lzr_arr_new(tmp_pool, sizeof(PgfFId));
+	pgf_lzr_infer_fids(lzr, expr, fids);
+	if (fids->len > 0) {
+		lzn = gu_new(pool, PgfLzn);
+		lzn->lzr = lzr;
+		lzn->path = g_byte_array_new();
+		GuClo1* clo = gu_new_s(pool, GuClo1,
+				       pgf_lzn_byte_array_free_cb, lzn->path);
+		gu_pool_finally(pool, &clo->fn);
+		lzn->fids = gu_list_new(PgfFIds, pool, fids->len);
+		for (int i = 0; i < (int) fids->len; i++) {
+			gu_list_elems(lzn->fids)[i] = g_array_index(fids, PgfFId, i);
+		}
+		lzn->expr = expr;
+	}
+	gu_pool_free(tmp_pool);
 	return lzn;
-}
-
-
-
-
-static bool
-pgf_lzn_advance(PgfLzn* lzn)
-{
-	GByteArray* path = lzn->path;
-	while (path->len > 0 && path->data[path->len - 1] == 0) {
-		g_byte_array_set_size(path, path->len - 1);
-	}
-	if (path->len == 0) {
-		return false;
-	} else {
-		g_assert(path->data[path->len - 1] > 0);
-		path->data[path->len - 1]--;
-		return true;
-	}
 }
 
 
@@ -378,25 +583,26 @@ pgf_lzc_apply(PgfLzc* lzc, PgfExpr src_expr, PgfFId fid,
 	      int lin_idx, PgfApplication* appl);
 
 
+
 bool
-pgf_lzn_linearize(PgfLzn* lzn, PgfExpr expr, PgfFId fid, int lin_idx, 
-		  PgfLinFuncs* cb_fns, void* cb_ctx)
+pgf_lzn_advance(PgfLzn* lzn)
 {
-	PgfLzc lzc = {
-		.lzn = lzn,
-		.expr = expr,
-		.path_idx = 0,
-		.cb_fns = cb_fns,
-		.cb_ctx = cb_ctx,
-	};
-	// XXX: do status reporting sensibly
-	bool succ = pgf_lzc_linearize(&lzc, expr, fid, lin_idx);
-	bool cont = pgf_lzn_advance(lzn);
-	return cont;
+	GByteArray* path = lzn->path;
+	while (path->len > 0 && path->data[path->len - 1] == 0) {
+		g_byte_array_set_size(path, path->len - 1);
+	}
+	if (path->len == 0) {
+		return false;
+	} else {
+		g_assert(path->data[path->len - 1] > 0);
+		path->data[path->len - 1]--;
+		return true;
+	}
 }
 
-
-int pgf_lzc_next_choice(PgfLzc* lzc, int n_choices) {
+int
+pgf_lzc_choice_next(PgfLzc* lzc, int n_choices)
+{
 	g_assert(n_choices > 0);
 	if (n_choices == 1) {
 		return 0;
@@ -410,6 +616,23 @@ int pgf_lzc_next_choice(PgfLzc* lzc, int n_choices) {
 	}
 	return n_choices - 1 - path->data[lzc->path_idx++];
 }
+
+bool
+pgf_lzc_choice_reject(PgfLzc* lzc, int n_choices)
+{
+	gu_assert(lzc->path_idx > 0);
+	if (n_choices == 1) {
+		return false;
+	}
+	lzc->path_idx--;
+	if (path->data[lzc->path_idx] == 0) {
+		return false;
+	} else {
+		pach->data[lzc->path_idx]--;
+		return true;
+	}
+}
+
 
 static void
 pgf_lzc_choose_fid_cb(GuFn* fnp, void* key, void* value) {
@@ -590,6 +813,25 @@ pgf_lzc_apply(PgfLzc* lzc, PgfExpr src_expr, PgfFId fid,
 	return TRUE;
 }
 
+void
+pgf_lzn_linearize(PgfLzn* lzn, int lin_idx, 
+		  PgfLinFuncs* cb_fns, void* cb_ctx)
+{
+	PgfLzc lzc = {
+		.lzn = lzn,
+		.path_idx = 0,
+		.cb_fns = cb_fns,
+		.cb_ctx = cb_ctx,
+	};
+	int fid_idx = pgf_lzc_next_choice(&lzc, lzn->fids->len);
+	PgfFId fid = gu_list_elems(lzn->fids)[fid_idx];
+	pgf_lzc_linearize(&lzc, lzn->expr, fid, lin_idx);
+}
+
+
+
+
+
 
 static void
 pgf_file_lzn_symbol_tokens(void* ctx, PgfTokens* toks)
@@ -606,10 +848,9 @@ static PgfLinFuncs pgf_file_lin_funcs = {
 	.symbol_tokens = pgf_file_lzn_symbol_tokens
 };
 
-bool
-pgf_lzn_linearize_to_file(PgfLzn* lzn, PgfExpr expr, PgfFId fid, int lin_idx, 
-			  FILE* file_out)
+void
+pgf_lzn_linearize_to_file(PgfLzn* lzn, int lin_idx, FILE* file_out)
 {
-	return pgf_lzn_linearize(lzn, expr, fid, lin_idx, 
-				 &pgf_file_lin_funcs, file_out);
+	pgf_lzn_linearize(lzn, lin_idx, 
+			  &pgf_file_lin_funcs, file_out);
 }

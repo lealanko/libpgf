@@ -3,6 +3,26 @@
 #include <gu/type.h>
 #include <gu/variant.h>
 
+
+PgfFId
+pgf_literal_fid(PgfLiteral lit)
+{
+	switch (gu_variant_tag(lit)) {
+	case PGF_LITERAL_STR:
+		return PGF_FID_STRING;
+	case PGF_LITERAL_INT:
+		return PGF_FID_INT;
+	case PGF_LITERAL_FLT:
+		return PGF_FID_FLOAT;
+	default:
+		g_assert_not_reached();
+	}
+}
+
+
+
+
+
 GU_DEFINE_TYPE(PgfLiteral, GuVariant,
 	       GU_CONSTRUCTOR_S(PGF_LITERAL_STR, PgfLiteralStr,
 				GU_MEMBER_P(PgfLiteralStr, val, GuString)),

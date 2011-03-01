@@ -43,11 +43,14 @@ pgf_linearizer_new(GuPool* pool, PgfPGF* pgf, PgfConcr* cnc);
 
 typedef struct PgfLinearization PgfLinearization;
 
-PgfLinearization* pgf_lzn_new(GuPool* pool, PgfLinearizer* lzr);
+PgfLinearization*
+pgf_lzn_new(PgfLinearizer* lzr, PgfExpr expr, GuPool* pool);
+
+void
+pgf_lzn_linearize_to_file(PgfLinearization* lzn, int lin_idx, FILE* file_out);
 
 bool
-pgf_lzn_linearize_to_file(PgfLinearization* lzn, PgfExpr expr, PgfFId fid, int lin_idx, 
-			  FILE* file_out);
+pgf_lzn_advance(PgfLinearization* lzn);
 
 
 extern GuTypeTable
