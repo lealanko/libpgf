@@ -21,39 +21,46 @@
 #include <gu/dump.h>
 #include <pgf/data.h>
 
+typedef struct PgfLzr PgfLzr;
+
+GU_DECLARE_TYPE(PgfLzr, struct);
+
+typedef struct PgfLzn PgfLzn;
+
+typedef GuVariant PgfLinForm;
+
 typedef struct PgfLinFuncs PgfLinFuncs;
 
 struct PgfLinFuncs {
-	void (*symbol_tokens)(void* ctx, PgfTokens* toks);
-	void (*symbol_expr)(void* ctx, int argno, PgfExpr expr, int lin_idx);
+	void (*symbol_tokens)(PgfLinFuncs** self, PgfTokens* toks);
+	void (*symbol_expr)(PgfLinFuncs** self, 
+			    int argno, PgfExpr expr, int lin_idx);
 
-	void (*expr_apply)(void* ctx, PgfFunDecl* fun, int n_symbols);
-	void (*expr_literal)(void* ctx, PgfLiteral lit);
+	void (*expr_apply)(PgfLinFuncs** self, PgfCId* cid, int n_symbols);
+	void (*expr_literal)(PgfLinFuncs** self, PgfLiteral lit);
 
-	void (*abort)(void* ctx);
-	void (*finish)(void* ctx);
+	void (*abort)(PgfLinFuncs** self);
+	void (*finish)(PgfLinFuncs** self);
 };
 
 
-typedef struct PgfLinearizer PgfLinearizer;
-
-PgfLinearizer*
-pgf_linearizer_new(GuPool* pool, PgfPGF* pgf, PgfConcr* cnc);
-
-
-typedef struct PgfLinearization PgfLinearization;
-
-PgfLinearization*
-pgf_lzn_new(PgfLinearizer* lzr, PgfExpr expr, GuPool* pool);
+PgfLzr*
+pgf_lzr_new(GuPool* pool, PgfPGF* pgf, PgfConcr* cnc);
 
 void
-pgf_lzn_linearize_to_file(PgfLinearization* lzn, int lin_idx, FILE* file_out);
+pgf_lzr_linearize(PgfLzr* lzr, PgfLinForm* form, PgfLinFuncs** fnp);
 
-bool
-pgf_lzn_advance(PgfLinearization* lzn);
+void
+pgf_lzr_linearize_to_file(PgfLzr* lzr, PgfLinForm* form, int lin_idx, 
+			  FILE* file_out);
+
+PgfLzn*
+pgf_lzn_new(PgfLzr* lzr, PgfExpr expr, GuPool* pool);
+
+PgfLinForm
+pgf_lzn_next_form(PgfLzn* lzn, GuPool* pool);
 
 
 extern GuTypeTable
 pgf_linearize_dump_table;
 
-GU_DECLARE_TYPE(PgfLinearizer, struct);

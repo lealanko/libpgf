@@ -19,7 +19,7 @@ gu_choice_mark(GuChoice* ch);
 void
 gu_choice_reset(GuChoice* ch, GuChoiceMark mark);
 
-bool
+void
 gu_choice_advance(GuChoice* ch);
 
 
