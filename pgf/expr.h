@@ -76,4 +76,8 @@ struct PgfApplication {
 PgfApplication*
 pgf_expr_unapply(PgfExpr expr, GuPool* pool);
 
+
+PgfExpr
+pgf_expr_parse(FILE* input, GuPool* pool);
+
 #endif /* EXPR_H_ */

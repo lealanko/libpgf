@@ -9,7 +9,7 @@ typedef struct {
 	int y;
 } Point;
 
-#if 0
+#if 1
 GU_DEFINE_TYPE(Point, struct, 
 	       GU_MEMBER(Point, x, int),
 	       GU_MEMBER(Point, y, int));
@@ -36,8 +36,8 @@ static void dump_int(GuTypeMap* map, GuType* type, void* p) {
 
 static void dump_typedef(GuTypeMap* map, GuType* type, void* p) {
 	GuType_typedef* td = (GuType_typedef*)type;
-	printf("%s(", td->name);
-	dump_aux(map, td->type, p);
+	printf(GU_STRING_FMT "(", GU_STRING_FMT_ARGS(td->name));
+	dump_aux(map, td->alias_base.type, p);
 	printf(")\n");
 }
 
@@ -49,7 +49,7 @@ static void dump_struct(GuTypeMap* map, GuType* type, void* p) {
 	
 	for (int i = 0; i < stype->members.len; i++) {
 		GuMember* m = &stype->members.elems[i];
-		printf("%s = ", m->name);
+		printf(GU_STRING_FMT " = ", GU_STRING_FMT_ARGS(m->name));
 		dump_aux(map, m->type, &u[m->offset]);
 		printf(",\n");
 	}
@@ -57,7 +57,7 @@ static void dump_struct(GuTypeMap* map, GuType* type, void* p) {
 	printf("}\n");
 }
 
-#define DUMPER(k_, f_) { GU_KIND(k_), (Dumper[1]){{f_}}}
+#define DUMPER(k_, f_) { gu_kind(k_), (Dumper[1]){{f_}}}
 
 static GuTypeTable dumpers = 
 	GU_TYPETABLE(GU_SLIST_0,
@@ -129,7 +129,7 @@ static void dump(GuType* t, void* val)
 int main(void)
 {
 	Point p = { 3, 4 };
-	dump(GU_TYPE(Point), &p);
+	dump(gu_type(Point), &p);
 
 	GuPool* pool = gu_pool_new();
 	Tree t1, t2, t3, t4, t5;
@@ -145,7 +145,7 @@ int main(void)
 	Branch* b2 = gu_variant_new(pool, BRANCH, Branch, &t5);
 	b2->left = t1;
 	b2->right = t4;
-	dump(GU_TYPE(Tree), &t5);
+	dump(gu_type(Tree), &t5);
 	return 0;
 
 	

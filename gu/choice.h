@@ -16,10 +16,10 @@ gu_choice_next(GuChoice* ch, int n_choices);
 GuChoiceMark
 gu_choice_mark(GuChoice* ch);
 
-void
+bool
 gu_choice_reset(GuChoice* ch, GuChoiceMark mark);
 
-void
+bool
 gu_choice_advance(GuChoice* ch);
 
 

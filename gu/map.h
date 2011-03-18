@@ -109,6 +109,7 @@ gu_stringmap_set(GuStringMap* m, const GuString* key, void* value)
 
 
 
+
 #include <gu/type.h>
 
 extern GU_DECLARE_KIND(GuMap);

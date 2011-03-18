@@ -29,44 +29,49 @@ gu_choice_new(GuPool* pool)
 GuChoiceMark
 gu_choice_mark(GuChoice* ch)
 {
-	gu_assert(ch->path_idx <= ch->path->len);
+	gu_assert(ch->path_idx <= (int) ch->path->len);
 	return (GuChoiceMark){ch->path_idx};
 }
 
-void
+bool
 gu_choice_reset(GuChoice* ch, GuChoiceMark mark)
 {
-	gu_assert(ch->path_idx <= ch->path->len);
-	gu_assert(mark->path_idx <= ch->path_idx);
-	gu_assert(mark->path_idx >= 0);
-	ch->path_idx = mark->path_idx;
+	gu_assert(ch->path_idx <= (int) ch->path->len);
+	gu_assert(mark.path_idx >= 0);
+	if (mark.path_idx <= ch->path_idx) {
+		ch->path_idx = mark.path_idx;
+		return true;
+	} else {
+		return false;
+	}
 }
 
 int
 gu_choice_next(GuChoice* ch, int n_choices)
 {
 	gu_assert(n_choices >= 0);
-	gu_assert(ch->path_idx <= ch->path->len);
+	gu_assert(ch->path_idx <= (int) ch->path->len);
 	if (n_choices == 0) {
 		return -1;
 	}
 	int i = 0;
-	if (ch->path->len > ch->path_idx) {
+	if ((int) ch->path->len > ch->path_idx) {
 		i = (int) ch->path->data[ch->path_idx];
 		gu_assert(i <= n_choices);
 	} else {
 		g_byte_array_append(ch->path, &(guint8){n_choices}, 1);
 		i = n_choices;
 	}
+	ch->path_idx++;
 	return (i == 0) ? -1 : n_choices - i;
 }
 
 bool
 gu_choice_advance(GuChoice* ch)
 {
-	gu_assert(ch->path_idx <= ch->path->len);
+	gu_assert(ch->path_idx <= (int) ch->path->len);
 	
-	while (ch->path->len > ch->path_idx) {
+	while ((int) ch->path->len > ch->path_idx) {
 		int end = (int) ch->path->len - 1;
 		if (ch->path->data[end] <= 1) {
 			g_byte_array_set_size(ch->path, end);

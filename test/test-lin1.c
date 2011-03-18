@@ -17,14 +17,12 @@ GuTypeTable dump_table = GU_TYPETABLE(
 int main(int argc, char* argv[]) {
 	GuPool* pool = gu_pool_new();
 	
-	if (argc != 4) {
-		fputs("usage: test-lin1 Grammar.pgf lang rootsym\n", stderr);
+	if (argc != 3) {
+		fputs("usage: test-lin1 Grammar.pgf lang\n", stderr);
 		return EXIT_FAILURE;
 	}
 	char* filename = argv[1];
 	char* lang = argv[2];
-	char* rootsym = argv[3];
-
 	FILE* in = fopen(filename, "r");
 	if (in == NULL) {
 		fprintf(stderr, "couldn't open %s\n", filename);
@@ -39,7 +37,7 @@ int main(int argc, char* argv[]) {
 
 	PgfCId* lang_s = gu_string_new_c(pool, lang);
 	PgfConcr* concr = gu_map_get(pgf->concretes, lang_s);
-	PgfLinearizer* lzr = pgf_linearizer_new(pool, pgf, concr);
+	PgfLzr* lzr = pgf_lzr_new(pool, pgf, concr);
 
 	GuDumpCtx* ctx = gu_dump_ctx_new(pool, stdout, &dump_table);
 	ctx->print_address = true;
@@ -49,21 +47,36 @@ int main(int argc, char* argv[]) {
 #define PGF_EDSL_POOL pool
 	// PgfExpr expr = APPV(s, APPV(s, VAR(o)));
 	// PgfExpr expr = VAR(Pizza);
-	// PgfExpr expr = APPV2(Is, APPV(This, VAR(Pizza)), VAR(Delicious));
+	// PgfExpr expr = APPV2(Is, APPV(This, VAR(Pizza)), APPV(PropQuality, VAR(Delicious)));
 	// PgfExpr expr = APPV2(Is, APPV(This, APPV2(QKind, VAR(Warm), VAR(Pizza))), VAR(Delicious));
 	// PgfExpr expr = APPV2(Is, APPV(This, APPV2(QKind, APPV(Very, VAR(Expensive)), VAR(Wine))), VAR(Boring));
 	// PgfExpr expr = APPV(Very, VAR(Delicious));
 	// PgfExpr expr = APPV(This, VAR(Pizza));
 	// PgfExpr expr = APPV2(QKind, VAR(Warm), VAR(Pizza));
 	// PgfExpr expr = VAR(Warm);
-	PgfExpr expr = APPV(PQuestion, APPV(WherePerson, VAR(YouFamMale)));
+	// PgfExpr expr = APPV(PQuestion, APPV(WherePerson, VAR(YouFamMale)));
 
-	PgfLinearization* lzn = pgf_lzn_new(lzr, expr, pool);
-
-	do {
-		pgf_lzn_linearize_to_file(lzn, 0, stdout);
-	} while (pgf_lzn_advance(lzn));
-	fputc('\n', stdout);
+	while (true) {
+		fprintf(stdout, "> ");
+		fflush(stdout);
+		PgfExpr expr = pgf_expr_parse(stdin, pool);
+		
+		if (gu_variant_is_null(expr)) {
+			break;
+		}
+	
+		PgfLzn* lzn = pgf_lzn_new(lzr, expr, pool);
+		
+		while (true) {
+			PgfLinForm form = pgf_lzn_next_form(lzn, pool);
+			if (gu_variant_is_null(form)) {
+				break;
+			}
+			pgf_lzr_linearize_to_file(lzr, form, 0, stdout);
+			fputc('\n', stdout);
+			fflush(stdout);
+		}
+	}
 	return 0;
 fail_write:
 	pgf_free(pgf);

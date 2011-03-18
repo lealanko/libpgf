@@ -48,10 +48,10 @@ PgfLzr*
 pgf_lzr_new(GuPool* pool, PgfPGF* pgf, PgfConcr* cnc);
 
 void
-pgf_lzr_linearize(PgfLzr* lzr, PgfLinForm* form, PgfLinFuncs** fnp);
+pgf_lzr_linearize(PgfLzr* lzr, PgfLinForm form, int lin_idx, PgfLinFuncs** fnsp);
 
 void
-pgf_lzr_linearize_to_file(PgfLzr* lzr, PgfLinForm* form, int lin_idx, 
+pgf_lzr_linearize_to_file(PgfLzr* lzr, PgfLinForm form, int lin_idx, 
 			  FILE* file_out);
 
 PgfLzn*

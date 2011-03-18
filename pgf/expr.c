@@ -1,4 +1,6 @@
 #include "expr.h"
+#include <gu/intern.h>
+#include <ctype.h>
 
 PgfExpr
 pgf_expr_unwrap(PgfExpr expr)
@@ -98,3 +100,145 @@ GU_DEFINE_TYPE(
 	GU_CONSTRUCTOR_S(
 		PGF_EXPR_IMPL_ARG, PgfExprImplArg,
 		GU_MEMBER(PgfExprImplArg, expr, PgfExpr)));
+
+
+typedef struct PgfExprParser PgfExprParser;
+
+struct PgfExprParser {
+	FILE* input;
+	GuIntern* intern;
+	GuPool* expr_pool;
+	GuCString* lookahead;
+};
+
+static GU_DEFINE_ATOM(pgf_expr_lpar, "(");
+static GU_DEFINE_ATOM(pgf_expr_rpar, ")");
+static GU_DEFINE_ATOM(pgf_expr_semic, ";");
+
+static GuCString*
+pgf_expr_parser_lookahead(PgfExprParser* parser)
+{
+	if (parser->lookahead != NULL) {
+		return parser->lookahead;
+	}
+	GuCString* str = NULL;
+	int c;
+	do {
+		c = fgetc(parser->input);
+	} while (isspace(c));
+	switch (c) {
+	case '(':
+		str = gu_atom(pgf_expr_lpar);
+		break;
+	case ')':
+		str = gu_atom(pgf_expr_rpar);
+		break;
+	case ';':
+		str = gu_atom(pgf_expr_semic);
+		break;
+	default:
+		if (isalpha(c)) {
+			GuPool* tmp_pool = gu_pool_new();
+			GString* gstr = g_string_new(NULL);
+			while (isalnum(c) || c == '_') {
+				g_string_append_c(gstr, c);
+				c = fgetc(parser->input);
+			}
+			if (c != EOF) {
+				ungetc(c, parser->input);
+			}
+			str = gu_string_new_c(tmp_pool, gstr->str);
+			g_string_free(gstr, TRUE);
+			str = gu_intern_string(parser->intern, str);
+			gu_pool_free(tmp_pool);
+			
+		}
+	}
+	parser->lookahead = str;
+	return str;
+}
+
+static bool
+pgf_expr_parser_token_is_id(GuCString* str)
+{
+	if (str == NULL || gu_string_length(str) == 0) {
+		return false;
+	}
+	char c = gu_string_cdata(str)[0];
+	return (isalpha(c) || c == '_');
+}
+
+static void
+pgf_expr_parser_consume(PgfExprParser* parser)
+{
+	pgf_expr_parser_lookahead(parser);
+	parser->lookahead = NULL;
+}
+
+static PgfExpr
+pgf_expr_parser_expr(PgfExprParser* parser);
+
+static PgfExpr
+pgf_expr_parser_term(PgfExprParser* parser)
+{
+	GuCString* la = pgf_expr_parser_lookahead(parser);
+
+	if (la == gu_atom(pgf_expr_lpar)) {
+		pgf_expr_parser_consume(parser);
+		PgfExpr expr = pgf_expr_parser_expr(parser);
+		la = pgf_expr_parser_lookahead(parser);
+		if (la == gu_atom(pgf_expr_rpar)) {
+			pgf_expr_parser_consume(parser);
+			return expr;
+		}
+	} else if (pgf_expr_parser_token_is_id(la)) {
+		pgf_expr_parser_consume(parser);
+		return gu_variant_new_i(parser->expr_pool,
+					PGF_EXPR_FUN,
+					PgfExprFun,
+					la);
+	}
+	return gu_variant_null;
+}
+
+static PgfExpr
+pgf_expr_parser_expr(PgfExprParser* parser)
+{
+	PgfExpr expr = pgf_expr_parser_term(parser);
+	if (gu_variant_is_null(expr))
+	{
+		return expr;
+	}
+	while (true) {
+		PgfExpr arg = pgf_expr_parser_term(parser);
+		if (gu_variant_is_null(arg)) {
+			return expr;
+		}
+		expr = gu_variant_new_i(parser->expr_pool,
+					PGF_EXPR_APP,
+					PgfExprApp,
+					expr, arg);
+	}
+}
+
+
+
+PgfExpr
+pgf_expr_parse(FILE* input, GuPool* pool)
+{
+	GuPool* tmp_pool = gu_pool_new();
+	PgfExprParser* parser = gu_new(tmp_pool, PgfExprParser);
+	parser->input = input;
+	parser->intern = gu_intern_new(tmp_pool, pool);
+	parser->expr_pool = pool;
+	parser->lookahead = NULL;
+	PgfExpr expr = pgf_expr_parser_expr(parser);
+	GuString* la = pgf_expr_parser_lookahead(parser);
+	if (la == gu_atom(pgf_expr_semic)) {
+		pgf_expr_parser_consume(parser);
+	} else {
+		expr = gu_variant_null;
+	}
+	gu_pool_free(tmp_pool);
+	return expr;
+}

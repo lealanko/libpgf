@@ -157,14 +157,14 @@ struct GuTypeDef {
 };
 
 #define GU_TYPE_INIT_typedef(k_, t_, type_) {			\
-	.alias_base = GU_TYPE_INIT_alias(k_, t_, _),	\
+	.alias_base = GU_TYPE_INIT_alias(k_, t_, type_),	\
 	.name = gu_cstring(#t_),		\
 }
 
 extern GU_DECLARE_KIND(typedef);
 
-#define GU_DEFINE_TYPEDEF_X(t_, dk_, ...)	\
-	GU_DEFINE_TYPE(t_, dk_, t_, GU_TYPE_LIT(__VA_ARGS__))
+#define GU_DEFINE_TYPEDEF_X(t_, dk_, k_, ...)			\
+	GU_DEFINE_TYPE(t_, dk_, GU_TYPE_LIT(k_, t_, __VA_ARGS__))
 
 #define GU_DEFINE_TYPEDEF(t_, ...)	\
 	GU_DEFINE_TYPEDEF_X(t_, typedef, __VA_ARGS__)
