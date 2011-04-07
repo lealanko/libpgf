@@ -14,7 +14,6 @@ include_HEADERS = \
 	gu/log.h \
 	gu/map.h \
 	gu/mem.h \
-	gu/stack.h \
 	gu/string.h \
 	gu/type.h \
 	gu/variant.h \
@@ -31,7 +30,6 @@ libgu_la_SOURCES = \
 	gu/log.c \
 	gu/map.c \
 	gu/mem.c \
-	gu/stack.c \
 	gu/string.c \
 	gu/type.c \
 	gu/variant.c \

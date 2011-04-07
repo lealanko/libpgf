@@ -44,6 +44,9 @@ enum {
 
 typedef GuList(PgfFId) PgfFIds;
 
+GU_DECLARE_TYPE(PgfFId, int);
+GU_DECLARE_TYPE(PgfFIds, GuList);
+
 typedef int PgfLength;
 
 typedef struct GuVariant PgfSymbol;
@@ -270,7 +273,11 @@ struct PgfPArg {
 	PgfFId hypos[]; // XXX: Change to GuList(PgfFId) since usually empty
 };
 
+GU_DECLARE_TYPE(PgfPArg, struct);
+
 typedef GuList(PgfPArg*) PgfPArgs;
+
+GU_DECLARE_TYPE(PgfPArgs, GuList);
 
 typedef struct {
 	PgfFunId fun; 

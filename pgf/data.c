@@ -54,6 +54,7 @@ GU_DEFINE_TYPE(PgfFId, int, _);
 GU_DEFINE_TYPE(PgfMetaId, int, _);
 GU_DEFINE_TYPE(PgfId, int, _);
 
+GU_DEFINE_TYPE(PgfFIds, GuList, gu_type(PgfFId));
 
 GU_DEFINE_TYPE(PgfAlternative, struct,
 	       GU_MEMBER_P(PgfAlternative, form, GuStrings),
@@ -126,6 +127,8 @@ GU_DEFINE_TYPE(
 	GU_MEMBER(PgfPArg, fid, PgfFId),
 	GU_MEMBER(PgfPArg, n_hypos, GuLength),
 	GU_FLEX_MEMBER(PgfPArg, hypos, PgfFId));
+
+GU_DEFINE_TYPE(PgfPArgs, GuList, gu_ptr_type(PgfPArg));
 
 
 GU_DEFINE_TYPE(

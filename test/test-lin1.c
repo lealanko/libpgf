@@ -8,11 +8,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-GuTypeTable dump_table = GU_TYPETABLE(
-	GU_SLIST(GuTypeTable*,
-		 &gu_dump_table,
-		 &pgf_linearize_dump_table),
-	{ NULL, NULL });
 
 int main(int argc, char* argv[]) {
 	GuPool* pool = gu_pool_new();
@@ -39,7 +34,7 @@ int main(int argc, char* argv[]) {
 	PgfConcr* concr = gu_map_get(pgf->concretes, lang_s);
 	PgfLzr* lzr = pgf_lzr_new(pool, pgf, concr);
 
-	GuDumpCtx* ctx = gu_dump_ctx_new(pool, stdout, &dump_table);
+	GuDumpCtx* ctx = gu_dump_ctx_new(pool, stdout, NULL);
 	ctx->print_address = true;
 	// gu_dump(gu_type(PgfLinearizer), lzr, ctx);
 

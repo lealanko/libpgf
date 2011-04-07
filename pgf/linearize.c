@@ -24,210 +24,66 @@
 #include <gu/fun.h>
 #include <gu/log.h>
 #include <gu/choice.h>
+#include <gu/seq.h>
 #include <pgf/expr.h>
-// Type and dump for GPtrArray
 
-typedef const struct PgfGPtrArrayType PgfGPtrArrayType, GuType_GPtrArray;
-
-struct PgfGPtrArrayType {
-	GuType_abstract abstract_base;
-	GuType* elem_type;
-};
-
-typedef const struct PgfGArrayType PgfGArrayType, GuType_GArray;
-
-struct PgfGArrayType {
-	GuType_abstract abstract_base;
-	GuType* elem_type;
-};
-
-#define GU_TYPE_INIT_GPtrArray(k_, t_, elem_type_) {	   \
-	.abstract_base = GU_TYPE_INIT_abstract(k_, t_, _), \
-	.elem_type = elem_type_,		   	\
-}
-
-GU_DEFINE_KIND(GPtrArray, abstract);
-
-static void
-pgf_dump_gptrarray(GuDumpFn* dumper, GuType* type, const void* p, 
-		   GuDumpCtx* ctx)
-{
-	(void) dumper;
-	PgfGPtrArrayType* atype = gu_type_cast(type, GPtrArray);
-	const GPtrArray* arr = p;
-	gu_yaml_begin_sequence(ctx->yaml);
-	for (int i = 0; i < (int) arr->len; i++) {
-		gu_dump(atype->elem_type, &arr->pdata[i], ctx);
-	}
-	gu_yaml_end(ctx->yaml);
-}
-
-#define GU_TYPE_INIT_GArray(k_, t_, elem_type_) {	   \
-	.abstract_base = GU_TYPE_INIT_abstract(k_, t_, _), \
-	.elem_type = elem_type_,		   	\
-}
-
-GU_DEFINE_KIND(GArray, abstract);
-
-static void
-pgf_dump_garray(GuDumpFn* dumper, GuType* type, const void* p, 
-		   GuDumpCtx* ctx)
-{
-	(void) dumper;
-	PgfGArrayType* atype = gu_type_cast(type, GArray);
-	const GArray* arr = p;
-	size_t size = gu_type_size(atype->elem_type);
-	gu_yaml_begin_sequence(ctx->yaml);
-	for (int i = 0; i < (int) arr->len; i++) {
-		gu_dump(atype->elem_type,
-			&arr->data[i * size], ctx);
-	}
-	gu_yaml_end(ctx->yaml);
-}
-
-GuTypeTable
-pgf_linearize_dump_table = GU_TYPETABLE(
-	GU_SLIST_0,
-	{ gu_kind(GPtrArray), gu_fn(pgf_dump_gptrarray) },
-	{ gu_kind(GArray), gu_fn(pgf_dump_garray) },
-	);
-
-
-typedef GuStringMap PgfLinProds;
 typedef GuStringMap PgfLinInfer;
 
-GU_DEFINE_TYPE(
-	PgfLinProds, GuStringMap,
-	GU_TYPE_LIT(pointer, GuIntMap*,
-	GU_TYPE_LIT(GuIntMap, GuIntMap,
-	GU_TYPE_LIT(pointer, GPtrArray*,
-	GU_TYPE_LIT(GPtrArray, GPtrArray, 
-	GU_TYPE_LIT(GuVariantAsPtr,
-	gu_type(PgfProduction)))))));
+GU_SEQ_DEFINE(PgfProdSeq, pgf_prod_seq, PgfProduction);
+static GU_DEFINE_TYPE(PgfProdSeq, GuSeq, gu_type(PgfProduction));
+
+typedef struct PgfLinInferEntry PgfLinInferEntry;
+
+struct PgfLinInferEntry {
+	PgfFId cat_id;
+	PgfFId fun_id;
+};
+
+static GU_DEFINE_TYPE(
+	PgfLinInferEntry, struct,
+	GU_MEMBER(PgfLinInferEntry, cat_id, PgfFId),
+	GU_MEMBER(PgfLinInferEntry, fun_id, PgfFId));
+
+GU_SEQ_DEFINE(PgfLinInfers, pgf_lin_infers, PgfLinInferEntry);
+static GU_DEFINE_TYPE(PgfLinInferSeq, GuSeq, gu_type(PgfLinInferEntry));
+
+typedef GuIntMap PgfCncProds;
+static GU_DEFINE_TYPE(PgfCncProds, GuIntMap, gu_ptr_type(PgfProdSeq));
+
+typedef GuStringMap PgfLinProds;
+static GU_DEFINE_TYPE(PgfLinProds, GuStringMap, gu_ptr_type(PgfCncProds));
+
+typedef GuMap PgfInferMap;
+static GU_DEFINE_TYPE(PgfInferMap, GuMap, gu_ptr_type(PgfFIds), gu_ptr_type(PgfLinInferEntry));
 
 typedef struct PgfLinIndex PgfLinIndex;
 
 struct PgfLinIndex {
-	GuIntMap* prods; // FId |-> GPtrArray [PgfProduction]
-	GuMap* infer; // PgfFIds |-> GPtrArray [PgfFId]
+	PgfCncProds* prods; 
+	PgfInferMap* infer;
 };
 
-/*
 GU_DEFINE_TYPE(
 	PgfLinIndex, struct,
-	GU_MEMBER(PgfLinIndex, prods,
-		  GU_TYPE_LIT(GuIntMap, GuIntMap,
-		  GU_TYPE_LIT(pointer, GPtrArray*,
-		  GU_TYPE_LIT(GPtrArray, GPtrArray, 
-		  GU_TYPE_LIT(GuVariantAsPtr,
-			      gu_type(PgfProduction)))))),
-	GU_MEMBER(PgfLinIndex, infer,
-		  GU_TYPE_LIT(GuMap, GuMap,
-			      gu_type(PgfFIds),
-			      gu_type
-*/					  
+	GU_MEMBER_P(PgfLinIndex, prods, PgfCncProds),
+	GU_MEMBER_P(PgfLinIndex, infer, PgfInferMap));
+
+
+typedef GuStringMap PgfFunIndices;
+static GU_DEFINE_TYPE(PgfFunIndices, GuStringMap, gu_ptr_type(PgfLinIndex));
 
 struct PgfLzr {
 	PgfPGF* pgf;
 	PgfConcr* cnc;
 	GuPool* pool;
-	GuStringMap* fun_indices; // PgfCId |-> PgfLinIndex
+	PgfFunIndices* fun_indices;
 };
 
 GU_DEFINE_TYPE(
 	PgfLzr, struct,
 	GU_MEMBER_P(PgfLzr, pgf, PgfPGF),
 	GU_MEMBER_P(PgfLzr, cnc, PgfConcr),
-//	GU_MEMBER_P(PgfLzr, prods, PgfLinProds)
-	);
- 
-
-static void
-pgf_lzr_parr_free_cb(GuFn* fnp)
-{
-	GuClo1* clo = (GuClo1*) fnp;
-	GPtrArray* parr = clo->env1;
-	g_ptr_array_free(parr, TRUE);
-}
-
-GuFn pgf_lzr_parr_free_fn = pgf_lzr_parr_free_cb;
-
-static GPtrArray*
-pgf_lzr_parr_new(GuPool* pool)
-{
-	GPtrArray* parr = g_ptr_array_new();
-	GuClo1* clo = gu_new_s(pool, GuClo1, 
-			       pgf_lzr_parr_free_cb, parr);
-	gu_pool_finally(pool, &clo->fn);
-	return parr;
-}
-
-
-static void
-pgf_lzr_arr_free_cb(GuFn* fnp)
-{
-	GuClo1* clo = (GuClo1*) fnp;
-	GArray* parr = clo->env1;
-	g_array_free(parr, TRUE);
-}
-
-GuFn pgf_lzr_arr_free_fn = pgf_lzr_arr_free_cb;
-
-static GArray*
-pgf_lzr_arr_new(GuPool* pool, size_t elem_size)
-{
-	GArray* arr = g_array_new(FALSE, FALSE, elem_size);
-	GuClo1* clo = gu_new_s(pool, GuClo1, 
-			       pgf_lzr_arr_free_cb, arr);
-	gu_pool_finally(pool, &clo->fn);
-	return arr;
-}
-
-
-
-static unsigned
-pgf_lzr_pargs_hash(gconstpointer p)
-{
-	const PgfPArgs* pargs = p;
-	int len = gu_list_length(pargs);
-	unsigned h = 0;
-	for (int i = 0; i < len; i++) {
-		PgfPArg* parg = gu_list_elems(pargs)[i];
-		h = gu_hash_mix(h, parg->fid);
-		for (int j = 0; j < parg->n_hypos; j++) {
-			h = gu_hash_mix(h, parg->hypos[j]);
-		}
-	}
-	return h;
-}
-
-static gboolean
-pgf_lzr_pargs_equal(gconstpointer p1, gconstpointer p2)
-{
-	const PgfPArgs* pargs1 = p1;
-	const PgfPArgs* pargs2 = p2;
-	int len = gu_list_length(pargs1);
-	if (gu_list_length(pargs2) != len) {
-		return FALSE;
-	}
-	for (int i = 0; i < len; i++) {
-		PgfPArg* parg1 = gu_list_elems(pargs1)[i];
-		PgfPArg* parg2 = gu_list_elems(pargs2)[i];
-		if (parg1->fid != parg2->fid) {
-			return FALSE;
-		}
-		if (parg1->n_hypos != parg2->n_hypos) {
-			return FALSE;
-		}
-		for (int j = 0; j < parg1->n_hypos; j++) {
-			if (parg1->hypos[j] != parg2->hypos[j]) {
-				return FALSE;
-			}
-		}
-	}
-	return TRUE;
-}
-
+	GU_MEMBER_P(PgfLzr, fun_indices, PgfFunIndices));
 
 static unsigned
 pgf_lzr_fids_hash(gconstpointer p)
@@ -260,16 +116,10 @@ pgf_lzr_fids_equal(gconstpointer p1, gconstpointer p2)
 	return TRUE;
 }
 
-typedef struct PgfLinInferEntry PgfLinInferEntry;
-
-struct PgfLinInferEntry {
-	PgfFId cat_id;
-	PgfFId fun_id;
-};
 
 static void
 pgf_lzr_add_infer_entry(PgfLzr* lzr,
-			GuMap* infer_table,
+			PgfInferMap* infer_table,
 			PgfFId fid,
 			PgfProductionApply* papply)
 {
@@ -281,10 +131,9 @@ pgf_lzr_add_infer_entry(PgfLzr* lzr,
 		// XXX: What about the hypos in the args?
 		gu_list_elems(arg_fids)[i] = papply->args[i]->fid;
 	}
-	GArray* entries = gu_map_get(infer_table, arg_fids);
+	PgfLinInfers* entries = gu_map_get(infer_table, arg_fids);
 	if (entries == NULL) {
-		entries = pgf_lzr_arr_new(lzr->pool,
-					     sizeof(PgfLinInferEntry));
+		entries = pgf_lin_infers_new(lzr->pool);
 		gu_map_set(infer_table, arg_fids, entries);
 	} else {
 		// XXX: arg_fids is duplicate, we ought to free it
@@ -295,22 +144,22 @@ pgf_lzr_add_infer_entry(PgfLzr* lzr,
 		// XXX: just store the raw id in productions
 		.fun_id = papply->fun - gu_list_elems(lzr->cnc->cncfuns),
 	};
-	g_array_append_val(entries, entry);
+	pgf_lin_infers_push(entries, entry);
 }
 			
 
 static void
 pgf_lzr_add_linprods_entry(PgfLzr* lzr,
-			   GuIntMap* linprods,
+			   PgfCncProds* linprods,
 			   PgfFId fid,
 			   PgfProduction prod)
 {
-	GPtrArray* prods = gu_intmap_get(linprods, fid);
+	PgfProdSeq* prods = gu_intmap_get(linprods, fid); 
 	if (prods == NULL) {
-		prods = pgf_lzr_parr_new(lzr->pool);
+		prods = pgf_prod_seq_new(lzr->pool);
 		gu_intmap_set(linprods, fid, prods);
 	}
-	g_ptr_array_add(prods, gu_variant_to_ptr(prod));
+	pgf_prod_seq_push(prods, prod);
 }
 
 
@@ -440,17 +289,18 @@ pgf_lzn_infer_apply_try(PgfLzn* lzn, PgfApplication* appl,
 		++*ip;
 	}
 	marks[*ip] = gu_choice_mark(lzn->ch);
-	GArray* entries = gu_map_get(idx->infer, arg_fids);
+	PgfLinInfers* entries = gu_map_get(idx->infer, arg_fids);
 	if (entries == NULL) {
 		--*ip;
 		goto finish;
 	}
+	int n_entries = pgf_lin_infers_size(entries);
 	//do {
-	int e = gu_choice_next(lzn->ch, entries->len);
-	gu_debug("entry %d of %d", e, entries->len);
+	int e = gu_choice_next(lzn->ch, n_entries);
+	gu_debug("entry %d of %d", e, n_entries);
 		if (e >= 0) {
 			PgfLinInferEntry* entry = 
-			&g_array_index(entries, PgfLinInferEntry, e);
+				pgf_lin_infers_index(entries, e);
 			if (app_out != NULL) {
 				app_out->fun_id = entry->fun_id;
 			}
@@ -548,13 +398,6 @@ pgf_lzn_infer(PgfLzn* lzn, PgfExpr expr, GuPool* pool, PgfLinForm* form_out)
 	}
 	gu_pool_free(tmp_pool);
 	return ret;
-}
-
-static void 
-pgf_lzn_byte_array_free_cb(GuFn* fnp)
-{
-	GuClo1* clo = (GuClo1*) fnp;
-	g_byte_array_unref(clo->env1);
 }
 
 PgfLzn*

@@ -233,7 +233,7 @@ pgf_expr_parse(FILE* input, GuPool* pool)
 	parser->expr_pool = pool;
 	parser->lookahead = NULL;
 	PgfExpr expr = pgf_expr_parser_expr(parser);
-	GuString* la = pgf_expr_parser_lookahead(parser);
+	GuCString* la = pgf_expr_parser_lookahead(parser);
 	if (la == gu_atom(pgf_expr_semic)) {
 		pgf_expr_parser_consume(parser);
 	} else {
