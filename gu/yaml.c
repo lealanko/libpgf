@@ -1,5 +1,5 @@
 #include "yaml.h"
-#include <gu/stack.h>
+#include <gu/seq.h>
 #include <stdio.h>
 #include <stdarg.h>
 #include <ctype.h>
@@ -65,6 +65,8 @@ struct GuYamlFrame {
 	GuYamlState* next;
 };
 
+GU_SEQ_DEFINE(GuYamlStack, gu_yaml_stack, GuYamlFrame);
+
 struct GuYaml {
 	FILE* out;
 	GuPool* pool;
@@ -76,7 +78,7 @@ struct GuYaml {
 	bool indent;
 	int indent_level;
 	bool indented;
-	GuStack* stack;
+	GuYamlStack* stack;
 };
 
 
@@ -91,7 +93,7 @@ gu_yaml_new(GuPool* pool, FILE* out)
 	yaml->have_anchor = false;
 	yaml->have_tag = false;
 	yaml->next_anchor = 1;
-	yaml->stack = gu_stack_new(pool, GuYamlFrame);
+	yaml->stack = gu_yaml_stack_new(pool);
 	yaml->indent = true;
 	yaml->indent_level = 0;
 	yaml->indented = false;
@@ -153,9 +155,8 @@ gu_yaml_begin(GuYaml* yaml, GuYamlFrameClass* klass)
 {
 	gu_yaml_begin_node(yaml);
 	fputs(klass->open, yaml->out);
-	GuYamlFrame* frame = gu_stack_push(yaml->stack);
-	frame->klass = klass;
-	frame->next = yaml->state;
+	gu_yaml_stack_push(yaml->stack, (GuYamlFrame)
+			   { .klass = klass, .next = yaml->state});
 	yaml->state = klass->first;
 	yaml->in_node = yaml->have_anchor = yaml->have_tag = false;
 	gu_yaml_end_line(yaml);
@@ -180,10 +181,9 @@ gu_yaml_end(GuYaml* yaml)
 	g_assert(!yaml->in_node);
 	yaml->indent_level--;
 	gu_yaml_begin_line(yaml);
-	GuYamlFrame* f = gu_stack_peek(yaml->stack);
-	fputs(f->klass->close, yaml->out);
-	yaml->state = f->next;
-	gu_stack_pop(yaml->stack);
+	GuYamlFrame f = gu_yaml_stack_pop(yaml->stack);
+	fputs(f.klass->close, yaml->out);
+	yaml->state = f.next;
 	yaml->in_node = true;
 	gu_yaml_end_node(yaml);
 }

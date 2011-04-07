@@ -101,7 +101,7 @@ gu_variant_to_ptr(GuVariant variant)
 	return (void*)variant.p;
 }
 
-inline GuVariant
+static inline GuVariant
 gu_variant_from_ptr(void* p)
 {
 	GuVariant v = { (uintptr_t)p };

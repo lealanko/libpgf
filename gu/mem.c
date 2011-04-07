@@ -338,3 +338,50 @@ extern inline void*
 gu_malloc_init_aligned(GuPool* pool, size_t size, size_t alignment, 
 		       const void* init);
 
+static size_t
+gu_mem_padovan(size_t min)
+{
+	// This could in principle be done faster with Q-matrices for
+	// Padovan numbers, but not really worth for our commonly
+	// small numbers.
+	if (min <= 5) {
+		return min;
+	}
+	size_t a = 7, b = 9, c = 12;
+	while (min > a) {
+		if (b < a) {
+			// overflow
+			return min;
+		}
+		size_t tmp = a + b;
+		a = b;
+		b = c;
+		c = tmp;
+	}
+	return a;
+}
+
+void*
+gu_mem_buf_realloc(void* old_buf, size_t min_size, size_t* real_size_out)
+{
+	size_t min_blocks = ((min_size + GU_MALLOC_OVERHEAD - 1) / GU_MEM_UNIT_SIZE) + 1;
+	size_t blocks = gu_mem_padovan(min_blocks);
+	size_t size = blocks * GU_MEM_UNIT_SIZE - GU_MALLOC_OVERHEAD;
+	void* buf = realloc(old_buf, size);
+	if (buf == NULL) {
+		size = 0;
+	}
+	*real_size_out = size;
+	return buf;
+}
+void*
+gu_mem_buf_alloc(size_t min_size, size_t* real_size_out)
+{
+	return gu_mem_buf_realloc(NULL, min_size, real_size_out);
+}
+
+void
+gu_mem_buf_free(void* buf)
+{
+	free(buf);
+}

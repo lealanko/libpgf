@@ -1,6 +1,7 @@
 #include <gu/dump.h>
 #include <gu/list.h>
 #include <gu/variant.h>
+#include <gu/seq.h>
 #include <inttypes.h>
 
 GuDumpCtx*
@@ -303,6 +304,7 @@ gu_dump_variant_as_ptr(GuDumpFn* dumper, GuType* type, const void* p,
 	GuVariant var = gu_variant_from_ptr(*pp);
 	gu_dump_variant(dumper, vptype->vtype, &var, ctx);
 }
+
 static void
 gu_dump_enum(GuDumpFn* dumper, GuType* type, const void* p,
 	     GuDumpCtx* ctx)
@@ -313,6 +315,23 @@ gu_dump_enum(GuDumpFn* dumper, GuType* type, const void* p,
 	gu_assert(cp != NULL);
 	gu_yaml_scalar(ctx->yaml, cp->name);
 }
+
+static void
+gu_dump_seq(GuDumpFn* dumper, GuType* type, const void* p,
+	    GuDumpCtx* ctx)
+{
+	(void) dumper;
+	GuSeqType* dtype = gu_type_cast(type, GuSeq);
+	const GuSeq* seq = p;
+	int len = gu_seq_size(seq);
+	gu_yaml_begin_sequence(ctx->yaml);
+	for (int i = 0; i < len; i++) {
+		const void* elemp = gu_seq_index((GuSeq*) seq, i);
+		gu_dump(dtype->elem_type, elemp, ctx);
+	}
+	gu_yaml_end(ctx->yaml);
+}
+
 
 GuTypeTable
 gu_dump_table = GU_TYPETABLE(
@@ -329,6 +348,7 @@ gu_dump_table = GU_TYPETABLE(
 	{ gu_kind(referenced), gu_fn(gu_dump_referenced) },
 	{ gu_kind(shared), gu_fn(gu_dump_shared) },
 	{ gu_kind(GuList), gu_fn(gu_dump_list) },
+	{ gu_kind(GuSeq), gu_fn(gu_dump_seq) },
 	{ gu_kind(GuLength), gu_fn(gu_dump_length) },
 	{ gu_kind(GuVariant), gu_fn(gu_dump_variant) },
 	{ gu_kind(GuVariantAsPtr), gu_fn(gu_dump_variant_as_ptr) },

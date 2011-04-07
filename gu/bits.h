@@ -13,6 +13,12 @@ gu_sign(int i) {
 	return (i > 0) - (i < 0);
 }
 
+static inline size_t
+gu_ceildiv(size_t size, size_t div)
+{
+	return (size + div - 1) / div;
+}
+
 static inline uintptr_t
 gu_align_forward(uintptr_t addr, size_t alignment) {
 	gu_assert(alignment == gu_ceil2e(alignment));

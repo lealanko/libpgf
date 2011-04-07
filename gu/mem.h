@@ -105,7 +105,7 @@ gu_malloc_init_aligned(GuPool* pool, size_t size, size_t alignment,
 #define gu_new_s(pool, type, ...)					\
 	((type*)gu_malloc_init_aligned((pool), sizeof(type),		\
 				       gu_alignof(type),		\
-				       (type[1]){{ __VA_ARGS__ }}))
+				       &(type){ __VA_ARGS__ }))
 #endif // GU_HAVE_STATEMENT_EXPRESSIONS
 
 
@@ -154,6 +154,18 @@ gu_pool_init(void* p, size_t len, bool in_stack);
 #define gu_pool_sized(n_) gu_pool_init(gu_alloca(n_), n_, true)
 
 #define gu_pool() gu_pool_sized(64)
+
+
+void*
+gu_mem_buf_alloc(size_t min_size, size_t* real_size_out);
+
+void*
+gu_mem_buf_realloc(void* buf, size_t min_size, size_t* real_size_out);
+
+void
+gu_mem_buf_free(void* buf);
+
+
 
 
 

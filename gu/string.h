@@ -113,9 +113,9 @@ extern const GuStringEmpty_ gu_string_empty_;
 }
 
 #define gu_string_short_(qual_,cstr_,len_)			\
-       ((qual_ GuStringShortN_(len_)[1]) {	\
+       (&(qual_ GuStringShortN_(len_)) 	\
        GU_STRING_SHORTN_INIT_(cstr_,len_)	\
-	})
+	)
 
 #define GU_STRING_LONGN_INIT_(cstr_,len_) {			\
 		.true_len = len_,				\
@@ -123,9 +123,9 @@ extern const GuStringEmpty_ gu_string_empty_;
 }
 
 #define gu_string_long_(qual_,cstr_,len_)			\
-       ((qual_ GuStringLongN_(len_)[1]) {	\
+       (&(qual_ GuStringLongN_(len_))	\
 	       GU_STRING_LONGN_INIT_(cstr_,len_)	\
-		})
+		)
 
 #define GU_DEFINE_ATOM_(name_, cstr_, len_)		\
 	const GuStringShortN_(len_)			\
