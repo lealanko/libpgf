@@ -26,7 +26,7 @@ static const int gu_list_empty = 0;
 void* gu_list_alloc(GuPool* pool, size_t base_size, size_t elem_size, 
 		       int n_elems, size_t alignment, ptrdiff_t len_offset)
 {
-	g_assert(n_elems >= 0);
+	gu_assert(n_elems >= 0);
 	if (n_elems == 0 && len_offset == 0) {
 		return (void*) &gu_list_empty;
 	}

@@ -167,7 +167,7 @@ gu_dump_struct(GuDumpFn* dumper, GuType* type, const void* p,
 		const uint8_t* memp = &data[member->offset];
 		if (member->is_flex) {
 			// Flexible array member
-			g_assert(len >= 0);
+			gu_assert(len >= 0);
 			size_t mem_s = gu_type_size(member->type);
 			gu_yaml_begin_sequence(ctx->yaml);
 			for (int i = 0; i < len; i++) {

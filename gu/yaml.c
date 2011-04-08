@@ -137,7 +137,7 @@ gu_yaml_begin_node(GuYaml* yaml)
 static void
 gu_yaml_end_node(GuYaml* yaml)
 {
-	g_assert(yaml->in_node);
+	gu_assert(yaml->in_node);
 	if (yaml->state->suffix != NULL) {
 		fputs(yaml->state->suffix, yaml->out);
 	}
@@ -178,7 +178,7 @@ gu_yaml_begin_sequence(GuYaml* yaml)
 void 
 gu_yaml_end(GuYaml* yaml)
 {
-	g_assert(!yaml->in_node);
+	gu_assert(!yaml->in_node);
 	yaml->indent_level--;
 	gu_yaml_begin_line(yaml);
 	GuYamlFrame f = gu_yaml_stack_pop(yaml->stack);
@@ -214,7 +214,7 @@ static void
 gu_yaml_tag(GuYaml* yaml, const char* format, ...)
 {
 	gu_yaml_begin_node(yaml);
-	g_assert(!yaml->have_tag);
+	gu_assert(!yaml->have_tag);
 	fputc('!', yaml->out);
 	va_list args;
 	va_start(args, format);
@@ -263,7 +263,7 @@ GuYamlAnchor
 gu_yaml_anchor(GuYaml* yaml)
 {
 	gu_yaml_begin_node(yaml);
-	g_assert(!yaml->have_anchor);
+	gu_assert(!yaml->have_anchor);
 	yaml->have_anchor = true;
 	int anchor = yaml->next_anchor++;
 	fprintf(yaml->out, "&%d ", anchor);
@@ -274,7 +274,7 @@ void
 gu_yaml_alias(GuYaml* yaml, GuYamlAnchor anchor)
 {
 	gu_yaml_begin_node(yaml);
-	g_assert(!yaml->have_anchor && !yaml->have_tag);
+	gu_assert(!yaml->have_anchor && !yaml->have_tag);
 	fprintf(yaml->out, "*%d", anchor);
 	gu_yaml_end_node(yaml);
 	return;

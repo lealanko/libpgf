@@ -29,6 +29,7 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <stdbool.h>
+#include <assert.h>
 #include <glib.h>
 
 #define GU_CONTAINER_P(mem_p, container_type, member) \
@@ -85,7 +86,8 @@
 	(sizeof(type) + ((n_elems) * sizeof(((type *)NULL)->flex_member[0])))
 /**< @hideinitializer */
 
-#define gu_assert(expr) g_assert(expr)
+#define gu_assert(expr) assert(expr)
+#define gu_assert_not_reached(expr) gu_assert(false)
 
 #define GU_MAX(a_, b_) ((a_) > (b_) ? (a_) : (b_))
 #define GU_MIN(a_, b_) ((a_) < (b_) ? (a_) : (b_))

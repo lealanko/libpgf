@@ -294,7 +294,10 @@ extern GU_DECLARE_TYPE(int, primitive);
 typedef int GuLength;
 extern GU_DECLARE_TYPE(GuLength, int);
 
+extern GU_DECLARE_TYPE(char, integer);
+extern GU_DECLARE_TYPE(uint8_t, integer);
 extern GU_DECLARE_TYPE(uint16_t, integer);
+
 
 
 extern GU_DECLARE_TYPE(float, primitive);

@@ -15,7 +15,7 @@ pgf_literal_fid(PgfLiteral lit)
 	case PGF_LITERAL_FLT:
 		return PGF_FID_FLOAT;
 	default:
-		g_assert_not_reached();
+		gu_assert_not_reached();
 	}
 }
 

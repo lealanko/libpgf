@@ -113,3 +113,18 @@ gu_seq_resize_head(GuSeq* seq, int change)
 
 GU_DEFINE_KIND(GuSeq, abstract);
 
+GU_DEFINE_TYPE(GuCharSeq, GuSeq, gu_type(char));
+GU_DEFINE_TYPE(GuByteSeq, GuSeq, gu_type(uint8_t));
+
+
+GuString*
+gu_char_seq_to_string(GuCharSeq* charq, GuPool* pool)
+{
+	int size = gu_char_seq_size(charq);
+	GuString* string = gu_string_new(pool, size);
+	char* data = gu_string_data(string);
+	for (int i = 0; i < size; i++) {
+		data[i] = *gu_char_seq_index(charq, i);
+	}
+	return string;
+}

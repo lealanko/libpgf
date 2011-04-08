@@ -1,5 +1,6 @@
 #include "expr.h"
 #include <gu/intern.h>
+#include <gu/seq.h>
 #include <ctype.h>
 
 PgfExpr
@@ -139,19 +140,17 @@ pgf_expr_parser_lookahead(PgfExprParser* parser)
 	default:
 		if (isalpha(c)) {
 			GuPool* tmp_pool = gu_pool_new();
-			GString* gstr = g_string_new(NULL);
+			GuCharSeq* charq = gu_char_seq_new(tmp_pool);
 			while (isalnum(c) || c == '_') {
-				g_string_append_c(gstr, c);
+				gu_char_seq_push(charq, c);
 				c = fgetc(parser->input);
 			}
 			if (c != EOF) {
 				ungetc(c, parser->input);
 			}
-			str = gu_string_new_c(tmp_pool, gstr->str);
-			g_string_free(gstr, TRUE);
-			str = gu_intern_string(parser->intern, str);
+			GuString* tmp_str = gu_char_seq_to_string(charq, tmp_pool);
+			str = gu_intern_string(parser->intern, tmp_str);
 			gu_pool_free(tmp_pool);
-			
 		}
 	}
 	parser->lookahead = str;

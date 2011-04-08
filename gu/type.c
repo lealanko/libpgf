@@ -21,6 +21,8 @@ GU_DEFINE_KIND(primitive, repr);
 GU_DEFINE_KIND(integer, primitive);
 
 GU_DEFINE_TYPE(int, integer, _);
+GU_DEFINE_TYPE(char, integer, _);
+GU_DEFINE_TYPE(uint8_t, integer, _);
 GU_DEFINE_TYPE(uint16_t, integer, _);
 
 GU_DEFINE_TYPE(GuLength, int, _);
@@ -104,7 +106,7 @@ size_t gu_type_size(GuType* type) {
 const void* 
 gu_type_check_cast(GuType* type, GuKind* kind)
 {
-	g_assert(gu_type_has_kind(type, kind));
+	gu_assert(gu_type_has_kind(type, kind));
 	return type;
 }
 

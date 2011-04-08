@@ -93,6 +93,15 @@ typedef const struct GuSeqType GuSeqType, GuType_GuSeq;
 	.elem_type = elem_type_,		   	\
 }
 
+GU_SEQ_DEFINE(GuCharSeq, gu_char_seq, char);
+GU_DECLARE_TYPE(GuCharSeq, GuSeq);
 
+GU_SEQ_DEFINE(GuByteSeq, gu_byte_seq, uint8_t);
+GU_DECLARE_TYPE(GuByteSeq, GuSeq);
+
+#include <gu/string.h>
+
+GuString*
+gu_char_seq_to_string(GuCharSeq* charq, GuPool* pool);
 
 #endif // GU_SEQ_H_

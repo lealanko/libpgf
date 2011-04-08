@@ -489,15 +489,15 @@ pgf_lzr_linearize(PgfLzr* lzr, PgfLinForm form, int lin_idx, PgfLinFuncs** fnsp)
 			}
 			case PGF_SYMBOL_KP:
 				// XXX: To be supported
-				g_assert_not_reached(); 
+				gu_assert_not_reached(); 
 			default:
-				g_assert_not_reached(); 
+				gu_assert_not_reached(); 
 			}
 		}
 		break;
 	} // case PGF_LIN_FORM_APP
 	default:
-		g_assert_not_reached();
+		gu_assert_not_reached();
 	}
 }
 

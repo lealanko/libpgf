@@ -1,42 +1,31 @@
 #include "choice.h"
-
-#include <glib.h>
+#include <gu/seq.h>
 
 struct GuChoice {
-	GByteArray* path;
+	GuByteSeq* path;
 	int path_idx;
 };
-
-static void 
-gu_choice_byte_array_free_cb(GuFn* fnp)
-{
-	GuClo1* clo = (GuClo1*) fnp;
-	g_byte_array_unref(clo->env1);
-}
 
 GuChoice*
 gu_choice_new(GuPool* pool)
 {
 	GuChoice* ch = gu_new(pool, GuChoice);
+	ch->path = gu_byte_seq_new(pool);
 	ch->path_idx = 0;
-	ch->path = g_byte_array_new();
-	GuClo1* clo = gu_new_s(pool, GuClo1,
-			       gu_choice_byte_array_free_cb, ch->path);
-	gu_pool_finally(pool, &clo->fn);
 	return ch;
 }
 
 GuChoiceMark
 gu_choice_mark(GuChoice* ch)
 {
-	gu_assert(ch->path_idx <= (int) ch->path->len);
+	gu_assert(ch->path_idx <= gu_byte_seq_size(ch->path));
 	return (GuChoiceMark){ch->path_idx};
 }
 
 bool
 gu_choice_reset(GuChoice* ch, GuChoiceMark mark)
 {
-	gu_assert(ch->path_idx <= (int) ch->path->len);
+	gu_assert(ch->path_idx <= gu_byte_seq_size(ch->path));
 	gu_assert(mark.path_idx >= 0);
 	if (mark.path_idx <= ch->path_idx) {
 		ch->path_idx = mark.path_idx;
@@ -50,16 +39,16 @@ int
 gu_choice_next(GuChoice* ch, int n_choices)
 {
 	gu_assert(n_choices >= 0);
-	gu_assert(ch->path_idx <= (int) ch->path->len);
+	gu_assert(ch->path_idx <= gu_byte_seq_size(ch->path));
 	if (n_choices == 0) {
 		return -1;
 	}
 	int i = 0;
-	if ((int) ch->path->len > ch->path_idx) {
-		i = (int) ch->path->data[ch->path_idx];
+	if (gu_byte_seq_size(ch->path) > ch->path_idx) {
+		i = (int) *gu_byte_seq_index(ch->path, ch->path_idx);
 		gu_assert(i <= n_choices);
 	} else {
-		g_byte_array_append(ch->path, &(guint8){n_choices}, 1);
+		gu_byte_seq_push(ch->path, n_choices);
 		i = n_choices;
 	}
 	ch->path_idx++;
@@ -69,14 +58,12 @@ gu_choice_next(GuChoice* ch, int n_choices)
 bool
 gu_choice_advance(GuChoice* ch)
 {
-	gu_assert(ch->path_idx <= (int) ch->path->len);
+	gu_assert(ch->path_idx <= gu_byte_seq_size(ch->path));
 	
-	while ((int) ch->path->len > ch->path_idx) {
-		int end = (int) ch->path->len - 1;
-		if (ch->path->data[end] <= 1) {
-			g_byte_array_set_size(ch->path, end);
-		} else {
-			ch->path->data[end]--;
+	while (gu_byte_seq_size(ch->path) > ch->path_idx) {
+		uint8_t last = gu_byte_seq_pop(ch->path);
+		if (last > 1) {
+			gu_byte_seq_push(ch->path, last-1);
 			return true;
 		}
 	}
