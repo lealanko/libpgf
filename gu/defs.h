@@ -32,7 +32,7 @@
 #include <assert.h>
 #include <glib.h>
 
-#define GU_CONTAINER_P(mem_p, container_type, member) \
+#define gu_container(mem_p, container_type, member) \
 	((container_type*)(((uint8_t*) (mem_p)) - offsetof(container_type, member)))
 /**< Find the address of a containing structure.
  *
@@ -46,9 +46,12 @@
  *
  * @hideinitializer */
 
-#define gu_container(mem_p, container_type, member) \
-	GU_CONTAINER_P(mem_p, container_type, member)
 
+#define gu_member_p(struct_p_, offset_)		\
+	((void*)&((uint8_t*)(struct_p_))[offset_])
+
+#define gu_member(t_, struct_p_, offset_) \
+	(*(t_*)gu_member_p(struct_p_, offset_))
 
 #ifndef gu_alignof
 #define gu_alignof(t_) \
