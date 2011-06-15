@@ -1,10 +1,14 @@
 #ifndef GU_FUN_H_
 #define GU_FUN_H_
 
+#include <gu/defs.h>
+
 typedef void (*GuFn)();
 typedef void (*GuFn0)(GuFn* clo);
 typedef void (*GuFn1)(GuFn* clo, void* arg1);
 typedef void (*GuFn2)(GuFn* clo, void* arg1, void* arg2);
+
+#define gu_fn(fn_) (&(GuFn){ fn_ })
 
 static inline void
 gu_apply0(GuFn* fn) {
@@ -21,6 +25,8 @@ gu_apply2(GuFn* fn, void* arg1, void* arg2) {
 	(*fn)(fn, arg1, arg2);
 }
 
+#define gu_apply(fn_, ...)			\
+	((fn_)->fn((fn_), __VA_ARGS__))
 
 typedef struct GuClo0 GuClo0;
 
@@ -50,6 +56,20 @@ struct GuClo3 {
 	void *env3;
 };
 
-#define gu_fn(fn) ((GuFn[1]){ fn })
+typedef const struct GuEqFn GuEqFn;
+
+struct GuEqFn {
+	bool (*fn)(GuEqFn* self, const void* a, const void* b);
+};
+
+typedef const struct GuHashFn GuHashFn;
+
+struct GuHashFn {
+	size_t (*fn)(GuHashFn* self, const void* p);
+};
+
+extern GuEqFn gu_int_eq;
+extern GuHashFn gu_int_hash;
+
 
 #endif // GU_FUN_H_

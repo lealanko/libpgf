@@ -43,6 +43,12 @@ gu_seq_resize_tail(GuSeq* seq, int change);
 		return gu_seq_index((GuSeq*) d_, idx);		\
 	}							\
 								\
+	static inline const elem_t_*				\
+	pfx_##_cindex(const t_* d_, int idx)			\
+	{							\
+		return gu_seq_index((GuSeq*) d_, idx);		\
+	}							\
+								\
 	static inline void					\
 	pfx_##_push(t_* d_, elem_t_ elem)			\
 	{							\

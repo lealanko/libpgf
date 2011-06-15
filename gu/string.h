@@ -22,6 +22,7 @@
 
 #include <stdarg.h>
 #include <gu/mem.h>
+#include <gu/fun.h>
 
 // This is not fully portable: GuString* pointers are actually char
 // pointers so they are char-aligned, whereas a struct pointer might
@@ -38,12 +39,6 @@ typedef const GuString GuCString;
 typedef GuString* GuStringP;
 typedef GuCString* GuCStringP;
 
-unsigned 
-gu_string_hash(const void* s);
-
-gboolean 
-gu_string_equal(const void* s1, const void* s2);
-
 GuString* 
 gu_string_new(GuPool* pool, int len);
 
@@ -54,7 +49,7 @@ GuString*
 gu_string_copy(GuPool* pool, const GuString* from);
 
 GuString*
-gu_string_format(GuPool* pool, const char* fmt, ...) G_GNUC_PRINTF(2,3);
+gu_string_format(GuPool* pool, const char* fmt, ...);
 
 GuString*
 gu_string_format_v(GuPool* pool, const char* fmt, va_list args);
@@ -157,7 +152,7 @@ extern const GuStringEmpty_ gu_string_empty_;
 inline int
 gu_string_length(const GuString* s) {
 	int len = ((const unsigned char*) s)[0];
-	if (G_LIKELY(len > 0)) {
+	if (len > 0) {
 		return len;
 	} else {
 		return ((const int*) s)[-1];
@@ -174,7 +169,9 @@ gu_string_data(GuString* s) {
 	return (char*) gu_string_cdata(s);
 }
 
+GuHashFn gu_string_hash;
 
+GuEqFn gu_string_eq;
 
 
 #endif // GU_STRING_H_

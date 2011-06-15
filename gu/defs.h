@@ -30,7 +30,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <assert.h>
-#include <glib.h>
+#include <limits.h>
 
 #define gu_container(mem_p, container_type, member) \
 	((container_type*)(((uint8_t*) (mem_p)) - offsetof(container_type, member)))
@@ -89,7 +89,17 @@
 	(sizeof(type) + ((n_elems) * sizeof(((type *)NULL)->flex_member[0])))
 /**< @hideinitializer */
 
+//
+// Assert
+//
+
+#ifdef GU_DEBUG
 #define gu_assert(expr) assert(expr)
+#else
+#define gu_assert(expr_) GU_BEGIN GU_END
+#endif
+
+// XXX: better message
 #define gu_assert_not_reached(expr) gu_assert(false)
 
 #define GU_MAX(a_, b_) ((a_) > (b_) ? (a_) : (b_))
@@ -126,5 +136,11 @@ gu_hash_mix(unsigned h, unsigned v)
 {
 	return h * 101 + v;
 }
+
+typedef uint_fast16_t GuWord;
+
+enum {
+	GU_WORD_BITS = sizeof(GuWord) * CHAR_BIT
+};
 
 #endif // GU_DEFS_H_

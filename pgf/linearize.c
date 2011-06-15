@@ -85,9 +85,10 @@ GU_DEFINE_TYPE(
 	GU_MEMBER_P(PgfLzr, cnc, PgfConcr),
 	GU_MEMBER_P(PgfLzr, fun_indices, PgfFunIndices));
 
-static unsigned
-pgf_lzr_fids_hash(gconstpointer p)
+static size_t
+pgf_lzr_fids_hash_fn(GuHashFn* self, const void* p)
 {
+	(void) self;
 	const PgfFIds* fids = p;
 	int len = gu_list_length(fids);
 	unsigned h = 0;
@@ -97,24 +98,31 @@ pgf_lzr_fids_hash(gconstpointer p)
 	return h;
 }
 
-static gboolean
-pgf_lzr_fids_equal(gconstpointer p1, gconstpointer p2)
+static GuHashFn
+pgf_lzr_fids_hash = { pgf_lzr_fids_hash_fn };
+
+static bool
+pgf_lzr_fids_eq_fn(GuEqFn* self, const void* p1, const void* p2)
 {
+	(void) self;
 	const PgfFIds* fids1 = p1;
 	const PgfFIds* fids2 = p2;
 	int len = gu_list_length(fids1);
 	if (gu_list_length(fids2) != len) {
-		return FALSE;
+		return false;
 	}
 	for (int i = 0; i < len; i++) {
 		PgfFId fid1 = gu_list_elems(fids1)[i];
 		PgfFId fid2 = gu_list_elems(fids2)[i];
 		if (fid1 != fid2) {
-			return FALSE;
+			return false;
 		}
 	}
-	return TRUE;
+	return true;
 }
+
+static GuEqFn
+pgf_lzr_fids_eq = { pgf_lzr_fids_eq_fn };
 
 
 static void
@@ -177,8 +185,8 @@ pgf_lzr_index(PgfLzr* lzr, PgfFId fid,
 			idx = gu_new(lzr->pool, PgfLinIndex);
 			idx->prods = gu_intmap_new(lzr->pool);
 			idx->infer = gu_map_new(lzr->pool,
-						pgf_lzr_fids_hash,
-						pgf_lzr_fids_equal);
+						&pgf_lzr_fids_hash,
+						&pgf_lzr_fids_eq);
 			gu_map_set(lzr->fun_indices,
 				   papply->fun[0]->fun, idx);
 		}
@@ -206,19 +214,24 @@ pgf_lzr_index(PgfLzr* lzr, PgfFId fid,
 	}
 }
 
+typedef struct {
+	GuMapIterFn fn;
+	PgfLzr* lzr;
+} PgfLzrCreateIndexFn;
+
+
 static void
-pgf_lzr_create_index_cb(void* key, void* value, void* user_data)
+pgf_lzr_create_index_cb(GuMapIterFn* fn, const void* key, void* value)
 {
-	PgfFId fid = GPOINTER_TO_INT(key);
+	PgfLzrCreateIndexFn* clo = (PgfLzrCreateIndexFn*) fn;
+	const PgfFId* fid = key;
 	PgfProductions* prods = value;
-	PgfLzr* lzr = user_data;
 
 	for (int i = 0; i < prods->len; i++) {
 		PgfProduction prod = prods->elems[i];
-		pgf_lzr_index(lzr, fid, prod, prod);
+		pgf_lzr_index(clo->lzr, *fid, prod, prod);
 	}
 }
-
 
 
 
@@ -231,7 +244,8 @@ pgf_lzr_new(GuPool* pool, PgfPGF* pgf, PgfConcr* cnc)
 	lzr->cnc = cnc;
 	lzr->pool = pool;
 	lzr->fun_indices = gu_stringmap_new(pool);
-	g_hash_table_foreach(cnc->productions, pgf_lzr_create_index_cb, lzr);
+	PgfLzrCreateIndexFn clo = { { pgf_lzr_create_index_cb }, lzr };
+	gu_map_iter(cnc->productions, &clo.fn);
 	// TODO: prune productions with zero linearizations
 	return lzr;
 }

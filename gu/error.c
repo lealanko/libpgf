@@ -2,37 +2,40 @@
 
 struct GuError {
 	GuPool* pool;
-	void* data;
-	GuType* type;
-	const char* file;
-	const char* func;
-	int lineno;
+	GuErrorFrame* frame;
 };
-
 
 GuError*
 gu_error_new(GuPool* pool)
 {
 	GuError* err = gu_new(pool, GuError);
 	err->pool = pool;
-	err->data = NULL;
-	err->type = NULL;
-	err->file = NULL;
-	err->func = NULL;
-	err->lineno = -1;
+	err->frame = NULL;
 	return err;
 }
 
 bool
 gu_error_raised(GuError* err)
 {
-	return (err->type != NULL);
+	return (err->frame != NULL);
+}
+
+GuErrorFrame*
+gu_error_frame(GuError* err)
+{
+	return err->frame;
 }
 
 GuType*
 gu_error_type(GuError* err)
 {
-	return err->type;
+	return err->frame ? err->frame->type : NULL;
+}
+
+void*
+gu_error_data(GuError* err)
+{
+	return err->frame ? err->frame->data : NULL;
 }
 
 GuPool*
@@ -43,13 +46,20 @@ gu_error_pool(GuError* err)
 
 void
 gu_error_raise(GuError* err, 
-	       GuType* type, void* data,
-	       const char* filename, int lineno, const char* func)
+	       GuType* type, const void* data,
+	       const char* filename, const char* func, int lineno)
 {
-	// TODO: sanity checking
-	err->type = type;
-	err->data = data;
-	err->file = filename;
-	err->func = func;
-	err->lineno = lineno;
+	gu_assert(type);
+	GuTypeRepr* repr = gu_type_repr(type);
+	gu_assert(repr);
+	void* err_data = gu_malloc_init_aligned(err->pool, 
+						repr->size, repr->align,
+						data);
+	err->frame = gu_new_s(err->pool, GuErrorFrame,
+			      .type = type,
+			      .data = err_data,
+			      .filename = filename,
+			      .func = func,
+			      .lineno = lineno,
+			      .cause = err->frame);
 }

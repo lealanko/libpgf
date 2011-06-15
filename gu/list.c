@@ -32,7 +32,7 @@ void* gu_list_alloc(GuPool* pool, size_t base_size, size_t elem_size,
 	}
 	void* p = gu_malloc_aligned(pool, base_size + elem_size * n_elems,
 				       alignment);
-	G_STRUCT_MEMBER(int, p, len_offset) = n_elems;
+	gu_member(int, p, len_offset) = n_elems;
 	return p;
 }
 

@@ -81,21 +81,6 @@ gu_dump_length(GuDumpFn* dumper, GuType* type, const void* p,
 	}
 }
 
-
-
-static void 
-gu_dump_direct_int(GuDumpFn* dumper, GuType* type, const void* p, 
-		   GuDumpCtx* ctx)
-{
-	(void) dumper;
-	(void) type;
-	void* const *pp = p;
-	void *vp = *pp;
-	int i = GPOINTER_TO_INT(vp);
-	GuString* str = gu_string_format(ctx->pool, "%d", i);
-	gu_yaml_scalar(ctx->yaml, str);
-}
-
 static void 
 gu_dump_string(GuDumpFn* dumper, GuType* type, const void* p, 
 	       GuDumpCtx* ctx)
@@ -123,16 +108,19 @@ gu_dump_pointer(GuDumpFn* dumper, GuType* type, const void* p,
 	}
 }
 
-static void
-gu_dump_map_entry_fn(GuFn* fnp, void* key, void* value)
-{
-	GuClo2* clo = (GuClo2*) fnp;
-	GuMapType* mtype = clo->env1;
-	GuDumpCtx* ctx = clo->env2;
-	gu_dump(mtype->key_type, &key, ctx);
-	gu_dump(mtype->value_type, &value, ctx);
-}
+typedef struct {
+	GuMapIterFn fn;
+	GuMapType* mtype;
+	GuDumpCtx* ctx;
+} GuDumpMapFn;
 
+static void
+gu_dump_map_entry_fn(GuMapIterFn* self, const void* key, void* value)
+{
+	GuDumpMapFn* clo = (GuDumpMapFn*) self;
+	gu_dump(clo->mtype->key_type, &key, clo->ctx);
+	gu_dump(clo->mtype->value_type, &value, clo->ctx);
+}
 
 static void
 gu_dump_map(GuDumpFn* dumper, GuType* type, const void* p,
@@ -142,7 +130,7 @@ gu_dump_map(GuDumpFn* dumper, GuType* type, const void* p,
 	GuMapType* mtype = (GuMapType*) type;
 	GuMap* map = (GuMap*) p;
 	gu_yaml_begin_mapping(ctx->yaml);
-	GuClo2 clo = { gu_dump_map_entry_fn, (void*) mtype, ctx };
+	GuDumpMapFn clo = { { gu_dump_map_entry_fn }, mtype, ctx };
 	gu_map_iter(map, &clo.fn);
 	gu_yaml_end(ctx->yaml);
 }
@@ -338,7 +326,6 @@ gu_dump_table = GU_TYPETABLE(
 	GU_SLIST_0,
 	{ gu_kind(int), gu_fn(gu_dump_int) },
 	{ gu_kind(uint16_t), gu_fn(gu_dump_uint16) },
-	{ gu_kind(GuMapDirectInt), gu_fn(gu_dump_direct_int) },
 	{ gu_kind(GuString), gu_fn(gu_dump_string) },
 	{ gu_kind(struct), gu_fn(gu_dump_struct) },
 	{ gu_kind(pointer), gu_fn(gu_dump_pointer) },

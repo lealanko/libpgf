@@ -68,25 +68,25 @@ gu_string_copy(GuPool* pool, const GuString* from)
 	return to;
 }
 
-unsigned
-gu_string_hash(const void* p)
+static size_t
+gu_string_hash_fn(GuHashFn* self, const void* p)
 {
+	(void) self;
 	const GuString* s = p;
-	// Modified from g_string_hash in glib
 	int n = gu_string_length(s);
 	const char* cp = gu_string_cdata(s);
 	unsigned h = 0;
 
-	while (n--) {
-		h = (h << 5) - h + *cp;
-		cp++;
+	for (int i = 0; i < n; i++) {
+		h = 101 * h + (unsigned char) cp[i];
 	}
-
 	return h;
 }
 
-gboolean
-gu_string_equal(const void* p1, const void* p2)
+GuHashFn gu_string_hash = { gu_string_hash_fn };
+
+bool
+gu_string_equal(const GuString* p1, const GuString* p2)
 {
 	const GuString* s1 = p1;
 	const GuString* s2 = p2;
@@ -94,13 +94,22 @@ gu_string_equal(const void* p1, const void* p2)
 	int len2 = gu_string_length(s2);
 	
 	if (len1 != len2) {
-		return FALSE;
+		return false;
 	}
 	const char* data1 = gu_string_cdata(s1);
 	const char* data2 = gu_string_cdata(s2);
 	int cmp = memcmp(data1, data2, len1);
 	return (cmp == 0);
 }
+
+static bool
+gu_string_eq_fn(GuEqFn* self, const void* a, const void* b)
+{
+	(void) self;
+	return gu_string_equal(a, b);
+}
+
+GuEqFn gu_string_eq = { gu_string_eq_fn };
 
 #include <stdio.h>
 
@@ -140,3 +149,4 @@ gu_string_format(GuPool* pool, const char* fmt, ...)
 
 GU_DEFINE_TYPE(GuString, abstract, _);
 GU_DEFINE_TYPE(GuStringP, pointer, gu_type(GuString));
+

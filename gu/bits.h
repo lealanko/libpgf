@@ -1,6 +1,8 @@
 #ifndef GU_BITS_H_
 #define GU_BITS_H_
 
+#include <gu/defs.h>
+
 /*
  * Based on the Bit Twiddling Hacks collection by Sean Eron Anderson
  * <http://graphics.stanford.edu/~seander/bithacks.html>
@@ -30,6 +32,21 @@ static inline uintptr_t
 gu_align_backward(uintptr_t addr, size_t alignment) {
 	gu_assert(alignment == gu_ceil2e(alignment));
 	return addr & ~(alignment - 1);
+}
+
+static inline bool
+gu_bits_test(const GuWord* bitmap, int idx) {
+	return !!(bitmap[idx / GU_WORD_BITS] & 1 << (idx % GU_WORD_BITS));
+}
+
+static inline void
+gu_bits_set(GuWord* bitmap, int idx) {
+	bitmap[idx / GU_WORD_BITS] |= ((GuWord) 1) << (idx % GU_WORD_BITS);
+}
+
+static inline void
+gu_bits_clear(GuWord* bitmap, int idx) {
+	bitmap[idx / GU_WORD_BITS] &= ~(((GuWord) 1) << (idx % GU_WORD_BITS));
 }
 
 

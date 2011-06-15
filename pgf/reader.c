@@ -27,7 +27,7 @@
 #include <stdio.h>
 #include <glib/gprintf.h>
 
-// #define GU_LOG_ENABLE
+#define GU_LOG_ENABLE
 #include <gu/log.h>
 
 typedef struct PgfIdContext PgfIdContext;
@@ -154,7 +154,7 @@ pgf_reader_new(FILE* in, GuPool* pool, GuPool* tmp_pool)
 	PgfReader* rdr = gu_new(tmp_pool, PgfReader);
 	rdr->pool = pool;
 	rdr->interned_strings = 
-		gu_map_new(tmp_pool, gu_string_hash, gu_string_equal);
+		gu_stringmap_new(tmp_pool);
 	rdr->err = NULL;
 	rdr->in = in;
 	rdr->ctx = (PgfContext){{0, NULL}, {0, NULL}};
@@ -1000,6 +1000,9 @@ typedef PgfMiscType PgfIntType;
 static const PgfIntType pgf_int_type =
 	PGF_INT_TYPE(int);
 
+static const PgfPointerType pgf_int_p_type = 
+	PGF_OWNED_TYPE(&pgf_int_type.b);
+
 
 static void
 pgf_unpickle_uint16be(const PgfTypeBase* info, 
@@ -1055,28 +1058,6 @@ pgf_dump_double(const PgfTypeBase* info,
 
 static const PgfMiscType pgf_double_type =
 	PGF_MISC_TYPE(gdouble, pgf_unpickle_double, pgf_dump_double);
-
-// int as a pointer
-
-static void
-pgf_unpickle_intptr(const PgfTypeBase* type,
-		    PgfReader* rdr, PgfPlacer* placer)
-{
-	int i = pgf_read_int(rdr);
-	void** to = pgf_placer_place_type(placer, void*);
-	*to = GINT_TO_POINTER(i);
-}
-
-static void
-pgf_dump_intptr(const PgfTypeBase* type,
-		const void* v, PgfWriter* wtr)
-{
-	void* const* p = v;
-	pgf_write_fmt(wtr, "%d", GPOINTER_TO_INT(*p));
-}
- 
-static const PgfMiscType pgf_intptr_type = 
-	PGF_MISC_TYPE(void*, pgf_unpickle_intptr, pgf_dump_intptr);
 
 
 // Maybe
@@ -1196,15 +1177,15 @@ struct PgfMapType {
 	PgfTypeBase b;
 	const PgfTypeBase* key_type;
 	const PgfTypeBase* value_type;
-	GHashFunc hash_func;
-	GEqualFunc compare_func;
+	GuHashFn* hash_fn;
+	GuEqFn* eq_fn;
 };
 
 static void
 pgf_unpickle_map_p(const PgfTypeBase* info, PgfReader* rdr, PgfPlacer* placer)
 {
 	PgfMapType* minfo = gu_container(info, PgfMapType, b);
-	GuMap* ht = gu_map_new(rdr->pool, minfo->hash_func, minfo->compare_func);
+	GuMap* ht = gu_map_new(rdr->pool, minfo->hash_fn, minfo->eq_fn);
 	int len = 0;
 	pgf_unpickle(rdr, &pgf_length_type.b, PGF_CONST_PLACER(&len));
 
@@ -1227,15 +1208,16 @@ pgf_unpickle_map_p(const PgfTypeBase* info, PgfReader* rdr, PgfPlacer* placer)
 }
 
 typedef struct {
+	GuMapIterFn fn;
 	const PgfMapType* mtype;
 	PgfWriter* wtr;
 	bool first;
 } PgfHashDumpContext;
 
 static void
-pgf_dump_hash_entry(void* key, void* value, void* user_data)
+pgf_dump_hash_entry(GuMapIterFn* self, const void* key, void* value)
 {
-	PgfHashDumpContext* ctx = user_data;
+	PgfHashDumpContext* ctx = (PgfHashDumpContext*) self;
 	if (ctx->first) {
 		ctx->first = FALSE;
 	} else {
@@ -1253,8 +1235,8 @@ pgf_dump_map_p(const PgfTypeBase* info,
 	PgfMapType* mtype = gu_container(info, PgfMapType, b);
 	GuMap* ht = *(GuMap* const *)v; 
 	pgf_write_str(wtr, "{");
-	PgfHashDumpContext ctx = { mtype, wtr, TRUE };
-	g_hash_table_foreach(ht, pgf_dump_hash_entry, &ctx);
+	PgfHashDumpContext ctx = { { pgf_dump_hash_entry}, mtype, wtr, TRUE };
+	gu_map_iter(ht, &ctx.fn);
 	pgf_write_str(wtr, "}");
 }
 
@@ -1264,12 +1246,12 @@ static const PgfTypeFuncs pgf_map_p_type_funcs = {
 	.dump = pgf_dump_map_p
 };
 
-#define PGF_MAP_P_TYPE(key_t, val_t, hash_fn, cmp_fn) {			\
+#define PGF_MAP_P_TYPE(key_t, val_t, hash_fn_, eq_fn_) {			\
 	.b = PGF_TYPE_BASE(GuMap*, &pgf_map_p_type_funcs), \
 	.key_type = key_t, \
 	.value_type = val_t, \
-	.hash_func = hash_fn, \
-	.compare_func = cmp_fn \
+	.hash_fn = hash_fn_, \
+	.eq_fn = eq_fn_ \
 }
 
 // GuString
@@ -1517,13 +1499,13 @@ static const PgfVariantType pgf_expr_type = PGF_VARIANT_TYPE(
 
 #define PGF_CIDMAP_P_TYPE(val_type)			\
 	PGF_MAP_P_TYPE(&pgf_string_p_type.b, val_type,	\
-		       gu_string_hash, gu_string_equal)
+		       &gu_string_hash, &gu_string_eq)
 
 #define PGF_CIDMAP_P_TYPE_L(val_type)				\
 	&GU_LVALUE(PgfMapType, PGF_CIDMAP_P_TYPE(val_type)).b
 
 #define PGF_INTMAP_P_TYPE(val_type)		\
-	PGF_MAP_P_TYPE(&pgf_intptr_type.b, val_type, NULL, NULL)
+	PGF_MAP_P_TYPE(&pgf_int_p_type.b, val_type, &gu_int_hash, &gu_int_eq)
 
 #define PGF_INTMAP_P_TYPE_L(val_type)		\
 	&GU_LVALUE(PgfMapType, PGF_INTMAP_P_TYPE(val_type)).b

@@ -1,7 +1,7 @@
 
 #include "type.h"
 
-GuKind gu_type_type = { .super = NULL };
+GuKind GU_TYPE_IDENT(type) = { .super = NULL };
 
 GU_DEFINE_KIND(alias, type);
 GU_DEFINE_KIND(typedef, alias);
@@ -31,11 +31,11 @@ GU_DEFINE_TYPE(float, primitive, _);
 GU_DEFINE_TYPE(double, primitive, _);
 
 // sizeof(void) is illegal, so do this manually
-GuPrimType gu_type_void = {
+GuPrimType GU_TYPE_IDENT(void) = {
 	.repr_base = {
 		.type_base = {
 			.kind_base = {
-				.super = &gu_type_primitive,
+				.super = gu_kind(primitive),
 			},
 		},
 		.size = 0,
@@ -91,23 +91,32 @@ void* gu_type_map_lookup(GuTypeMap* tmap, GuType* type)
 }
 
 
-size_t gu_type_size(GuType* type) {
-	if (gu_type_has_kind(type, gu_kind(repr))) {
-		GuType_repr* repr = (GuType_repr*) type;
-		return repr->size;
-	} else if (gu_type_has_kind(type, gu_kind(alias))) {
-		GuTypeAlias* alias = gu_type_cast(type, alias);
-		return gu_type_size(alias->type);
-	} else {
-		return 0;
-	}
-}
-
 const void* 
 gu_type_check_cast(GuType* type, GuKind* kind)
 {
 	gu_assert(gu_type_has_kind(type, kind));
 	return type;
+}
+
+GuTypeRepr*
+gu_type_repr(GuType* type) 
+{
+	while (gu_type_has_kind(type, gu_kind(alias))) {
+		GuTypeAlias* alias = gu_type_cast(type, alias);
+		type = gu_type_repr(alias->type);
+	}
+	if (gu_type_has_kind(type, gu_kind(repr))) {
+		return gu_type_cast(type, repr);
+	} else {
+		return NULL;
+	}
+}
+
+size_t
+gu_type_size(GuType* type)
+{
+	GuTypeRepr* repr = gu_type_repr(type);
+	return repr ? repr->size : 0;
 }
 
 GuEnumConstant*

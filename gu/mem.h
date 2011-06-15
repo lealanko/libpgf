@@ -51,6 +51,9 @@ void gu_pool_free(GuPool* pool);
  *
  * @relates GuPool */
 
+
+void
+gu_pool_attach(GuPool* child, GuPool* parent);
 /// @}
 
 
@@ -98,7 +101,7 @@ gu_malloc_init_aligned(GuPool* pool, size_t size, size_t alignment,
 #define gu_new_s(pool, type, ...)			\
 	({						\
 		type *p_ = gu_new(pool, type);		\
-		*p_ = (type) { __VA_ARGS__ };		\
+		memcpy((void*) p_, &(type){ __VA_ARGS__ }, sizeof(type)); \
 		p_;					\
 	})
 #else // GU_HAVE_STATEMENT_EXPRESSIONS

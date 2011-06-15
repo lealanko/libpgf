@@ -14,15 +14,17 @@ struct GuKind {
 	GuKind* super;
 };
 
-#define gu_kind(k_) ((GuKind*)&gu_type_##k_)
+#define GU_TYPE_IDENT(k_) gu_type__##k_
+
+#define gu_kind(k_) ((GuKind*)&GU_TYPE_IDENT(k_))
 
 #define GU_DECLARE_KIND(k_) \
-	GuKind gu_type_##k_
+	GuKind GU_TYPE_IDENT(k_)
 
 extern GU_DECLARE_KIND(kind);
 
 #define GU_DEFINE_KIND(k_, super_k_) \
-	GuKind gu_type_##k_ = { .super = gu_kind(super_k_) }
+	GuKind GU_TYPE_IDENT(k_) = { .super = gu_kind(super_k_) }
 
 //
 // type
@@ -50,10 +52,10 @@ extern GU_DECLARE_KIND(type);
 	((GuType*)(GuType_##k_[]){GU_TYPE_INIT(k_, __VA_ARGS__)})
 
 #define GU_DECLARE_TYPE(t_, k_)	\
-	GuType_##k_ gu_type_##t_
+	GuType_##k_ GU_TYPE_IDENT(t_)
 
 #define GU_DEFINE_TYPE(t_, k_, ...)					\
-	GuType_##k_ gu_type_##t_ = GU_TYPE_INIT(k_, t_, __VA_ARGS__)
+	GuType_##k_ GU_TYPE_IDENT(t_) = GU_TYPE_INIT(k_, t_, __VA_ARGS__)
 
 
 //
@@ -72,7 +74,7 @@ extern GU_DECLARE_KIND(abstract);
 // repr 
 //
 
-typedef struct GuTypeRepr GuType_repr;
+typedef struct GuTypeRepr GuTypeRepr, GuType_repr;
 
 struct GuTypeRepr {
 	GuType type_base;
@@ -378,14 +380,22 @@ GuTypeMap* gu_type_map_new(GuPool* pool, GuTypeTable* table);
 
 void* gu_type_map_lookup(GuTypeMap* tmap, GuType* type);
 
-size_t gu_type_size(GuType* type);
+size_t 
+gu_type_size(GuType* type);
+
+GuTypeRepr*
+gu_type_repr(GuType* type);
 
 const void*
 gu_type_check_cast(GuType* t, GuKind* k);
 
+#ifdef GU_DEBUG
 #define gu_type_cast(type_, k_) \
 	((GuType_##k_*)gu_type_check_cast(type_, gu_kind(k_)))
-
+#else
+#define gu_type_cast(type_, k_) \
+	((GuType_##k_*)(type_))
+#endif
 
 
 
