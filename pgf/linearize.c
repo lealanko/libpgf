@@ -246,7 +246,7 @@ pgf_lzr_new(GuPool* pool, PgfPGF* pgf, PgfConcr* cnc)
 	lzr->pool = pool;
 	lzr->fun_indices = gu_stringmap_new(pool);
 	PgfLzrCreateIndexFn clo = { { pgf_lzr_create_index_cb }, lzr };
-	gu_map_iter(cnc->productions, &clo.fn);
+	gu_map_iter((GuMap*)cnc->productions, &clo.fn);
 	// TODO: prune productions with zero linearizations
 	return lzr;
 }

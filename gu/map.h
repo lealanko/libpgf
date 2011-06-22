@@ -80,53 +80,10 @@ GU_DECLARE_DUMMY
 				    
 #include <gu/string.h>
 
-#if 0
-
-typedef GuMap GuStringMap;
-
-static inline GuStringMap*
-gu_stringmap_new(GuPool* pool)
-{
-	return gu_map_new(pool, &gu_string_hash, &gu_string_eq);
-}
-
-static inline void*
-gu_stringmap_get(GuStringMap* m, const GuString* key)
-{
-	return gu_map_get(m, key);
-}
-
-static inline void
-gu_stringmap_set(GuStringMap* m, const GuString* key, void* value)
-{
-	gu_map_set(m, key, value);
-}
-#else
 GU_MAP_DEFINE(GuStringMap, gu_stringmap, R, GuString, R, void, NULL,
 	      &gu_string_hash, &gu_string_eq);
-
-#endif
-
-typedef GuMap GuIntMap;
-
-static inline GuIntMap*
-gu_intmap_new(GuPool* pool)
-{
-	return gu_map_new_full(pool, &gu_int_hash, &gu_int_eq, 
-			       sizeof(int), 0, NULL);
-}
-
-static inline void*
-gu_intmap_get(GuIntMap* m, int key)
-{
-	return gu_map_get(m, &key);
-}
-
-static inline void
-gu_intmap_set(GuIntMap* m, int key, void* value)
-{
-	gu_map_set(m, &key, value);
-}
+GU_MAP_DEFINE(GuIntMap, gu_intmap, V, int, R, void, NULL,
+	      &gu_int_hash, &gu_int_eq);
 
 
 #include <gu/type.h>
@@ -152,8 +109,6 @@ typedef GuType_GuMap GuType_GuIntMap;
 
 #define GU_TYPE_INIT_GuIntMap(k_, t_, value_type_) \
 	GU_TYPE_INIT_GuMap(k_, t_, gu_type(int), value_type_)
-
-#include <gu/string.h>
 
 extern GU_DECLARE_KIND(GuStringMap);
 typedef GuType_GuMap GuType_GuStringMap;
