@@ -118,8 +118,8 @@ static void
 gu_dump_map_entry_fn(GuMapIterFn* self, const void* key, void* value)
 {
 	GuDumpMapFn* clo = (GuDumpMapFn*) self;
-	gu_dump(clo->mtype->key_type, &key, clo->ctx);
-	gu_dump(clo->mtype->value_type, &value, clo->ctx);
+	gu_dump(clo->mtype->key_type, key, clo->ctx);
+	gu_dump(clo->mtype->value_type, value, clo->ctx);
 }
 
 static void
@@ -287,9 +287,8 @@ static void
 gu_dump_variant_as_ptr(GuDumpFn* dumper, GuType* type, const void* p,
 		       GuDumpCtx* ctx)
 {
-	void* const* pp = p;
 	GuVariantAsPtrType* vptype = gu_type_cast(type, GuVariantAsPtr);
-	GuVariant var = gu_variant_from_ptr(*pp);
+	GuVariant var = gu_variant_from_ptr(p);
 	gu_dump_variant(dumper, vptype->vtype, &var, ctx);
 }
 

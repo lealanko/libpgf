@@ -206,11 +206,11 @@ GU_DEFINE_TYPE(
 	GU_MEMBER_V(PgfAbstr, funs,
 		    GU_TYPE_LIT(pointer, GuStringMap*,
 				GU_TYPE_LIT(GuStringMap, _,
-					    gu_ptr_type(PgfFunDecl)))),
+					    gu_type(PgfFunDecl)))),
 	GU_MEMBER_V(PgfAbstr, cats,
 		    GU_TYPE_LIT(pointer, GuStringMap*,
 				GU_TYPE_LIT(GuStringMap, _,
-					    gu_ptr_type(PgfCat)))));
+					    gu_type(PgfCat)))));
 
 GU_DEFINE_TYPE(
 	PgfConcr, struct, 
@@ -218,7 +218,7 @@ GU_DEFINE_TYPE(
 	GU_MEMBER_V(PgfConcr, printnames,
 		    GU_TYPE_LIT(pointer, GuStringMap*,
 				GU_TYPE_LIT(GuStringMap, _, 
-					    gu_ptr_type(GuString)))),
+					    gu_type(GuString)))),
 	GU_MEMBER_V(PgfConcr, sequences, 
 		    gu_ptr_type(PgfSequences)),
 	GU_MEMBER_V(PgfConcr, cncfuns, 
@@ -226,15 +226,15 @@ GU_DEFINE_TYPE(
 	GU_MEMBER_V(PgfConcr, lindefs, 
 		    GU_TYPE_LIT(pointer, GuIntMap*,
 				GU_TYPE_LIT(GuIntMap, _,
-					    gu_ptr_type(PgfFunIds)))),
+					    gu_type(PgfFunIds)))),
 	GU_MEMBER_V(PgfConcr, productions,
 		    GU_TYPE_LIT(pointer, GuIntMap*,
 				GU_TYPE_LIT(GuIntMap, _,
-					    gu_ptr_type(PgfProductions)))),
+					    gu_type(PgfProductions)))),
 	GU_MEMBER_V(PgfConcr, cnccats,
 		    GU_TYPE_LIT(pointer, GuStringMap*,
 				GU_TYPE_LIT(GuStringMap, _, 
-					    gu_ptr_type(PgfCncCat)))),
+					    gu_type(PgfCncCat)))),
 	GU_MEMBER(PgfConcr, totalcats, PgfFId));
 
 GU_DEFINE_TYPE(
@@ -247,5 +247,5 @@ GU_DEFINE_TYPE(
 	GU_MEMBER_V(PgfPGF, concretes,
 		    GU_TYPE_LIT(pointer, GuStringMap*,
 				GU_TYPE_LIT(GuStringMap, _,
-					    gu_ptr_type(PgfConcr)))));
+					    gu_type(PgfConcr)))));
 

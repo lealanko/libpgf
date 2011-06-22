@@ -145,7 +145,7 @@ struct PgfReader {
 	FILE* in;
 	GError* err;
 	GuPool* pool;
-	GuMap* interned_strings;
+	GuStringMap* interned_strings;
 	PgfContext ctx;
 };
 
@@ -1277,10 +1277,10 @@ pgf_unpickle_string_p(const PgfTypeBase* type,
 		data[i] = (char) *gu_byte_seq_index(byteq, i);
 	}
 
-	GuString* interned = gu_map_get(rdr->interned_strings, tmp);
+	GuString* interned = gu_stringmap_get(rdr->interned_strings, tmp);
 	if (interned == NULL) {
 		interned = gu_string_copy(rdr->pool, tmp);
-		gu_map_set(rdr->interned_strings, interned, interned);
+		gu_stringmap_set(rdr->interned_strings, interned, interned);
 	}
 	gu_pool_free(tmp_pool);
 	GuString** to = pgf_placer_place_type(placer, GuString*);

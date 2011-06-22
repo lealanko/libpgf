@@ -95,14 +95,14 @@ struct GuVariant {
 
 /** @} */
 
-inline void*
+static inline void*
 gu_variant_to_ptr(GuVariant variant)
 {
 	return (void*)variant.p;
 }
 
 static inline GuVariant
-gu_variant_from_ptr(void* p)
+gu_variant_from_ptr(const void* p)
 {
 	GuVariant v = { (uintptr_t)p };
 	return v;
@@ -110,7 +110,7 @@ gu_variant_from_ptr(void* p)
 
 extern GuVariant gu_variant_null;
 
-inline bool
+static inline bool
 gu_variant_is_null(GuVariant v) {
 	return ((void*)v.p == NULL);
 }

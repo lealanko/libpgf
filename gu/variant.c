@@ -96,16 +96,5 @@ gu_variant_intval(GuVariant variant)
 
 GuVariant gu_variant_null = { (uintptr_t) NULL };
 
-
-extern inline void*
-gu_variant_to_ptr(GuVariant variant);
-
-extern inline GuVariant
-gu_variant_from_ptr(void* p);
-
-extern inline bool
-gu_variant_is_null(GuVariant v);
-
-
 GU_DEFINE_KIND(GuVariant, repr);
 GU_DEFINE_KIND(GuVariantAsPtr, repr);

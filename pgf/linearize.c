@@ -181,15 +181,15 @@ pgf_lzr_index(PgfLzr* lzr, PgfFId fid,
 	case PGF_PRODUCTION_APPLY: {
 		PgfProductionApply* papply = data;
 		PgfLinIndex* idx =
-			gu_map_get(lzr->fun_indices, papply->fun[0]->fun);
+			gu_stringmap_get(lzr->fun_indices, papply->fun[0]->fun);
 		if (idx == NULL) {
 			idx = gu_new(lzr->pool, PgfLinIndex);
 			idx->prods = gu_intmap_new(lzr->pool);
 			idx->infer = gu_map_new(lzr->pool,
 						&pgf_lzr_fids_hash,
 						&pgf_lzr_fids_eq);
-			gu_map_set(lzr->fun_indices,
-				   papply->fun[0]->fun, idx);
+			gu_stringmap_set(lzr->fun_indices,
+					 papply->fun[0]->fun, idx);
 		}
 
 		pgf_lzr_add_linprods_entry(lzr, idx->prods, fid, prod);
@@ -335,7 +335,7 @@ static PgfFId
 pgf_lzn_infer_application(PgfLzn* lzn, PgfApplication* appl, 
 			  GuPool* pool, PgfLinForm* form_out)
 {
-	PgfLinIndex* idx = gu_map_get(lzn->lzr->fun_indices, appl->fun);
+	PgfLinIndex* idx = gu_stringmap_get(lzn->lzr->fun_indices, appl->fun);
 	gu_enter("f: " GU_STRING_FMT ", n_args: %d",
 		 GU_STRING_FMT_ARGS(appl->fun), appl->n_args);
 	if (idx == NULL) {
