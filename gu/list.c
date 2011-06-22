@@ -17,8 +17,8 @@
  * License along with libgu. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "list.h"
-
+#include <gu/list.h>
+#include <gu/assert.h>
 #include <string.h>
 
 static const int gu_list_empty = 0;

@@ -74,10 +74,6 @@ gu_string_cdata(const GuString* s);
 
 
 
-#include <gu/type.h>
-extern GU_DECLARE_TYPE(GuString, abstract);
-extern GU_DECLARE_TYPE(GuStringP, pointer);
-
 
 
 // internal
@@ -172,6 +168,11 @@ gu_string_data(GuString* s) {
 GuHashFn gu_string_hash;
 
 GuEqFn gu_string_eq;
+
+#include <gu/type.h>
+extern GU_DECLARE_TYPE(GuString, abstract);
+extern GU_DECLARE_TYPE(GuStringP, pointer);
+
 
 
 #endif // GU_STRING_H_

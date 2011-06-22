@@ -27,7 +27,7 @@
 
 #include <guconfig.h>
 #include <stddef.h>
-#include <stdint.h>
+#include <inttypes.h>
 #include <stdbool.h>
 #include <assert.h>
 #include <limits.h>
@@ -71,13 +71,15 @@
 
 #define GU_COMMA ,
 
-#define GU_ARRAYLIT_LEN(t,a) (sizeof((const t[])a) / sizeof(t))
+#define GU_ARRAY_LEN(t,a) (sizeof((const t[])a) / sizeof(t))
 
 #define GU_ARG1(a1, ...) a1
 #define GU_ARG2(a1, a2, ...) a2
 
 #define GU_BEGIN do {
 #define GU_END } while (false)
+
+#define GU_NOP GU_BEGIN (void) 0; GU_END
 
 #ifdef GU_ALIGNOF_WORKS_ON_FAM_STRUCTS
 #define gu_flex_alignof gu_alignof
@@ -92,15 +94,6 @@
 //
 // Assert
 //
-
-#ifdef GU_DEBUG
-#define gu_assert(expr) assert(expr)
-#else
-#define gu_assert(expr_) GU_BEGIN GU_END
-#endif
-
-// XXX: better message
-#define gu_assert_not_reached(expr) gu_assert(false)
 
 #define GU_MAX(a_, b_) ((a_) > (b_) ? (a_) : (b_))
 #define GU_MIN(a_, b_) ((a_) < (b_) ? (a_) : (b_))
@@ -128,6 +121,7 @@ gu_min(int a, int b) {
 		char static_assert[(expr_) ? 1 : -1];			\
 	} GU_PASTE(GuStaticAssert_, __LINE__)
 
+
 #define GU_DECLARE_DUMMY \
 	extern void gu_dummy_(void)
 
@@ -137,10 +131,5 @@ gu_hash_mix(unsigned h, unsigned v)
 	return h * 101 + v;
 }
 
-typedef uint_fast16_t GuWord;
-
-enum {
-	GU_WORD_BITS = sizeof(GuWord) * CHAR_BIT
-};
 
 #endif // GU_DEFS_H_

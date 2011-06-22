@@ -1,5 +1,7 @@
 
-#include "type.h"
+#include <gu/type.h>
+#include <gu/assert.h>
+
 
 GuKind GU_TYPE_IDENT(type) = { .super = NULL };
 
@@ -90,6 +92,15 @@ void* gu_type_map_lookup(GuTypeMap* tmap, GuType* type)
 	return NULL;
 }
 
+const void*
+gu_type_dyn_cast(GuType* type, GuKind* kind)
+{
+	if (gu_type_has_kind(type, kind)) {
+		return type;
+	}
+	return NULL;
+}
+
 
 const void* 
 gu_type_check_cast(GuType* type, GuKind* kind)
@@ -101,15 +112,11 @@ gu_type_check_cast(GuType* type, GuKind* kind)
 GuTypeRepr*
 gu_type_repr(GuType* type) 
 {
-	while (gu_type_has_kind(type, gu_kind(alias))) {
-		GuTypeAlias* alias = gu_type_cast(type, alias);
-		type = gu_type_repr(alias->type);
+	GuTypeAlias* alias;
+	while ((alias = gu_type_try_cast(type, alias))) {
+		type = alias->type;
 	}
-	if (gu_type_has_kind(type, gu_kind(repr))) {
-		return gu_type_cast(type, repr);
-	} else {
-		return NULL;
-	}
+	return gu_type_try_cast(type, repr);
 }
 
 size_t

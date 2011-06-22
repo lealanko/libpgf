@@ -25,6 +25,7 @@
 #include <gu/log.h>
 #include <gu/choice.h>
 #include <gu/seq.h>
+#include <gu/assert.h>
 #include <pgf/expr.h>
 
 typedef GuStringMap PgfLinInfer;
@@ -503,15 +504,15 @@ pgf_lzr_linearize(PgfLzr* lzr, PgfLinForm form, int lin_idx, PgfLinFuncs** fnsp)
 			}
 			case PGF_SYMBOL_KP:
 				// XXX: To be supported
-				gu_assert_not_reached(); 
+				gu_impossible(); 
 			default:
-				gu_assert_not_reached(); 
+				gu_impossible(); 
 			}
 		}
 		break;
 	} // case PGF_LIN_FORM_APP
 	default:
-		gu_assert_not_reached();
+		gu_impossible();
 	}
 }
 

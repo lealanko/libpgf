@@ -22,6 +22,7 @@
 #include <gu/defs.h>
 #include <gu/map.h>
 #include <gu/seq.h>
+#include <gu/assert.h>
 #include <string.h>
 #include <math.h>
 #include <stdio.h>

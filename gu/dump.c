@@ -2,7 +2,7 @@
 #include <gu/list.h>
 #include <gu/variant.h>
 #include <gu/seq.h>
-#include <inttypes.h>
+#include <gu/assert.h>
 
 GuDumpCtx*
 gu_dump_ctx_new(GuPool* pool, FILE* out, GuTypeTable* dumpers) {

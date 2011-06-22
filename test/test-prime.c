@@ -1,4 +1,5 @@
 #include <gu/prime.h>
+#include <gu/assert.h>
 #include <stdio.h>
 
 bool is_prime(int i)

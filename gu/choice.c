@@ -1,5 +1,6 @@
-#include "choice.h"
+#include <gu/choice.h>
 #include <gu/seq.h>
+#include <gu/assert.h>
 
 struct GuChoice {
 	GuByteSeq* path;

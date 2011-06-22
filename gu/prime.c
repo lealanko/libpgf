@@ -1,4 +1,5 @@
 #include <gu/defs.h>
+#include <gu/assert.h>
 
 static const uint32_t gu_prime_wheel_mask = 0UL
 	| 1 << 1

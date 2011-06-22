@@ -85,6 +85,12 @@ gu_malloc_init_aligned(GuPool* pool, size_t size, size_t alignment,
 	return p;
 }
 
+static inline void*
+gu_malloc_init(GuPool* pool, size_t size, const void* init)
+{
+	return gu_malloc_init_aligned(pool, size, 0, init);
+}
+
 #define gu_new(pool, type) \
 	((type*)gu_malloc_aligned((pool), sizeof(type), gu_alignof(type)))
 

@@ -1,4 +1,5 @@
-#include "error.h"
+#include <gu/error.h>
+#include <gu/assert.h>
 
 struct GuError {
 	GuPool* pool;

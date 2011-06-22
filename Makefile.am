@@ -5,6 +5,7 @@ lib_LTLIBRARIES = libgu.la libpgf.la
 
 include_HEADERS = \
 	pgf/pgf.h \
+	gu/assert.h \
 	gu/bits.h \
 	gu/choice.h \
 	gu/defs.h \
@@ -24,6 +25,7 @@ include_HEADERS = \
 	gu/yaml.h
 
 libgu_la_SOURCES = \
+	gu/assert.c \
 	gu/bits.c \
 	gu/choice.c \
 	gu/seq.c \

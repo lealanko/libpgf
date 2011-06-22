@@ -2,6 +2,13 @@
 #define GU_BITS_H_
 
 #include <gu/defs.h>
+#include <gu/assert.h>
+
+typedef unsigned long GuWord;
+
+enum {
+	GU_WORD_BITS = sizeof(GuWord) * CHAR_BIT
+};
 
 /*
  * Based on the Bit Twiddling Hacks collection by Sean Eron Anderson
@@ -49,7 +56,10 @@ gu_bits_clear(GuWord* bitmap, int idx) {
 	bitmap[idx / GU_WORD_BITS] &= ~(((GuWord) 1) << (idx % GU_WORD_BITS));
 }
 
-
+static inline size_t
+gu_bits_size(size_t n_bits) {
+	return gu_ceildiv(n_bits, GU_WORD_BITS) * sizeof(GuWord);
+}
 
 
 #endif // GU_BITS_H_

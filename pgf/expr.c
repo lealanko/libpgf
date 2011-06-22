@@ -1,6 +1,7 @@
 #include "expr.h"
 #include <gu/intern.h>
 #include <gu/seq.h>
+#include <gu/assert.h>
 #include <ctype.h>
 
 PgfExpr

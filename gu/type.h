@@ -389,6 +389,12 @@ gu_type_repr(GuType* type);
 const void*
 gu_type_check_cast(GuType* t, GuKind* k);
 
+const void*
+gu_type_dyn_cast(GuType* t, GuKind* k);
+
+#define gu_type_try_cast(type_, k_) \
+	((GuType_##k_*)gu_type_dyn_cast(type_, gu_kind(k_)))
+
 #ifdef GU_DEBUG
 #define gu_type_cast(type_, k_) \
 	((GuType_##k_*)gu_type_check_cast(type_, gu_kind(k_)))

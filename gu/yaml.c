@@ -1,5 +1,6 @@
-#include "yaml.h"
+#include <gu/yaml.h>
 #include <gu/seq.h>
+#include <gu/assert.h>
 #include <stdio.h>
 #include <stdarg.h>
 #include <ctype.h>

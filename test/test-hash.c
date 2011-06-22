@@ -1,5 +1,6 @@
 #include <gu/map.h>
 #include <gu/string.h>
+#include <gu/assert.h>
 #include <stdio.h>
 
 void test_strings(int n)
@@ -19,26 +20,24 @@ void test_strings(int n)
 	gu_pool_free(pool);
 }
 
-#if 0
 void test_ints(int n)
 {
 	GuPool* pool = gu_pool_new();
-	GuMap* ht = gu_map_new(pool, NULL, NULL,
-					    (uintptr_t) -1);
+	GuIntMap* ht = gu_intmap_new(pool);
 	for (int i = 0; i < n; i++) {
-		gu_map_set(ht, (uintptr_t) i, (uintptr_t) i * i);
+		int* ip = gu_new_s(pool, int, i * i);
+		gu_map_set(ht, &i, ip);
 	}
 	for (int i = 0; i < n; i++) {
-		uintptr_t u = gu_map_get(ht, (uintptr_t) i);
-		gu_assert((int) u == i * i);
+		int* ip = gu_map_get(ht, &i);
+		gu_assert(*ip == i * i);
 	}
 	gu_pool_free(pool);
 }
-#endif
 
 int main(void)
 {
-	// test_ints(10000);
+	test_ints(10000);
 	test_strings(10000);
 }
 

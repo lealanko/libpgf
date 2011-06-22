@@ -2,6 +2,7 @@
 #include "expr.h"
 #include <gu/type.h>
 #include <gu/variant.h>
+#include <gu/assert.h>
 
 
 PgfFId
@@ -15,7 +16,8 @@ pgf_literal_fid(PgfLiteral lit)
 	case PGF_LITERAL_FLT:
 		return PGF_FID_FLOAT;
 	default:
-		gu_assert_not_reached();
+		gu_impossible();
+		return -1;
 	}
 }
 

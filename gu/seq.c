@@ -1,5 +1,6 @@
 #include <gu/seq.h>
 #include <gu/fun.h>
+#include <gu/assert.h>
 #include <string.h>
 
 struct GuSeq {

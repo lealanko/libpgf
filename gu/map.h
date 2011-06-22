@@ -4,7 +4,6 @@
 #include <gu/fun.h>
 #include <gu/mem.h>
 
-
 typedef const struct GuMapIterFn GuMapIterFn;
 
 struct GuMapIterFn {
@@ -14,7 +13,13 @@ struct GuMapIterFn {
 typedef struct GuMap GuMap;
 
 GuMap*
-gu_map_new(GuPool* pool, GuHashFn* hash_fn, GuEqFn* eq_fn);
+gu_map_new_full(GuPool* pool, GuHashFn* hash_fn, GuEqFn* eq_fn, 
+		size_t key_size, size_t value_size, void* empty_value);
+
+static inline GuMap*
+gu_map_new(GuPool* pool, GuHashFn* hash_fn, GuEqFn* eq_fn) {
+	return gu_map_new_full(pool, hash_fn, eq_fn, 0, 0, NULL);
+}
 
 void*
 gu_map_get(GuMap* ht, const void* key);
@@ -30,8 +35,11 @@ gu_map_iter(GuMap* ht, GuMapIterFn* fn);
 
 typedef GuMap GuStringMap;
 
-GuStringMap*
-gu_stringmap_new(GuPool* pool);
+static inline GuStringMap*
+gu_stringmap_new(GuPool* pool)
+{
+	return gu_map_new(pool, &gu_string_hash, &gu_string_eq);
+}
 
 static inline void*
 gu_stringmap_get(GuStringMap* m, const GuString* key)
@@ -48,8 +56,12 @@ gu_stringmap_set(GuStringMap* m, const GuString* key, void* value)
 
 typedef GuMap GuIntMap;
 
-GuIntMap*
-gu_intmap_new(GuPool* pool);
+static inline GuIntMap*
+gu_intmap_new(GuPool* pool)
+{
+	return gu_map_new_full(pool, &gu_int_hash, &gu_int_eq, 
+			       sizeof(int), 0, NULL);
+}
 
 static inline void*
 gu_intmap_get(GuIntMap* m, int key)
@@ -57,8 +69,11 @@ gu_intmap_get(GuIntMap* m, int key)
 	return gu_map_get(m, &key);
 }
 
-void
-gu_intmap_set(GuIntMap* m, int key, void* value);
+static inline void
+gu_intmap_set(GuIntMap* m, int key, void* value)
+{
+	gu_map_set(m, &key, value);
+}
 
 
 #include <gu/type.h>

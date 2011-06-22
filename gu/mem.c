@@ -17,9 +17,10 @@
  * License along with libgu. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "mem.h"
-#include "fun.h"
-#include "bits.h"
+#include <gu/mem.h>
+#include <gu/fun.h>
+#include <gu/bits.h>
+#include <gu/assert.h>
 #include <string.h>
 #include <stdlib.h>
 
