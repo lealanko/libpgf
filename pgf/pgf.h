@@ -25,12 +25,9 @@
 #ifndef PGF_H_
 #define PGF_H_
 
-#include <glib.h>
-#include <stdio.h>
-
-G_BEGIN_DECLS
-
-
+#include <gu/error.h>
+#include <gu/mem.h>
+#include <gu/in.h>
 
 /// @name PGF Grammar objects
 /// @{
@@ -41,7 +38,8 @@ typedef struct PgfPGF PgfPGF;
  */
 
 
-PgfPGF* pgf_read(FILE* from, GError** err_out); 
+PgfPGF*
+pgf_read(GuIn* in, GuPool* pool, GuError* err); 
 
 /**< Read a grammar from a PGF file.
  *
@@ -62,43 +60,10 @@ PgfPGF* pgf_read(FILE* from, GError** err_out);
  */
 
 
-void pgf_write_yaml(PgfPGF* pgf, FILE* to, GError** err_out);
-
-/**< Write out a grammar as YAML.
- *
- * This function writes out the structure of the PGF grammar in the
- * "flow" style of the human- and machine-readable <a
- * href="http://yaml.org/">YAML</a> format. The output is not nicely
- * formatted, but can be further processed by other YAML tools to
- * produce e.g. indented block-style YAML output.
- *
- * @param pgf  The grammar to write out.
- *
- * @param to   The YAML output stream.
- * After a succesful invocation, the stream remains open.
- *
- * @param[out] err_out  Raised error.
- * If non-\c NULL, \c *err_out should be \c NULL. Then, upon
- * failure, \c *err_out is set to point to a newly allocated
- * error object, which the caller must free with #g_error_free
- * or #g_error_propagate.
- *
- */
-
-
-void pgf_free(PgfPGF* pgf);
-/**< Free a grammar object.
- *
- * @param pgf  Grammar object to free. After invocation, it must not be
- * used any more.
- */
-
-/// @}
-
-
 #include <gu/type.h>
 GU_DECLARE_TYPE(PgfPGF, struct);
 
-G_END_DECLS
+/// @}
+
 
 #endif // PGF_H_

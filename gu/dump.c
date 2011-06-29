@@ -21,7 +21,7 @@ gu_dump_ctx_new(GuPool* pool, FILE* out, GuTypeTable* dumpers) {
 void
 gu_dump(GuType* type, const void* value, GuDumpCtx* ctx)
 {
-	GuDumpFn* dumper = gu_type_map_lookup(ctx->dumpers, type);
+	GuDumpFn* dumper = gu_type_map_get(ctx->dumpers, type);
 	if (ctx->print_address) {
 		GuString* str = gu_string_format(ctx->pool, "%p", value);
 		gu_yaml_comment(ctx->yaml, str);
@@ -283,14 +283,6 @@ gu_dump_variant(GuDumpFn* dumper, GuType* type, const void* p,
 	gu_assert(false);
 }
 
-static void
-gu_dump_variant_as_ptr(GuDumpFn* dumper, GuType* type, const void* p,
-		       GuDumpCtx* ctx)
-{
-	GuVariantAsPtrType* vptype = gu_type_cast(type, GuVariantAsPtr);
-	GuVariant var = gu_variant_from_ptr(p);
-	gu_dump_variant(dumper, vptype->vtype, &var, ctx);
-}
 
 static void
 gu_dump_enum(GuDumpFn* dumper, GuType* type, const void* p,
@@ -337,7 +329,6 @@ gu_dump_table = GU_TYPETABLE(
 	{ gu_kind(GuSeq), gu_fn(gu_dump_seq) },
 	{ gu_kind(GuLength), gu_fn(gu_dump_length) },
 	{ gu_kind(GuVariant), gu_fn(gu_dump_variant) },
-	{ gu_kind(GuVariantAsPtr), gu_fn(gu_dump_variant_as_ptr) },
 	{ gu_kind(double), gu_fn(gu_dump_double) },
 	{ gu_kind(enum), gu_fn(gu_dump_enum) },
 	);

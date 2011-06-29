@@ -108,7 +108,7 @@ gu_variant_from_ptr(const void* p)
 	return v;
 }
 
-extern GuVariant gu_variant_null;
+extern const GuVariant gu_variant_null;
 
 static inline bool
 gu_variant_is_null(GuVariant v) {
@@ -167,20 +167,5 @@ struct GuVariantType {
 }
 
 extern GU_DECLARE_KIND(GuVariant);
-
-
-typedef const struct GuVariantAsPtrType 
-GuVariantAsPtrType, GuType_GuVariantAsPtr;
-
-struct GuVariantAsPtrType {
-	GuType_repr repr_base;
-	GuType* vtype;
-};
-
-extern GU_DECLARE_KIND(GuVariantAsPtr);
-#define GU_TYPE_INIT_GuVariantAsPtr(k_, vtype_) { \
-	.repr_base = GU_TYPE_INIT_repr(k_, void*, _), \
-	.vtype = vtype_, \
- }
 
 #endif // GU_VARIANT_H_

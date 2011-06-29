@@ -136,34 +136,8 @@ size_t gu_mem_alignment(size_t size);
 
 /// @}
 
-typedef union GuMaxAligned GuMaxAligned;
-
-union GuMaxAligned {
-	char c;
-	short s;
-	int i;
-	long l;
-	long long ll;
-	intmax_t imax;
-	float f;
-	double d;
-	long double ld;
-	void* p;
-	GuMaxAligned* up;
-	void (*fp)();
-};
-
-
-#define gu_alloca(n_) \
-	((void*)(((union { GuMaxAligned a_; uint8_t b_[n_]; }){.a_ = { .c = 0}}).b_))
-
 GuPool* 
 gu_pool_init(void* p, size_t len, bool in_stack);
-
-#define gu_pool_sized(n_) gu_pool_init(gu_alloca(n_), n_, true)
-
-#define gu_pool() gu_pool_sized(64)
-
 
 void*
 gu_mem_buf_alloc(size_t min_size, size_t* real_size_out);

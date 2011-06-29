@@ -14,7 +14,8 @@ struct GuKind {
 	GuKind* super;
 };
 
-#define GU_TYPE_IDENT(k_) gu_type__##k_
+// Use GU_PASTE here so k_ can be preprocessor-expanded
+#define GU_TYPE_IDENT(k_) GU_PASTE(gu_type__,k_)
 
 #define gu_kind(k_) ((GuKind*)&GU_TYPE_IDENT(k_))
 
@@ -45,17 +46,25 @@ extern GU_DECLARE_KIND(type);
 #define gu_type(t_) ((GuType*)gu_kind(t_))
 
 
+#define GU_KIND_TYPE(k_) GU_PASTE(GuType_,k_)
+
+// This cannot be used indirectly, since we don't want to pp-expand k_.
+// We must inline the body into other macros.
 #define GU_TYPE_INIT(k_, ...)		\
 	GU_TYPE_INIT_##k_(k_, __VA_ARGS__)
 
-#define GU_TYPE_LIT(k_, ...)				\
-	((GuType*)(GuType_##k_[]){GU_TYPE_INIT(k_, __VA_ARGS__)})
+//#define GU_TYPE_LIT(k_, ...)						
+//	((GuType*)(GuType_##k_[]){GU_TYPE_INIT(k_, __VA_ARGS__)})
+#define GU_TYPE_LIT(k_, ...)						\
+	((GuType*)&(GU_KIND_TYPE(k_)) GU_TYPE_INIT_##k_(k_, __VA_ARGS__))
 
 #define GU_DECLARE_TYPE(t_, k_)	\
-	GuType_##k_ GU_TYPE_IDENT(t_)
+	GU_KIND_TYPE(k_) GU_TYPE_IDENT(t_)
 
+//#define GU_DEFINE_TYPE(t_, k_, ...)					
+//	GuType_##k_ GU_TYPE_IDENT(t_) = GU_TYPE_INIT(k_, t_, __VA_ARGS__)
 #define GU_DEFINE_TYPE(t_, k_, ...)					\
-	GuType_##k_ GU_TYPE_IDENT(t_) = GU_TYPE_INIT(k_, t_, __VA_ARGS__)
+	GU_KIND_TYPE(k_) GU_TYPE_IDENT(t_) = GU_TYPE_INIT_##k_(k_, t_, __VA_ARGS__)
 
 
 //
@@ -204,6 +213,7 @@ struct GuMember {
 
 struct GuStructRepr {
 	GuType_repr repr_base;
+	const GuString* name;
 	GuSList(GuMember) members;
 };
 
@@ -237,11 +247,13 @@ extern GU_DECLARE_KIND(struct);
 
 
 #define GU_TYPE_INIT_struct(k_, t_, ...)	{		\
-		.repr_base = GU_TYPE_INIT_repr(k_, t_, _),	\
+	.repr_base = GU_TYPE_INIT_repr(k_, t_, _),		\
+	.name = gu_cstring(#t_), \
 	.members = GU_SLIST(GuMember, __VA_ARGS__)	\
 }
 
-
+bool
+gu_struct_has_flex(GuStructRepr* srepr);
 
 
 //
@@ -317,7 +329,7 @@ typedef const struct GuEnumConstant GuEnumConstant;
 
 struct GuEnumConstant {
 	const GuString* name;
-	int value;
+	int64_t value;
 	const void* enum_value;
 };
 
@@ -376,9 +388,11 @@ struct GuTypeTable {
 
 typedef GuMap GuTypeMap;
 
-GuTypeMap* gu_type_map_new(GuPool* pool, GuTypeTable* table);
+GuTypeMap*
+gu_type_map_new(GuPool* pool, GuTypeTable* table);
 
-void* gu_type_map_lookup(GuTypeMap* tmap, GuType* type);
+void*
+gu_type_map_get(GuTypeMap* tmap, GuType* type);
 
 size_t 
 gu_type_size(GuType* type);
@@ -393,16 +407,22 @@ const void*
 gu_type_dyn_cast(GuType* t, GuKind* k);
 
 #define gu_type_try_cast(type_, k_) \
-	((GuType_##k_*)gu_type_dyn_cast(type_, gu_kind(k_)))
+	((GU_KIND_TYPE(k_)*)gu_type_dyn_cast(type_, gu_kind(k_)))
 
 #ifdef GU_DEBUG
 #define gu_type_cast(type_, k_) \
-	((GuType_##k_*)gu_type_check_cast(type_, gu_kind(k_)))
+	((GU_KIND_TYPE(k_)*)gu_type_check_cast(type_, gu_kind(k_)))
 #else
 #define gu_type_cast(type_, k_) \
-	((GuType_##k_*)(type_))
+	((GU_KIND_TYPE(k_)*)(type_))
 #endif
 
+void* gu_type_malloc(GuType* type, GuPool* pool);
+
+#if 0
+void* gu_type_ptr_get(GuType* type, const void* pp);
+void gu_type_ptr_set(GuType* type, void* pp, void* p);
+#endif
 
 
 #endif // GU_TYPE_H_

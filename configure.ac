@@ -44,10 +44,6 @@ fi
 
 
 AC_CHECK_LIB(m, sin)
-PKG_CHECK_MODULES(GLIB, [glib-2.0 >= 2.22.0])
-AC_SUBST(GLIB_CFLAGS)
-AC_SUBST(GLIB_LIBS)
-
 
 dnl Doxygen support
 DX_PS_FEATURE(OFF)	

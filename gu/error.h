@@ -43,6 +43,17 @@ gu_error_raise(GuError* err, GuType* type, const void* data,
 	gu_error_raise(error_, gu_type(t_), &(t_) { __VA_ARGS__ }, \
 		       __FILE__, __func__, __LINE__)
 
+static inline bool
+gu_ok(GuError* err) {
+	return !gu_error_raised(err);
+}
+
+#define gu_return_on_error(err_, retval_)		\
+	GU_BEGIN					\
+	if (gu_error_raised(err_)) return retval_;	\
+	GU_END
+
+
 #include <stdio.h>
 
 typedef void (*GuErrorPrintFn)(GuFn* clo, void* err, FILE* out);

@@ -49,42 +49,11 @@ GU_SEQ_DEFINE(PgfLinInfers, pgf_lin_infers, PgfLinInferEntry);
 static GU_DEFINE_TYPE(PgfLinInferSeq, GuSeq, gu_type(PgfLinInferEntry));
 
 typedef GuIntMap PgfCncProds;
-static GU_DEFINE_TYPE(PgfCncProds, GuIntMap, gu_ptr_type(PgfProdSeq));
+static GU_DEFINE_TYPE(PgfCncProds, GuIntPtrMap, gu_type(PgfProdSeq));
 
 typedef GuStringMap PgfLinProds;
-static GU_DEFINE_TYPE(PgfLinProds, GuStringMap, gu_ptr_type(PgfCncProds));
+static GU_DEFINE_TYPE(PgfLinProds, GuStringPtrMap, gu_type(PgfCncProds));
 
-typedef GuMap PgfInferMap;
-static GU_DEFINE_TYPE(PgfInferMap, GuMap, gu_ptr_type(PgfFIds), gu_ptr_type(PgfLinInferEntry));
-
-typedef struct PgfLinIndex PgfLinIndex;
-
-struct PgfLinIndex {
-	PgfCncProds* prods; 
-	PgfInferMap* infer;
-};
-
-GU_DEFINE_TYPE(
-	PgfLinIndex, struct,
-	GU_MEMBER_P(PgfLinIndex, prods, PgfCncProds),
-	GU_MEMBER_P(PgfLinIndex, infer, PgfInferMap));
-
-
-typedef GuStringMap PgfFunIndices;
-static GU_DEFINE_TYPE(PgfFunIndices, GuStringMap, gu_ptr_type(PgfLinIndex));
-
-struct PgfLzr {
-	PgfPGF* pgf;
-	PgfConcr* cnc;
-	GuPool* pool;
-	PgfFunIndices* fun_indices;
-};
-
-GU_DEFINE_TYPE(
-	PgfLzr, struct,
-	GU_MEMBER_P(PgfLzr, pgf, PgfPGF),
-	GU_MEMBER_P(PgfLzr, cnc, PgfConcr),
-	GU_MEMBER_P(PgfLzr, fun_indices, PgfFunIndices));
 
 static size_t
 pgf_lzr_fids_hash_fn(GuHashFn* self, const void* p)
@@ -124,6 +93,43 @@ pgf_lzr_fids_eq_fn(GuEqFn* self, const void* p1, const void* p2)
 
 static GuEqFn
 pgf_lzr_fids_eq = { pgf_lzr_fids_eq_fn };
+
+typedef GuMap PgfInferMap;
+static GU_DEFINE_TYPE(PgfInferMap, GuPtrMap, 
+		      &pgf_lzr_fids_hash, &pgf_lzr_fids_eq,
+		      gu_type(PgfFIds), gu_type(PgfLinInferEntry));
+
+
+typedef struct PgfLinIndex PgfLinIndex;
+
+struct PgfLinIndex {
+	PgfCncProds* prods; 
+	PgfInferMap* infer;
+};
+
+GU_DEFINE_TYPE(
+	PgfLinIndex, struct,
+	GU_MEMBER_P(PgfLinIndex, prods, PgfCncProds),
+	GU_MEMBER_P(PgfLinIndex, infer, PgfInferMap));
+
+
+typedef GuStringMap PgfFunIndices;
+static GU_DEFINE_TYPE(PgfFunIndices, GuStringPtrMap, gu_type(PgfLinIndex));
+
+struct PgfLzr {
+	PgfPGF* pgf;
+	PgfConcr* cnc;
+	GuPool* pool;
+	PgfFunIndices* fun_indices;
+};
+
+GU_DEFINE_TYPE(
+	PgfLzr, struct,
+	GU_MEMBER_P(PgfLzr, pgf, PgfPGF),
+	GU_MEMBER_P(PgfLzr, cnc, PgfConcr),
+	GU_MEMBER_P(PgfLzr, fun_indices, PgfFunIndices));
+
+
 
 
 static void

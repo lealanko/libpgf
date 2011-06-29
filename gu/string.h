@@ -165,9 +165,9 @@ gu_string_data(GuString* s) {
 	return (char*) gu_string_cdata(s);
 }
 
-GuHashFn gu_string_hash;
+extern GuHashFn gu_string_hash;
 
-GuEqFn gu_string_eq;
+extern GuEqFn gu_string_eq;
 
 #include <gu/type.h>
 extern GU_DECLARE_TYPE(GuString, abstract);

@@ -1,3 +1,5 @@
+#include <gu/bits.h>
+
 #include <limits.h>
 #include <stdint.h>
 #include <stdlib.h>
@@ -19,3 +21,4 @@ unsigned gu_ceil2e(unsigned u)
 	return u;
 }
 
+GU_DEFINE_TYPE(GuIntDecodeError, abstract, _);

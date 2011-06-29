@@ -10,9 +10,11 @@ include_HEADERS = \
 	gu/choice.h \
 	gu/defs.h \
 	gu/error.h \
+	gu/fun.h \
 	gu/seq.h \
 	gu/dump.h \
 	gu/error.h \
+	gu/in.h \
 	gu/intern.h \
 	gu/list.h \
 	gu/log.h \
@@ -32,6 +34,7 @@ libgu_la_SOURCES = \
 	gu/dump.c \
 	gu/error.c \
 	gu/fun.c \
+	gu/in.c \
 	gu/intern.c \
 	gu/list.c \
 	gu/log.c \
@@ -52,13 +55,9 @@ libpgf_la_SOURCES = \
 	pgf/reader.c \
 	pgf/linearize.c
 
-libpgf_la_LIBADD = libgu.la $(GLIB_LIBS)
-libpgf_la_CFLAGS = $(GLIB_CFLAGS) $(AM_CFLAGS)
-
 bin_PROGRAMS = utils/pgf2yaml
 utils_pgf2yaml_SOURCES = utils/pgf2yaml.c
-utils_pgf2yaml_CFLAGS = $(GLIB_CFLAGS) $(AM_CFLAGS)
-utils_pgf2yaml_LDADD = libgu.la libpgf.la $(GLIB_LIBS)
+utils_pgf2yaml_LDADD = libpgf.la libgu.la 
 
 noinst_PROGRAMS = \
 	test/test_type1 \
@@ -72,8 +71,7 @@ noinst_PROGRAMS = \
 
 test_test_type1_SOURCES = test/test_type1.c
 test_test_lin1_SOURCES = test/test-lin1.c
-test_test_lin1_CFLAGS = $(GLIB_CFLAGS) $(AM_CFLAGS)
-test_test_lin1_LDADD = libgu.la $(GLIB_LIBS) libpgf.la 
+test_test_lin1_LDADD = libpgf.la libgu.la
 test_test_yaml1_SOURCES = test/test-yaml1.c
 test_test_dump1_SOURCES = test/test-dump1.c
 test_test_seq_SOURCES = test/test-seq.c

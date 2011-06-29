@@ -32,8 +32,6 @@
 
 
 enum {
-	GU_MAX_ALIGNMENT = gu_alignof(GuMaxAligned),
-
 	// Must be maximally aligned.
 	GU_MEM_UNIT_SIZE = 64,
 

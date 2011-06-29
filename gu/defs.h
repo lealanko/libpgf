@@ -81,14 +81,6 @@
 
 #define GU_NOP GU_BEGIN (void) 0; GU_END
 
-#ifdef GU_ALIGNOF_WORKS_ON_FAM_STRUCTS
-#define gu_flex_alignof gu_alignof
-#else
-#define gu_flex_alignof(t) 0
-#endif
-
-#define GU_FLEX_SIZE(type, flex_member, n_elems) \
-	(sizeof(type) + ((n_elems) * sizeof(((type *)NULL)->flex_member[0])))
 /**< @hideinitializer */
 
 //
@@ -107,6 +99,23 @@ static inline int
 gu_min(int a, int b) {
 	return GU_MIN(a, b);
 }
+
+#ifdef GU_ALIGNOF_WORKS_ON_FAM_STRUCTS
+#define gu_flex_alignof gu_alignof
+#else
+#define gu_flex_alignof(t) 0
+#endif
+
+static inline size_t
+gu_flex_size(size_t ssize, size_t offset, int n_elems, size_t e_size)
+{
+	return GU_MAX(ssize, offset + n_elems * e_size);
+}
+
+#define GU_FLEX_SIZE(type, flex_member, n_elems)			\
+	gu_flex_size(sizeof(type), offsetof(type, flex_member),		\
+		     n_elems, sizeof(((type*)NULL)->flex_member[0]))
+
 
 // The following are directly from gmacros.h in GLib
 
@@ -131,5 +140,7 @@ gu_hash_mix(unsigned h, unsigned v)
 	return h * 101 + v;
 }
 
+// Dummy struct used for generic struct pointers
+typedef struct GuStruct GuStruct;
 
 #endif // GU_DEFS_H_

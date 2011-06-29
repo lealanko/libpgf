@@ -25,11 +25,12 @@ typedef struct {
 
 static void dump_aux(GuTypeMap* map, GuType* type, void* val)
 {
-	Dumper* dper = gu_type_map_lookup(map, type);
+	Dumper* dper = gu_type_map_get(map, type);
 	dper->dump(map, type, val);
 }
 
 static void dump_int(GuTypeMap* map, GuType* type, void* p) {
+	(void) (map && type);
 	int* i = p;
 	printf("%d\n", *i);
 }

@@ -14,7 +14,7 @@ typedef struct GuMap GuMap;
 
 GuMap*
 gu_map_new_full(GuPool* pool, GuHashFn* hash_fn, GuEqFn* eq_fn, 
-		size_t key_size, size_t value_size, void* empty_value);
+		size_t key_size, size_t value_size, const void* empty_value);
 
 static inline GuMap*
 gu_map_new(GuPool* pool, GuHashFn* hash_fn, GuEqFn* eq_fn) {
@@ -94,30 +94,52 @@ typedef const struct GuMapType GuMapType, GuType_GuMap;
 
 struct GuMapType {
 	GuType_abstract abstract_base;
+	GuHashFn* hash_fn;
+	GuEqFn* eq_fn;
+	bool direct_key;
+	bool direct_value;
 	GuType* key_type;
 	GuType* value_type;
+	const void* empty_value;
 };
 
-#define GU_TYPE_INIT_GuMap(k_, t_, key_type_, value_type_) {	\
-	.abstract_base = GU_TYPE_INIT_abstract(k_, t_, _),	\
-	.key_type = key_type_, \
-	.value_type = value_type_ \
-}	
+GuMap*
+gu_map_type_make(GuMapType* mtype, GuPool* pool);
+
+#define GU_TYPE_INIT_GuMap(k_, t_, h_, eq_, dk_, kt_, dv_, vt_, ev_) {	\
+	.abstract_base = GU_TYPE_INIT_abstract(k_, t_, _),		\
+	.hash_fn = h_,					\
+	.eq_fn = eq_,					\
+	.direct_key = dk_,			\
+	.direct_value = dv_,			\
+	.key_type = kt_,			\
+	.value_type = vt_,		\
+	.empty_value = ev_ \
+}
+
+#define GuPtrMap GuMap
+#define GU_TYPE_INIT_GuPtrMap(k_, t_, h_, eq_, kt_, vt_)	\
+	GU_TYPE_INIT_GuMap(k_, t_, h_, eq_, false, kt_, false, vt_, NULL)
 
 extern GU_DECLARE_KIND(GuIntMap);
 typedef GuType_GuMap GuType_GuIntMap;
+#define GU_TYPE_INIT_GuIntMap(k_, t_, dv_, vt_, ev_)		\
+	GU_TYPE_INIT_GuMap(k_, t_, &gu_int_hash, &gu_int_eq,	\
+			   true, gu_type(int), dv_, vt_, ev_)
 
-#define GU_TYPE_INIT_GuIntMap(k_, t_, value_type_) \
-	GU_TYPE_INIT_GuMap(k_, t_, gu_type(int), value_type_)
+#define GuIntPtrMap GuIntMap
+#define GU_TYPE_INIT_GuIntPtrMap(k_, t_, vt_)	\
+	GU_TYPE_INIT_GuIntMap(k_, t_, false, vt_, NULL)
 
 extern GU_DECLARE_KIND(GuStringMap);
 typedef GuType_GuMap GuType_GuStringMap;
+#define GU_TYPE_INIT_GuStringMap(k_, t_, dv_, vt_, ev_)			\
+	GU_TYPE_INIT_GuMap(k_, t_, &gu_string_hash, &gu_string_eq,	\
+			   false, gu_type(GuString), dv_, vt_, ev_)
 
-#define GU_TYPE_INIT_GuStringMap(k_, t_, value_type_) \
-	GU_TYPE_INIT_GuMap(k_, t_, gu_type(GuString), value_type_)
-
-
-
+#define GuStringPtrMap GuStringMap
+#define GU_TYPE_INIT_GuStringPtrMap(k_, t_, vt_)	\
+	GU_TYPE_INIT_GuStringMap(k_, t_, false, vt_, NULL)
 
 
 

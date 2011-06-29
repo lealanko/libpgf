@@ -11,23 +11,27 @@
 
 int main(int argc, char* argv[]) {
 	GuPool* pool = gu_pool_new();
-	
+	int status = EXIT_SUCCESS;
 	if (argc != 3) {
 		fputs("usage: test-lin1 Grammar.pgf lang\n", stderr);
-		return EXIT_FAILURE;
+		status = EXIT_FAILURE;
+		goto fail;
 	}
 	char* filename = argv[1];
 	char* lang = argv[2];
-	FILE* in = fopen(filename, "r");
-	if (in == NULL) {
+	FILE* infile = fopen(filename, "r");
+	if (infile == NULL) {
 		fprintf(stderr, "couldn't open %s\n", filename);
-		return EXIT_FAILURE;
+		status = EXIT_FAILURE;
+		goto fail;
 	}
-	GError* err = NULL;
-	PgfPGF* pgf = pgf_read(in, &err);
-	if (err != NULL) {
-		g_printerr("Reading PGF failed: %s\n", err->message);
-		goto fail_read;
+	GuError* err = gu_error_new(pool);
+	GuIn* in = gu_in_file(pool, infile);
+	PgfPGF* pgf = pgf_read(in, pool, err);
+	if (!gu_ok(err)) {
+		fprintf(stderr, "Reading PGF failed\n");
+		status = EXIT_FAILURE;
+		goto fail;
 	}
 
 	PgfCId* lang_s = gu_string_new_c(pool, lang);
@@ -72,10 +76,8 @@ int main(int argc, char* argv[]) {
 			fflush(stdout);
 		}
 	}
-	return 0;
-fail_write:
-	pgf_free(pgf);
-fail_read:
-	return 1;
+fail:
+	gu_pool_free(pool);
+	return status;
 }
 

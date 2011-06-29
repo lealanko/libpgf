@@ -23,7 +23,7 @@ struct GuMap {
 	GuMapField keys;
 	GuMapField values;
 
-	void* empty_value;
+	const void* empty_value;
 };
 
 static const uint64_t gu_map_empty_key = UINT64_C(0xdeadc0defee15bad);
@@ -159,7 +159,7 @@ gu_map_resize(GuMap* map)
 	map->n_occupied = 0;
 
 	for (int i = 0; i < map->n_entries; i++) {
-		gu_map_field_set(&map->values, i, map->empty_value);
+		gu_map_field_set(&map->values, i, (void*) map->empty_value);
 		if (map->keys.size) {
 			void* key = gu_map_field_get(&map->keys, i);
 			memcpy(key, &gu_map_empty_key, 
@@ -233,7 +233,7 @@ gu_map_iter(GuMap* map, GuMapIterFn* fn)
 
 GuMap*
 gu_map_new_full(GuPool* pool, GuHashFn* hash_fn, GuEqFn* eq_fn, 
-		size_t key_size, size_t value_size, void* empty_value)
+		size_t key_size, size_t value_size, const void* empty_value)
 {
 	GuMap* map = gu_new_s(
 		pool, GuMap,
@@ -260,6 +260,17 @@ gu_map_new_full(GuPool* pool, GuHashFn* hash_fn, GuEqFn* eq_fn,
 	gu_pool_finally(pool, &clo->fn);
 	gu_map_resize(map);
 	return map;
+}
+
+GuMap*
+gu_map_type_make(GuMapType* mtype, GuPool* pool)
+{
+	size_t ksize =
+		mtype->direct_key ? gu_type_size(mtype->key_type) : 0;
+	size_t vsize =
+		mtype->direct_value ? gu_type_size(mtype->value_type) : 0;
+	return gu_map_new_full(pool, mtype->hash_fn, mtype->eq_fn,
+			       ksize, vsize, mtype->empty_value);
 }
 
 GU_DEFINE_KIND(GuMap, abstract);

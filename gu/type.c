@@ -61,7 +61,8 @@ bool gu_type_has_kind(GuType* type, GuKind* kind)
 }
 
 
-static void gu_type_map_init(GuTypeMap* tmap, GuTypeTable* table) 
+static void
+gu_type_map_init(GuTypeMap* tmap, GuTypeTable* table) 
 {
 	for (int i = 0; i < table->parents.len; i++) {
 		gu_type_map_init(tmap, table->parents.elems[i]);
@@ -72,14 +73,27 @@ static void gu_type_map_init(GuTypeMap* tmap, GuTypeTable* table)
 	}
 }
 
-GuTypeMap* gu_type_map_new(GuPool* pool, GuTypeTable* table)
+GuTypeMap*
+gu_type_map_new(GuPool* pool, GuTypeTable* table)
 {
 	GuTypeMap* tmap = gu_map_new(pool, NULL, NULL);
 	gu_type_map_init(tmap, table);
 	return tmap;
 }
 
-void* gu_type_map_lookup(GuTypeMap* tmap, GuType* type)
+bool
+gu_struct_has_flex(GuStructRepr* srepr)
+{
+	for (int i = 0; i < srepr->members.len; i++) {
+		if (srepr->members.elems[i].is_flex) {
+			return true;
+		}
+	}
+	return false;
+}
+
+void*
+gu_type_map_get(GuTypeMap* tmap, GuType* type)
 {
 	GuKind* kind = (GuKind*)type;
 	while (kind != NULL) {
@@ -152,3 +166,40 @@ gu_enum_value(GuEnumType* etype, const void* enump)
 
 	return NULL;
 }
+
+void*
+gu_type_malloc(GuType* type, GuPool* pool)
+{
+	GuTypeRepr* repr = gu_type_repr(type);
+	gu_assert(repr);
+	return gu_malloc_aligned(pool, repr->size, repr->align);
+}
+
+#if 0
+
+typedef const struct GuPtrConvFns GuPtrConvFns;
+
+struct GuPtrConvFns {
+	void* (*get)(const void* pp);
+	void (*set)(void** pp, void* p);
+};
+
+#define GU_TYPE_PTR_DEFINE_GETSET(name_, t_)				\
+	static void* gu_type_##name_##_ptr_get(const void* pp) {	\
+		return *(t_* const*) pp;				\
+	}								\
+									\
+	static void gu_type_##name_##_ptr_set(void* pp, void* p) {	\
+		*(t_**) pp = p;						\
+	}								\
+	static GuPtrConvFns gu_ptr_conv_##name_ = {			\
+		.get = gu_type_##name_##_ptr_get,			\
+		.set = gu_type_##name_##_ptr_set			\
+	}
+
+GU_TYPE_PTR_DEFINE_GETSET(void, void);
+GU_TYPE_PTR_DEFINE_GETSET(struct, GuStruct);
+GU_TYPE_PTR_DEFINE_GETSET(int, int);
+
+
+#endif

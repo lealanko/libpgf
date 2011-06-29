@@ -21,8 +21,8 @@ GU_DEFINE_TYPE(
 
 typedef GuIntMap Dict;
 
-GU_DEFINE_TYPE(Dict, GuIntMap, 
-	       GU_TYPE_LIT(shared, GuString*,
+GU_DEFINE_TYPE(Dict, GuIntPtrMap, 
+	       GU_TYPE_LIT(referenced, GuString,
 			   gu_type(GuString)));
 
 typedef struct {
@@ -106,11 +106,6 @@ int main(void)
 
 	TreeTag tag = BRANCH;
 	gu_dump(gu_type(TreeTag), &tag, ctx);
-
-
-	void* branch_as_p = gu_variant_to_ptr(branch);
-	GuType* vp = GU_TYPE_LIT(GuVariantAsPtr, gu_type(Tree));
-	gu_dump(vp, &branch_as_p, ctx);
 
 	gu_pool_free(pool);
 	return 0;

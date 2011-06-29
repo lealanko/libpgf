@@ -94,7 +94,7 @@ gu_variant_intval(GuVariant variant)
 	return (variant.p / GU_VARIANT_ALIGNMENT);
 }
 
-GuVariant gu_variant_null = { (uintptr_t) NULL };
+const GuVariant gu_variant_null = { (uintptr_t) NULL };
 
 GU_DEFINE_KIND(GuVariant, repr);
 GU_DEFINE_KIND(GuVariantAsPtr, repr);

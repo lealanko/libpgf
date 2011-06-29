@@ -35,19 +35,20 @@
 	}
 
 void* gu_list_alloc(GuPool* pool, size_t base_size, size_t elem_size, 
-		    int n_elems, size_t alignment, ptrdiff_t len_offset);
+		    int n_elems, size_t alignment);
 
 #define gu_list_new(t, pool, n)						\
 	((t*) gu_list_alloc(pool,					\
 			    sizeof(t),					\
 			    sizeof(((t*)NULL)->elems[0]),		\
 			    (n),					\
-			    gu_flex_alignof(t),				\
-			    offsetof(t, len)))
+			    gu_flex_alignof(t)))
 
-
-#define gu_list_length(lst) \
-	((lst)->len)
+static inline int
+gu_list_length(const void* list)
+{
+	return *(const int*) list;
+}
 
 #define gu_list_elems(lst) \
 	((lst)->elems)
@@ -101,18 +102,27 @@ typedef const struct GuListType GuListType, GuType_GuList;
 
 struct GuListType {
 	GuType_abstract abstract_base;
+	size_t size;
+	size_t align;
 	GuType* elem_type;
 	ptrdiff_t elems_offset;
 };
 
 #define GU_TYPE_INIT_GuList(k_, t_, elem_type_) {	\
 	.abstract_base = GU_TYPE_INIT_abstract(k_, t_, _),	\
+	.size = sizeof(t_), \
+	.align = gu_alignof(t_),		\
 	.elem_type = elem_type_,	\
 	.elems_offset = offsetof(t_, elems)	\
 }
 
 extern GU_DECLARE_KIND(GuList);
 
+void*
+gu_list_type_alloc(GuListType* ltype, int n_elems, GuPool* pool);
+
+void*
+gu_list_type_index(GuListType* ltype, void* list, int i);
 
 #include <gu/string.h>
 
