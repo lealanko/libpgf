@@ -66,7 +66,8 @@ noinst_PROGRAMS = \
 	test/test-yaml1 \
 	test/test-dump1 \
 	test/test-seq \
-	test/test-prime
+	test/test-prime \
+	test/test-ieee754
 
 
 test_test_type1_SOURCES = test/test_type1.c
@@ -77,6 +78,7 @@ test_test_dump1_SOURCES = test/test-dump1.c
 test_test_seq_SOURCES = test/test-seq.c
 test_test_hash_SOURCES = test/test-hash.c
 test_test_prime_SOURCES = test/test-prime.c
+test_test_ieee754_SOURCES = test/test-ieee754.c
 
 
 

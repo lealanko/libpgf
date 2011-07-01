@@ -193,14 +193,19 @@ GU_DEFINE_TYPE(
 	PgfFunDecl, struct, 
 	GU_MEMBER_P(PgfFunDecl, type, PgfType),
 	GU_MEMBER(PgfFunDecl, arity, int),
-	GU_MEMBER(PgfFunDecl, defns, PgfEquationsM));
+	GU_MEMBER(PgfFunDecl, defns, PgfEquationsM),
+	GU_MEMBER(PgfFunDecl, prob, double));
 
+GU_DEFINE_TYPE(
+	PgfCatFun, struct,
+	GU_MEMBER(PgfCatFun, prob, double),
+	GU_MEMBER_P(PgfCatFun, fun, GuString));
 
 GU_DEFINE_TYPE(
 	PgfCat, struct, 
 	GU_MEMBER_V(PgfCat, context, gu_ptr_type(PgfHypos)),
 	GU_MEMBER(PgfCat, n_functions, GuLength),
-	GU_FLEX_MEMBER_P(PgfCat, functions, GuString));
+	GU_FLEX_MEMBER(PgfCat, functions, PgfCatFun));
 
 
 GU_DEFINE_TYPE(

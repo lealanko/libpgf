@@ -104,6 +104,9 @@ gu_decode_2c64(uint64_t u, GuError* err)
 			     INT64_C(0x7fffffffffffffff), INT64_MIN, err);
 }
 
+double
+gu_decode_double(uint64_t u);
+
 
 
 #endif // GU_BITS_H_

@@ -48,49 +48,28 @@ GU_DECLARE_TYPE(PgfFId, int);
 GU_DECLARE_TYPE(PgfFIds, GuList);
 
 typedef int PgfLength;
-
 typedef struct GuVariant PgfSymbol;
 typedef struct PgfAlternative PgfAlternative;
-
 typedef struct PgfCncFun PgfCncFun;
-
 typedef GuList(PgfSymbol) PgfSequence;
-
-
-
-// Reference to PGF.
 typedef PgfCncFun** PgfFunId; // key to PgfCncFuns
 extern GU_DECLARE_TYPE(PgfFunId, reference);
-
 typedef GuList(PgfCncFun*) PgfCncFuns; 
 extern GU_DECLARE_TYPE(PgfCncFuns, GuList);
-
 typedef GuList(PgfFunId) PgfFunIds; 
-
 typedef int PgfId; // second key to PgfConcr.lproductions
-
 typedef GuMap PgfCIdMap; // PgfCId -> ?
 typedef PgfCIdMap PgfFlags; // PgfCId -> PgfLiteral
-
 typedef GuVariant PgfExpr;
-
 typedef struct PgfHypo PgfHypo;
-
-
 typedef struct PgfType PgfType;
 extern GU_DECLARE_TYPE(PgfType, struct);
-
-
 typedef GuVariant PgfProduction;
-
 typedef GuList(PgfProduction) PgfProductions;
-			  
+typedef struct PgfCatFun PgfCatFun;
 typedef struct PgfCncCat PgfCncCat;
-
 typedef GuVariant PgfPatt;
-
 typedef GuString PgfToken;			      
-
 typedef GuStrings PgfTokens;
 
 typedef enum {
@@ -167,12 +146,18 @@ struct PgfFunDecl {
 	PgfType* type;
 	int arity; // Only for computational defs?
 	PgfEquationsM defns; // maybe null
+	double prob;
+};
+
+struct PgfCatFun {
+	double prob;
+	PgfCId* fun;
 };
 
 struct PgfCat {
 	PgfHypos* context;
 	int n_functions;
-	PgfCId* functions[]; // XXX: resolve to PgfFunDecl*?
+	PgfCatFun functions[]; // XXX: resolve to PgfFunDecl*?
 };
 
 struct PgfCncCat {

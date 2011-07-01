@@ -134,16 +134,17 @@ gu_in_s64be(GuIn* in, GuError* err)
 	return gu_decode_2c64(gu_in_u64be(in, err), err);
 }
 
-
 double
-gu_in_double(GuIn* in, GuError* err)
+gu_in_f64le(GuIn* in, GuError* err)
 {
-	(void) (in && err);
-	gu_impossible(); // TODO
-	return NAN;
+	return gu_decode_double(gu_in_u64le(in, err));
 }
 
-
+double
+gu_in_f64be(GuIn* in, GuError* err)
+{
+	return gu_decode_double(gu_in_u64le(in, err));
+}
 
 
 typedef struct GuInFile GuInFile;

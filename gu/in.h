@@ -62,7 +62,10 @@ int64_t
 gu_in_s64be(GuIn* in, GuError* err);
 
 double
-gu_in_double(GuIn* in, GuError* err);
+gu_in_f64le(GuIn* in, GuError* err);
+
+double
+gu_in_f64be(GuIn* in, GuError* err);
 
 
 

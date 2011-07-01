@@ -365,7 +365,7 @@ static void
 pgf_read_to_double(GuType* type, PgfReader* rdr, void* to)
 {
 	(void) type;
-	*(double*) to = gu_in_double(rdr->in, rdr->err);
+	*(double*) to = gu_in_f64be(rdr->in, rdr->err);
 }
 
 static void
