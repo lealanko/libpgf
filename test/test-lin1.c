@@ -71,8 +71,12 @@ int main(int argc, char* argv[]) {
 			if (gu_variant_is_null(form)) {
 				break;
 			}
-			pgf_lzr_linearize_to_file(lzr, form, 0, stdout);
-			fputc('\n', stdout);
+			int n = pgf_lin_form_n_fields(form, lzr);
+			for (int i = 0; i < n; i++) {
+				pgf_lzr_linearize_to_file(lzr, form, i, stdout);
+				fputc('\n', stdout);
+			}
+			fputs(".\n", stdout);
 			fflush(stdout);
 		}
 	}
