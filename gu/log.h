@@ -19,7 +19,8 @@ void
 gu_log_full_v(GuLogKind kind, const char* func, const char* file, int line,
 	      const char* fmt, va_list args);
 
-#ifdef GU_LOG_ENABLE
+
+#ifndef NDEBUG
 
 #define gu_logv(kind_, fmt_, args_)					\
 	gu_log_full_v(kind_, __func__, __FILE__, __LINE__, fmt_, args_)
@@ -43,7 +44,6 @@ gu_log(GuLogKind kind, const char* fmt, ...)
 	(void) kind;
 	(void) fmt;
 }
-
 
 #endif
 
