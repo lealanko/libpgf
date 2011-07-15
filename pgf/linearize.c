@@ -449,6 +449,7 @@ pgf_lzn_next_form(PgfLzn* lzn, GuPool* pool)
 	if (c_id != PGF_FID_INVALID) {
 		PgfFId c_id2 = pgf_lzn_infer(lzn, lzn->expr, pool, &form);
 		gu_assert(c_id == c_id2);
+		gu_debug("c_id: %d", c_id);
 		gu_choice_reset(lzn->ch, mark);
 		if (!gu_choice_advance(lzn->ch)) {
 			lzn->expr = gu_variant_null;
@@ -458,7 +459,24 @@ pgf_lzn_next_form(PgfLzn* lzn, GuPool* pool)
 }
 
 
-
+int
+pgf_lin_form_n_fields(PgfLinForm form, PgfLzr* lzr)
+{
+	GuVariantInfo formi = gu_variant_open(form);
+	switch (formi.tag) {
+	case PGF_LIN_FORM_LIT: 
+		return 1;
+	case PGF_LIN_FORM_APP: {
+		PgfLinFormApp* fapp = formi.data;
+		PgfCncFun* fun =
+			gu_list_elems(lzr->cnc->cncfuns)[fapp->fun_id];
+		return fun->n_lins;
+	}
+	default:
+		gu_impossible();
+		return 0;
+	}
+}
 
 void
 pgf_lzr_linearize(PgfLzr* lzr, PgfLinForm form, int lin_idx, PgfLinFuncs** fnsp)
@@ -468,6 +486,7 @@ pgf_lzr_linearize(PgfLzr* lzr, PgfLinForm form, int lin_idx, PgfLinFuncs** fnsp)
 
 	switch (formi.tag) {
 	case PGF_LIN_FORM_LIT: {
+		gu_require(lin_idx == 0);
 		PgfLinFormLit* flit = formi.data;
 		if (fns->expr_literal) {
 			fns->expr_literal(fnsp, flit->lit);
@@ -483,8 +502,7 @@ pgf_lzr_linearize(PgfLzr* lzr, PgfLinForm form, int lin_idx, PgfLinFuncs** fnsp)
 		if (fns->expr_apply) {
 			fns->expr_apply(fnsp, fun->fun, fapp->n_args);
 		}
-		// XXX: validate instead of assert
-		gu_assert(lin_idx < fun->n_lins); 
+		gu_require(lin_idx < fun->n_lins); 
 		PgfSequence* seq = *(fun->lins[lin_idx]);
 		int nsyms = gu_list_length(seq);
 		PgfSymbol* syms = gu_list_elems(seq);
