@@ -289,7 +289,6 @@ pgf_lzn_infer_apply_try(PgfLzn* lzn, PgfApplication* appl,
 		 GU_STRING_FMT_ARGS(appl->fun), *ip, n_args);
 	PgfFId ret = PGF_FID_INVALID;
 	while (*ip < n_args) {
-		marks[*ip] = gu_choice_mark(lzn->ch);
 		PgfLinForm* arg_treep = 
 			(app_out == NULL ? NULL : &app_out->args[*ip]);
 		PgfFId arg_i = 
@@ -299,30 +298,24 @@ pgf_lzn_infer_apply_try(PgfLzn* lzn, PgfApplication* appl,
 		}
 		arg_i = pgf_lzn_pick_supercat(lzn, arg_i);
 		gu_list_elems(arg_fids)[*ip] = arg_i;
-		++*ip;
+		marks[++*ip] = gu_choice_mark(lzn->ch);
 	}
-	marks[*ip] = gu_choice_mark(lzn->ch);
 	PgfLinInfers* entries = gu_map_get(infer, arg_fids);
 	if (entries == NULL) {
-		--*ip;
 		goto finish;
 	}
 	int n_entries = pgf_lin_infers_size(entries);
-	//do {
 	int e = gu_choice_next(lzn->ch, n_entries);
 	gu_debug("entry %d of %d", e, n_entries);
-		if (e >= 0) {
-			PgfLinInferEntry* entry = 
-				pgf_lin_infers_index(entries, e);
-			if (app_out != NULL) {
-				app_out->fun_id = entry->fun_id;
-			}
-			ret = entry->cat_id;
-			goto finish;
-		}
-		//gu_choice_reset(lzn->ch, marks[*ip]);
-	//} while (gu_choice_advance(lzn->ch));
-	--*ip;
+	if (e < 0) {
+		goto finish;
+	}
+	PgfLinInferEntry* entry = 
+		pgf_lin_infers_index(entries, e);
+	if (app_out != NULL) {
+		app_out->fun_id = entry->fun_id;
+	}
+	ret = entry->cat_id;
 finish:
 	gu_exit("fid: %d", ret);
 	return ret;
@@ -344,10 +337,6 @@ pgf_lzn_infer_application(PgfLzn* lzn, PgfApplication* appl,
 	int n = appl->n_args;
 	PgfFIds* arg_fids = gu_list_new(PgfFIds, tmp_pool, n);
 
-	// GuChoiceMark marks[n];
-	PgfChoiceMarks* marksl = gu_list_new(PgfChoiceMarks, tmp_pool, n + 1);
-	GuChoiceMark* marks = gu_list_elems(marksl);
-	
 	PgfLinFormApp* appt = NULL;
 	if (form_out) {
 		appt = gu_variant_flex_new(pool, PGF_LIN_FORM_APP, PgfLinFormApp, 
@@ -355,7 +344,10 @@ pgf_lzn_infer_application(PgfLzn* lzn, PgfApplication* appl,
 		appt->n_args = n;
 	}
 
+	PgfChoiceMarks* marksl = gu_list_new(PgfChoiceMarks, tmp_pool, n + 1);
+	GuChoiceMark* marks = gu_list_elems(marksl);
 	int i = 0;
+	marks[i] = gu_choice_mark(lzn->ch);
 	while (true) {
 		ret = pgf_lzn_infer_apply_try(lzn, appl, infer,
 					      marks, arg_fids,
@@ -363,22 +355,16 @@ pgf_lzn_infer_application(PgfLzn* lzn, PgfApplication* appl,
 		if (ret != PGF_FID_INVALID) {
 			break;
 		}
-		break; // XXX
-		while (true) {
-			gu_choice_reset(lzn->ch, marks[i]);
-			if (!gu_choice_advance(lzn->ch)) {
-				if (i == 0) {
-					goto finish;
-				} else {
-					i--;
-				}
-			} else {
-				break;
+
+		do {
+			--i;
+			if (i < 0) {
+				goto finish;
 			}
-		}
+			gu_choice_reset(lzn->ch, marks[i]);
+		} while (!gu_choice_advance(lzn->ch));
 	}
 finish:
-	
 	gu_pool_free(tmp_pool);
 	gu_exit("fid: %d", ret);
 	return ret;
