@@ -16,7 +16,7 @@ gu_choice_next(GuChoice* ch, int n_choices);
 GuChoiceMark
 gu_choice_mark(GuChoice* ch);
 
-bool
+void
 gu_choice_reset(GuChoice* ch, GuChoiceMark mark);
 
 bool

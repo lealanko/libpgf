@@ -1,6 +1,7 @@
 #include <gu/choice.h>
 #include <gu/seq.h>
 #include <gu/assert.h>
+#include <gu/log.h>
 
 struct GuChoice {
 	GuByteSeq* path;
@@ -20,20 +21,18 @@ GuChoiceMark
 gu_choice_mark(GuChoice* ch)
 {
 	gu_assert(ch->path_idx <= gu_byte_seq_size(ch->path));
+	gu_debug("%p@%d: mark", ch, ch->path_idx);
 	return (GuChoiceMark){ch->path_idx};
 }
 
-bool
+void
 gu_choice_reset(GuChoice* ch, GuChoiceMark mark)
 {
 	gu_assert(ch->path_idx <= gu_byte_seq_size(ch->path));
 	gu_assert(mark.path_idx >= 0);
-	if (mark.path_idx <= ch->path_idx) {
-		ch->path_idx = mark.path_idx;
-		return true;
-	} else {
-		return false;
-	}
+	gu_debug("%p@%d: reset %d", ch, ch->path_idx, mark.path_idx);
+	gu_require(mark.path_idx <= ch->path_idx );
+	ch->path_idx = mark.path_idx;
 }
 
 int
@@ -52,8 +51,10 @@ gu_choice_next(GuChoice* ch, int n_choices)
 		gu_byte_seq_push(ch->path, n_choices);
 		i = n_choices;
 	}
+	int ret = (i == 0) ? -1 : n_choices - i;
+	gu_debug("%p@%d: %d", ch, ch->path_idx, ret);
 	ch->path_idx++;
-	return (i == 0) ? -1 : n_choices - i;
+	return ret;
 }
 
 bool
