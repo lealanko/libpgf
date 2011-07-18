@@ -42,11 +42,11 @@ void
 gu_log_full_v(GuLogKind kind, const char* func, const char* file, int line,
 	      const char* fmt, va_list args)
 {
-	(void) (kind);
+	(void) (kind && line);
 	if (!gu_log_enabled(func) && !gu_log_enabled(file)) {
 		return;
 	}
-	fprintf(stderr, "%s:%d: ", file, line);
+	fprintf(stderr, "%-24s: ", func);
 	vfprintf(stderr, fmt, args);
 	fputc('\n', stderr);
 	fflush(stderr);
