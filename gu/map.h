@@ -82,8 +82,15 @@ GU_DECLARE_DUMMY
 
 GU_MAP_DEFINE(GuStringMap, gu_stringmap, R, GuString, R, void, NULL,
 	      &gu_string_hash, &gu_string_eq);
-GU_MAP_DEFINE(GuIntMap, gu_intmap, V, int, R, void, NULL,
-	      &gu_int_hash, &gu_int_eq);
+
+#define GU_INTMAP_DEFINE(t_, pfx, VM, v_, empty_v_) \
+	GU_MAP_DEFINE(t_, pfx, V, int, VM, v_, empty_v_, \
+		      &gu_int_hash, &gu_int_eq);
+
+#define GU_INTPTRMAP_DEFINE(t_, pfx, v_) \
+	GU_INTMAP_DEFINE(t_, pfx, R, v_, NULL)
+
+GU_INTPTRMAP_DEFINE(GuIntMap, gu_intmap, void);
 
 
 #include <gu/type.h>
