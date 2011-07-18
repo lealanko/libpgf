@@ -99,35 +99,29 @@ static GU_DEFINE_TYPE(PgfInferMap, GuPtrMap,
 		      &pgf_lzr_fids_hash, &pgf_lzr_fids_eq,
 		      gu_type(PgfFIds), gu_type(PgfLinInferEntry));
 
-
-typedef struct PgfLinIndex PgfLinIndex;
-
-struct PgfLinIndex {
-	PgfCncProds* prods; 
-	PgfInferMap* infer;
-};
-
-GU_DEFINE_TYPE(
-	PgfLinIndex, struct,
-	GU_MEMBER_P(PgfLinIndex, prods, PgfCncProds),
-	GU_MEMBER_P(PgfLinIndex, infer, PgfInferMap));
-
-
 typedef GuStringMap PgfFunIndices;
-static GU_DEFINE_TYPE(PgfFunIndices, GuStringPtrMap, gu_type(PgfLinIndex));
+static GU_DEFINE_TYPE(PgfFunIndices, GuStringPtrMap, gu_type(PgfInferMap));
+
+GU_SEQ_DEFINE(PgfFIdSeq, pgf_fid_seq, PgfFId);
+static GU_DEFINE_TYPE(PgfFIdSeq, GuSeq, gu_type(PgfFId));
+
+GU_INTPTRMAP_DEFINE(PgfCoerceIdx, pgf_coerce_idx, PgfFIdSeq);
+static GU_DEFINE_TYPE(PgfCoerceIdx, GuIntPtrMap, gu_type(PgfFIdSeq));
 
 struct PgfLzr {
 	PgfPGF* pgf;
 	PgfConcr* cnc;
 	GuPool* pool;
 	PgfFunIndices* fun_indices;
+	PgfCoerceIdx* coerce_idx;
 };
 
 GU_DEFINE_TYPE(
 	PgfLzr, struct,
 	GU_MEMBER_P(PgfLzr, pgf, PgfPGF),
 	GU_MEMBER_P(PgfLzr, cnc, PgfConcr),
-	GU_MEMBER_P(PgfLzr, fun_indices, PgfFunIndices));
+	GU_MEMBER_P(PgfLzr, fun_indices, PgfFunIndices),
+	GU_MEMBER_P(PgfLzr, coerce_idx, PgfCoerceIdx));
 
 
 
@@ -152,6 +146,7 @@ pgf_lzr_add_infer_entry(PgfLzr* lzr,
 		gu_map_set(infer_table, arg_fids, entries);
 	} else {
 		// XXX: arg_fids is duplicate, we ought to free it
+		// Display warning?
 	}
 
 	PgfLinInferEntry entry = {
@@ -164,60 +159,39 @@ pgf_lzr_add_infer_entry(PgfLzr* lzr,
 			
 
 static void
-pgf_lzr_add_linprods_entry(PgfLzr* lzr,
-			   PgfCncProds* linprods,
-			   PgfFId fid,
-			   PgfProduction prod)
+pgf_lzr_index(PgfLzr* lzr, PgfFId fid, PgfProduction prod)
 {
-	PgfProdSeq* prods = gu_intmap_get(linprods, fid); 
-	if (prods == NULL) {
-		prods = pgf_prod_seq_new(lzr->pool);
-		gu_intmap_set(linprods, fid, prods);
-	}
-	pgf_prod_seq_push(prods, prod);
-}
-
-
-static void
-pgf_lzr_index(PgfLzr* lzr, PgfFId fid,
-	      PgfProduction prod, PgfProduction from)
-{
-	void* data = gu_variant_data(from);
-	switch (gu_variant_tag(from)) {
+	void* data = gu_variant_data(prod);
+	switch (gu_variant_tag(prod)) {
 	case PGF_PRODUCTION_APPLY: {
 		PgfProductionApply* papply = data;
-		PgfLinIndex* idx =
-			gu_stringmap_get(lzr->fun_indices, papply->fun[0]->fun);
-		if (idx == NULL) {
-			idx = gu_new(lzr->pool, PgfLinIndex);
-			idx->prods = gu_intmap_new(lzr->pool);
-			idx->infer = gu_map_new(lzr->pool,
-						&pgf_lzr_fids_hash,
-						&pgf_lzr_fids_eq);
+		PgfInferMap* infer =
+			gu_stringmap_get(lzr->fun_indices, (*papply->fun)->fun);
+		if (infer == NULL) {
+			infer = gu_map_new(lzr->pool,
+					   &pgf_lzr_fids_hash,
+					   &pgf_lzr_fids_eq);
 			gu_stringmap_set(lzr->fun_indices,
-					 papply->fun[0]->fun, idx);
+					 (*papply->fun)->fun, infer);
 		}
-
-		pgf_lzr_add_linprods_entry(lzr, idx->prods, fid, prod);
-		// XXX: we are duplicating the same entries for
-		// all C -> _C, TODO: add a reverse _C -> C index
-		pgf_lzr_add_infer_entry(lzr, idx->infer, fid, papply);
-		return;
+		pgf_lzr_add_infer_entry(lzr, infer, fid, papply);
+		break;
 	}
 	case PGF_PRODUCTION_COERCE: {
 		PgfProductionCoerce* pcoerce = data;
-		PgfProductions* c_prods = gu_intmap_get(lzr->cnc->productions,
-							pcoerce->coerce);
-		if (c_prods == NULL) {
-			return;
+		PgfFIdSeq* fids = pgf_coerce_idx_get(lzr->coerce_idx,
+						     pcoerce->coerce);
+		if (fids == NULL) {
+			fids = pgf_fid_seq_new(lzr->pool);
+			pgf_coerce_idx_set(lzr->coerce_idx, 
+					   pcoerce->coerce, fids);
 		}
-		for (int i = 0; i < c_prods->len; i++) {
-			pgf_lzr_index(lzr, fid, prod, c_prods->elems[i]);
-		}
-		return;
+		pgf_fid_seq_push(fids, fid);
+		break;
 	}
 	default:
-		return;
+		// Display warning?
+		break;
 	}
 }
 
@@ -236,7 +210,7 @@ pgf_lzr_create_index_cb(GuMapIterFn* fn, const void* key, void* value)
 
 	for (int i = 0; i < prods->len; i++) {
 		PgfProduction prod = prods->elems[i];
-		pgf_lzr_index(clo->lzr, *fid, prod, prod);
+		pgf_lzr_index(clo->lzr, *fid, prod);
 	}
 }
 
@@ -251,6 +225,7 @@ pgf_lzr_new(GuPool* pool, PgfPGF* pgf, PgfConcr* cnc)
 	lzr->cnc = cnc;
 	lzr->pool = pool;
 	lzr->fun_indices = gu_stringmap_new(pool);
+	lzr->coerce_idx = pgf_coerce_idx_new(pool);
 	PgfLzrCreateIndexFn clo = { { pgf_lzr_create_index_cb }, lzr };
 	gu_map_iter((GuMap*)cnc->productions, &clo.fn);
 	// TODO: prune productions with zero linearizations
@@ -285,12 +260,28 @@ struct PgfLinFormLit {
 };
 
 
+static PgfFId 
+pgf_lzn_pick_supercat(PgfLzn* lzn, PgfFId fid)
+{
+	while (true) {
+		PgfFIdSeq* supers = pgf_coerce_idx_get(lzn->lzr->coerce_idx, fid);
+		if (supers == NULL) {
+			return fid;
+		}
+		int ch = gu_choice_next(lzn->ch, pgf_fid_seq_size(supers) + 1);
+		if (ch == 0) {
+			return fid;
+		}
+		fid = *pgf_fid_seq_index(supers, ch - 1);
+	}
+}
+
 static PgfFId
 pgf_lzn_infer(PgfLzn* lzn, PgfExpr expr, GuPool* pool, PgfLinForm* form_out);
 
 static PgfFId
 pgf_lzn_infer_apply_try(PgfLzn* lzn, PgfApplication* appl,
-			PgfLinIndex* idx, GuChoiceMark* marks,
+			PgfInferMap* infer, GuChoiceMark* marks,
 			PgfFIds* arg_fids, int* ip, int n_args, 
 			GuPool* pool, PgfLinFormApp* app_out)
 {
@@ -306,11 +297,12 @@ pgf_lzn_infer_apply_try(PgfLzn* lzn, PgfApplication* appl,
 		if (arg_i == PGF_FID_INVALID) {
 			goto finish;
 		}
+		arg_i = pgf_lzn_pick_supercat(lzn, arg_i);
 		gu_list_elems(arg_fids)[*ip] = arg_i;
 		++*ip;
 	}
 	marks[*ip] = gu_choice_mark(lzn->ch);
-	PgfLinInfers* entries = gu_map_get(idx->infer, arg_fids);
+	PgfLinInfers* entries = gu_map_get(infer, arg_fids);
 	if (entries == NULL) {
 		--*ip;
 		goto finish;
@@ -341,10 +333,10 @@ static PgfFId
 pgf_lzn_infer_application(PgfLzn* lzn, PgfApplication* appl, 
 			  GuPool* pool, PgfLinForm* form_out)
 {
-	PgfLinIndex* idx = gu_stringmap_get(lzn->lzr->fun_indices, appl->fun);
+	PgfInferMap* infer = gu_stringmap_get(lzn->lzr->fun_indices, appl->fun);
 	gu_enter("f: " GU_STRING_FMT ", n_args: %d",
 		 GU_STRING_FMT_ARGS(appl->fun), appl->n_args);
-	if (idx == NULL) {
+	if (infer == NULL) {
 		return PGF_FID_INVALID;
 	}
 	GuPool* tmp_pool = gu_pool_new();
@@ -365,7 +357,7 @@ pgf_lzn_infer_application(PgfLzn* lzn, PgfApplication* appl,
 
 	int i = 0;
 	while (true) {
-		ret = pgf_lzn_infer_apply_try(lzn, appl, idx,
+		ret = pgf_lzn_infer_apply_try(lzn, appl, infer,
 					      marks, arg_fids,
 					      &i, n, pool, appt);
 		if (ret != PGF_FID_INVALID) {
@@ -386,6 +378,7 @@ pgf_lzn_infer_application(PgfLzn* lzn, PgfApplication* appl,
 		}
 	}
 finish:
+	
 	gu_pool_free(tmp_pool);
 	gu_exit("fid: %d", ret);
 	return ret;
