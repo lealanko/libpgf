@@ -51,7 +51,7 @@ void
 pgf_lzr_linearize(PgfLzr* lzr, PgfLinForm form, int lin_idx, PgfLinFuncs** fnsp);
 
 int
-pgf_lin_form_n_fields(PgfLinForm form, PgfLzr* lzr);
+pgf_lin_form_n_fields(PgfLinForm form);
 
 void
 pgf_lzr_linearize_to_file(PgfLzr* lzr, PgfLinForm form, int lin_idx, 

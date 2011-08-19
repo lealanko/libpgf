@@ -37,13 +37,14 @@ typedef struct PgfLinInferEntry PgfLinInferEntry;
 
 struct PgfLinInferEntry {
 	PgfFId cat_id;
-	PgfFId fun_id;
+	PgfCncFun* fun;
 };
 
 static GU_DEFINE_TYPE(
 	PgfLinInferEntry, struct,
-	GU_MEMBER(PgfLinInferEntry, cat_id, PgfFId),
-	GU_MEMBER(PgfLinInferEntry, fun_id, PgfFId));
+	GU_MEMBER(PgfLinInferEntry, cat_id, PgfFId)
+	// ,GU_MEMBER(PgfLinInferEntry, fun, ...)
+	);
 
 GU_SEQ_DEFINE(PgfLinInfers, pgf_lin_infers, PgfLinInferEntry);
 static GU_DEFINE_TYPE(PgfLinInferSeq, GuSeq, gu_type(PgfLinInferEntry));
@@ -151,8 +152,7 @@ pgf_lzr_add_infer_entry(PgfLzr* lzr,
 
 	PgfLinInferEntry entry = {
 		.cat_id = fid,
-		// XXX: just store the raw id in productions
-		.fun_id = papply->fun - gu_list_elems(lzr->cnc->cncfuns),
+		.fun = *papply->fun
 	};
 	pgf_lin_infers_push(entries, entry);
 }
@@ -249,7 +249,7 @@ typedef enum {
 
 typedef struct PgfLinFormApp PgfLinFormApp;
 struct PgfLinFormApp {
-	PgfFId fun_id;
+	PgfCncFun* fun;
 	GuLength n_args;
 	PgfLinForm args[];
 };
@@ -313,7 +313,7 @@ pgf_lzn_infer_apply_try(PgfLzn* lzn, PgfApplication* appl,
 	PgfLinInferEntry* entry = 
 		pgf_lin_infers_index(entries, e);
 	if (app_out != NULL) {
-		app_out->fun_id = entry->fun_id;
+		app_out->fun = entry->fun;
 	}
 	ret = entry->cat_id;
 finish:
@@ -439,7 +439,7 @@ pgf_lzn_next_form(PgfLzn* lzn, GuPool* pool)
 
 
 int
-pgf_lin_form_n_fields(PgfLinForm form, PgfLzr* lzr)
+pgf_lin_form_n_fields(PgfLinForm form)
 {
 	GuVariantInfo formi = gu_variant_open(form);
 	switch (formi.tag) {
@@ -447,9 +447,7 @@ pgf_lin_form_n_fields(PgfLinForm form, PgfLzr* lzr)
 		return 1;
 	case PGF_LIN_FORM_APP: {
 		PgfLinFormApp* fapp = formi.data;
-		PgfCncFun* fun =
-			gu_list_elems(lzr->cnc->cncfuns)[fapp->fun_id];
-		return fun->n_lins;
+		return fapp->fun->n_lins;
 	}
 	default:
 		gu_impossible();
@@ -474,14 +472,11 @@ pgf_lzr_linearize(PgfLzr* lzr, PgfLinForm form, int lin_idx, PgfLinFuncs** fnsp)
 	}
 	case PGF_LIN_FORM_APP: {
 		PgfLinFormApp* fapp = formi.data;
-		// XXX: validate instead of assert
-		gu_assert(fapp->fun_id < gu_list_length(lzr->cnc->cncfuns));
-		PgfCncFun* fun =
-			gu_list_elems(lzr->cnc->cncfuns)[fapp->fun_id];
+		PgfCncFun* fun = fapp->fun;
 		if (fns->expr_apply) {
 			fns->expr_apply(fnsp, fun->fun, fapp->n_args);
 		}
-		gu_require(lin_idx < fun->n_lins); 
+		gu_require(lin_idx < fun->n_lins);
 		PgfSequence* seq = *(fun->lins[lin_idx]);
 		int nsyms = gu_list_length(seq);
 		PgfSymbol* syms = gu_list_elems(seq);

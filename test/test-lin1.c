@@ -71,7 +71,7 @@ int main(int argc, char* argv[]) {
 			if (gu_variant_is_null(form)) {
 				break;
 			}
-			int n = pgf_lin_form_n_fields(form, lzr);
+			int n = pgf_lin_form_n_fields(form);
 			for (int i = 0; i < n; i++) {
 				pgf_lzr_linearize_to_file(lzr, form, i, stdout);
 				fputc('\n', stdout);
