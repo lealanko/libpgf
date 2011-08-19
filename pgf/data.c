@@ -119,8 +119,7 @@ GU_DEFINE_TYPE(
 GU_DEFINE_TYPE(PgfCncFuns, GuList, 
 	       GU_TYPE_LIT(referenced, _, gu_ptr_type(PgfCncFun)));
 
-GU_DEFINE_TYPE(PgfFunId, reference,
-	       gu_ptr_type(PgfCncFun));
+GU_DEFINE_TYPE(PgfFunId, reference, gu_type(PgfCncFun));
 
 GU_DEFINE_TYPE(PgfFunIds, GuList, gu_type(PgfFunId));
 

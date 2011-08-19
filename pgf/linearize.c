@@ -152,7 +152,7 @@ pgf_lzr_add_infer_entry(PgfLzr* lzr,
 
 	PgfLinInferEntry entry = {
 		.cat_id = fid,
-		.fun = *papply->fun
+		.fun = papply->fun
 	};
 	pgf_lin_infers_push(entries, entry);
 }
@@ -166,13 +166,13 @@ pgf_lzr_index(PgfLzr* lzr, PgfFId fid, PgfProduction prod)
 	case PGF_PRODUCTION_APPLY: {
 		PgfProductionApply* papply = data;
 		PgfInferMap* infer =
-			gu_stringmap_get(lzr->fun_indices, (*papply->fun)->fun);
+			gu_stringmap_get(lzr->fun_indices, papply->fun->fun);
 		if (infer == NULL) {
 			infer = gu_map_new(lzr->pool,
 					   &pgf_lzr_fids_hash,
 					   &pgf_lzr_fids_eq);
 			gu_stringmap_set(lzr->fun_indices,
-					 (*papply->fun)->fun, infer);
+					 papply->fun->fun, infer);
 		}
 		pgf_lzr_add_infer_entry(lzr, infer, fid, papply);
 		break;

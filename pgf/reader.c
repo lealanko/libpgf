@@ -533,7 +533,7 @@ pgf_read_to_PgfFunId(GuType* type, PgfReader* rdr, void* to)
 		gu_raise(rdr->err, PgfReadError,);
 		return;
 	}
-	*(PgfFunId*) to = &gu_list_elems(rdr->curr_cncfuns)[id];
+	*(PgfFunId*) to = gu_list_elems(rdr->curr_cncfuns)[id];
 }
 
 #define PGF_READ_TO_FN(k_, fn_)					\

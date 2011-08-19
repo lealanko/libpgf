@@ -39,7 +39,7 @@ enum {
 	PGF_FID_INT = -2,
 	PGF_FID_FLOAT = -3,
 	PGF_FID_VAR = -4,
-	PGF_FID_INVALID = -999
+	PGF_FID_INVALID = -5
 };
 
 typedef GuList(PgfFId) PgfFIds;
@@ -52,7 +52,7 @@ typedef struct GuVariant PgfSymbol;
 typedef struct PgfAlternative PgfAlternative;
 typedef struct PgfCncFun PgfCncFun;
 typedef GuList(PgfSymbol) PgfSequence;
-typedef PgfCncFun** PgfFunId; // key to PgfCncFuns
+typedef PgfCncFun* PgfFunId; // key to PgfCncFuns
 extern GU_DECLARE_TYPE(PgfFunId, reference);
 typedef GuList(PgfCncFun*) PgfCncFuns; 
 extern GU_DECLARE_TYPE(PgfCncFuns, GuList);
@@ -271,7 +271,9 @@ GU_DECLARE_TYPE(PgfPArgs, GuList);
 
 typedef struct {
 	PgfFunId fun; 
-	int n_args;
+	/* n_args is ultimately redundant since it can be recovered from
+	   the type of the function */
+	int n_args; 	
 	PgfPArg* args[]; // XXX: Remove indirection once PArg is fixed-length
 } PgfProductionApply;
 
