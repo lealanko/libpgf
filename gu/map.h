@@ -111,7 +111,7 @@ struct GuMapType {
 };
 
 GuMap*
-gu_map_type_make(GuMapType* mtype, GuPool* pool);
+gu_map_new_from_type(GuMapType* mtype, GuPool* pool);
 
 #define GU_TYPE_INIT_GuMap(k_, t_, h_, eq_, dk_, kt_, dv_, vt_, ev_) {	\
 	.abstract_base = GU_TYPE_INIT_abstract(k_, t_, _),		\

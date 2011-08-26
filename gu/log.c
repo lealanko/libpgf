@@ -1,9 +1,12 @@
+#include <gu/defs.h>
 #include <gu/log.h>
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
 #include <string.h>
+
+static int gu_log_depth = 0;
 
 static bool
 gu_log_match(const char* pat, size_t patlen, const char* str)
@@ -46,10 +49,17 @@ gu_log_full_v(GuLogKind kind, const char* func, const char* file, int line,
 	if (!gu_log_enabled(func) && !gu_log_enabled(file)) {
 		return;
 	}
-	fprintf(stderr, "%-24s: ", func);
+	if (kind == GU_LOG_KIND_EXIT) {
+		gu_log_depth--;
+	}
+	int indent = gu_min(32 + gu_log_depth, 48);
+	fprintf(stderr, "%-*s: ", indent, func);
 	vfprintf(stderr, fmt, args);
 	fputc('\n', stderr);
 	fflush(stderr);
+	if (kind == GU_LOG_KIND_ENTER) {
+		gu_log_depth++;
+	}
 }
 
 void

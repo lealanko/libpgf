@@ -263,7 +263,7 @@ gu_map_new_full(GuPool* pool, GuHashFn* hash_fn, GuEqFn* eq_fn,
 }
 
 GuMap*
-gu_map_type_make(GuMapType* mtype, GuPool* pool)
+gu_map_new_from_type(GuMapType* mtype, GuPool* pool)
 {
 	size_t ksize =
 		mtype->direct_key ? gu_type_size(mtype->key_type) : 0;

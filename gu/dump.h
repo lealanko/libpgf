@@ -24,6 +24,9 @@ gu_dump_ctx_new(GuPool* pool, FILE* out, GuTypeTable* dumpers);
 void
 gu_dump(GuType* type, const void* value, GuDumpCtx* ctx);
 
+void
+gu_dump_stderr(GuType* type, const void* value);
+
 extern GuTypeTable
 gu_dump_table;
 

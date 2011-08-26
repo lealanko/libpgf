@@ -29,6 +29,17 @@ gu_dump(GuType* type, const void* value, GuDumpCtx* ctx)
 	(*dumper)(dumper, type, value, ctx);
 }
 
+void
+gu_dump_stderr(GuType* type, const void* value)
+{
+	GuPool* pool = gu_pool_new();
+	GuDumpCtx* ctx = gu_dump_ctx_new(pool, stderr, NULL);
+	gu_dump(type, value, ctx);
+	gu_pool_free(pool);
+}
+
+
+
 static void 
 gu_dump_int(GuDumpFn* dumper, GuType* type, const void* p, 
 	    GuDumpCtx* ctx)
@@ -237,10 +248,15 @@ gu_dump_shared(GuDumpFn* dumper, GuType* type, const void* p,
 {
 	(void) dumper;
 	void* const* pp = p;
-	bool created = gu_dump_anchor(ctx, *pp);
-	if (created) {
-		GuPointerType* ptype = (GuPointerType*) type;
-		gu_dump(ptype->pointed_type, *pp, ctx);
+	if (*pp == NULL) {
+		gu_yaml_tag_secondary(ctx->yaml, gu_cstring("null"));
+		gu_yaml_scalar(ctx->yaml, gu_string_empty);
+	} else {
+		bool created = gu_dump_anchor(ctx, *pp);
+		if (created) {
+			GuPointerType* ptype = (GuPointerType*) type;
+			gu_dump(ptype->pointed_type, *pp, ctx);
+		}
 	}
 }
 

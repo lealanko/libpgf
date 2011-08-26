@@ -25,27 +25,23 @@
 #include <gu/string.h>
 #include <gu/map.h>
 #include <gu/type.h>
+#include <gu/seq.h>
 #include <pgf/pgf.h>
 
 typedef const GuString PgfCId;
 
+typedef struct PgfCCat PgfCCat;
+typedef PgfCCat* PgfCCatId;
+extern GU_DECLARE_TYPE(PgfCCat, struct);
+extern GU_DECLARE_TYPE(PgfCCatId, shared);
+typedef GuList(PgfCCatId) PgfCCatIds;
+extern GU_DECLARE_TYPE(PgfCCatIds, GuList);
+GU_SEQ_DEFINE(PgfCCatSeq, pgf_ccat_seq, PgfCCatId);
+extern GU_DECLARE_TYPE(PgfCCatSeq, GuSeq);
+
 typedef struct PgfAbstr PgfAbstr;
 typedef struct PgfFunDecl PgfFunDecl;
 typedef struct PgfConcr PgfConcr;
-
-typedef int PgfFId;
-enum {
-	PGF_FID_STRING = -1,
-	PGF_FID_INT = -2,
-	PGF_FID_FLOAT = -3,
-	PGF_FID_VAR = -4,
-	PGF_FID_INVALID = -5
-};
-
-typedef GuList(PgfFId) PgfFIds;
-
-GU_DECLARE_TYPE(PgfFId, int);
-GU_DECLARE_TYPE(PgfFIds, GuList);
 
 typedef int PgfLength;
 typedef struct GuVariant PgfSymbol;
@@ -53,21 +49,24 @@ typedef struct PgfAlternative PgfAlternative;
 typedef struct PgfCncFun PgfCncFun;
 typedef GuList(PgfSymbol) PgfSequence;
 typedef PgfCncFun* PgfFunId; // key to PgfCncFuns
-extern GU_DECLARE_TYPE(PgfFunId, reference);
+extern GU_DECLARE_TYPE(PgfFunId, shared);
 typedef GuList(PgfCncFun*) PgfCncFuns; 
 extern GU_DECLARE_TYPE(PgfCncFuns, GuList);
 typedef GuList(PgfFunId) PgfFunIds; 
-typedef int PgfId; // second key to PgfConcr.lproductions
+extern GU_DECLARE_TYPE(PgfFunIds, GuList);
 typedef GuMap PgfCIdMap; // PgfCId -> ?
 typedef PgfCIdMap PgfFlags; // PgfCId -> PgfLiteral
+extern GU_DECLARE_TYPE(PgfFlags, GuMap);
 typedef GuVariant PgfExpr;
 typedef struct PgfHypo PgfHypo;
 typedef struct PgfType PgfType;
 extern GU_DECLARE_TYPE(PgfType, struct);
 typedef GuVariant PgfProduction;
 typedef GuList(PgfProduction) PgfProductions;
+extern GU_DECLARE_TYPE(PgfProductions, GuList);
 typedef struct PgfCatFun PgfCatFun;
 typedef struct PgfCncCat PgfCncCat;
+extern GU_DECLARE_TYPE(PgfCncCat, struct);
 typedef GuVariant PgfPatt;
 typedef GuString PgfToken;			      
 typedef GuStrings PgfTokens;
@@ -114,8 +113,9 @@ typedef GuList(PgfCId*) PgfCIds;
 
 typedef struct PgfCat PgfCat;
 
-typedef PgfSequence** PgfSeqId;
-extern GU_DECLARE_TYPE(PgfSeqId, reference);
+typedef PgfSequence* PgfSeqId;
+
+extern GU_DECLARE_TYPE(PgfSeqId, shared);
 
 typedef GuList(PgfSequence*) PgfSequences;
 
@@ -160,13 +160,13 @@ struct PgfCat {
 	PgfCatFun functions[]; // XXX: resolve to PgfFunDecl*?
 };
 
-struct PgfCncCat {
-	PgfFId first;
-	PgfFId last;
-	/**< The range of FIds that this concrete category covers. */
 
-	int n_labels; 
-	GuString* labels[];
+struct PgfCncCat {
+	PgfCId* cid;
+	PgfCCatIds* cats;
+	PgfFunIds* lindefs;
+
+	GuStrings* labels;
 	/**< Labels for tuples. All nested tuples, records and tables
 	 * in the GF linearization types are flattened into a single
 	 * tuple in the corresponding PGF concrete category. This
@@ -190,24 +190,25 @@ struct PgfAlternative {
 	 * form. */
 };
 
+struct PgfCCat {
+	PgfCncCat* cnccat;
+	PgfProductions* prods;
+	int fid;
+};
 
+extern PgfCCat pgf_ccat_string, pgf_ccat_int, pgf_ccat_float, pgf_ccat_var;
+
+typedef GuStringMap PgfPrintNames;
+extern GU_DECLARE_TYPE(PgfPrintNames, GuStringMap);
 
 struct PgfConcr {
 	PgfFlags* cflags;
-	PgfCIdMap* printnames; // GString
-	PgfSequences* sequences;
-	PgfCncFuns* cncfuns;
-	GuIntMap* productions; // |-> PgfProductions*
-	GuIntMap* lindefs; // |-> PgfFunIds*
-	// Derived from productions
-	GuIntMap* pproductions;
-	PgfCIdMap* lproductions;
-
+	PgfPrintNames* printnames;
 	PgfCIdMap* cnccats;
-	int totalcats;
+	PgfCCatSeq* extra_ccats;
 };
 
-GU_DECLARE_TYPE(PgfConcr, struct);
+extern GU_DECLARE_TYPE(PgfConcr, struct);
 
 typedef enum {
 	PGF_SYMBOL_CAT,
@@ -258,23 +259,19 @@ typedef enum {
 typedef struct PgfPArg PgfPArg;
 
 struct PgfPArg {
-	PgfFId fid; // XXX: resolve to PgfProductions*?
-	int n_hypos;
-	PgfFId hypos[]; // XXX: Change to GuList(PgfFId) since usually empty
+	PgfCCatId ccat;
+	PgfCCatIds* hypos;
 };
 
 GU_DECLARE_TYPE(PgfPArg, struct);
 
-typedef GuList(PgfPArg*) PgfPArgs;
+typedef GuList(PgfPArg) PgfPArgs;
 
 GU_DECLARE_TYPE(PgfPArgs, GuList);
 
 typedef struct {
 	PgfFunId fun; 
-	/* n_args is ultimately redundant since it can be recovered from
-	   the type of the function */
-	int n_args; 	
-	PgfPArg* args[]; // XXX: Remove indirection once PArg is fixed-length
+	PgfPArgs* args;
 } PgfProductionApply;
 
 typedef struct PgfProductionCoerce
@@ -282,7 +279,7 @@ typedef struct PgfProductionCoerce
  * another FId. This allows common subsets of productions to be
  * shared. */
 {
-	PgfFId coerce; // XXX: resolve to PgfProductions*?
+	PgfCCatId coerce;
 } PgfProductionCoerce;
 
 typedef struct {
@@ -320,8 +317,8 @@ typedef struct {
 	double val;
 } PgfLiteralFlt;
 
-PgfFId
-pgf_literal_fid(PgfLiteral lit);
+PgfCCatId
+pgf_literal_cat(PgfLiteral lit);
 
 // PgfPatt
 

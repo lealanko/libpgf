@@ -236,6 +236,9 @@ extern GU_DECLARE_KIND(struct);
 #define GU_MEMBER_P(s_, m_, t_) \
 	GU_MEMBER_V(s_, m_, gu_ptr_type(t_))
 
+#define GU_MEMBER_S(s_, m_, t_) \
+	GU_MEMBER_V(s_, m_, gu_shared_ptr_type(t_))
+
 #define GU_FLEX_MEMBER_V(struct_, member_, type_) \
 	GU_MEMBER_AUX_(struct_, member_, type_, true)
 
@@ -277,6 +280,8 @@ typedef GuType_pointer GuType_shared;
 
 extern GU_DECLARE_KIND(shared);
 
+#define gu_shared_ptr_type(t_) \
+	GU_TYPE_LIT(shared, t_*, gu_type(t_))
 
 //
 // primitives

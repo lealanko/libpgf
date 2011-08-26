@@ -53,6 +53,9 @@ gu_list_length(const void* list)
 #define gu_list_elems(lst) \
 	((lst)->elems)
 
+#define gu_list_index(lst, i) \
+	(gu_list_elems(lst)[i])
+
 typedef GuList(void*) GuPointers; 
 typedef GuList(uint8_t) GuBytes;
 
