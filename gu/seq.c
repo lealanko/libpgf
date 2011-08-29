@@ -8,13 +8,11 @@ struct GuSeq {
 	int buf_size;
 	int n_elems;
 	int head_idx;
-	size_t elem_size;
 };
 
 static void
 gu_seq_assert_invariant(GuSeq* seq)
 {
-	gu_assert(seq->elem_size > 0);
 	gu_assert(seq->head_idx <= seq->buf_size);
 	gu_assert(seq->n_elems <= seq->buf_size);
 }
@@ -28,18 +26,24 @@ gu_seq_free_fn(GuFn* fnp)
 }
 
 GuSeq* 
-gu_seq_new(GuPool* pool, size_t elem_size)
+gu_seq_new(GuPool* pool)
 {
-	gu_assert(elem_size > 0);
 	GuSeq* seq = gu_new(pool, GuSeq);
 	seq->n_elems = 0;
 	seq->buf = NULL;
 	seq->buf_size = 0;
-	seq->elem_size = elem_size;
 	seq->head_idx = 0;
 	GuClo1* clo = gu_new_s(pool, GuClo1, gu_seq_free_fn, seq);
 	gu_pool_finally(pool, &clo->fn);
 	gu_seq_assert_invariant(seq);
+	return seq;
+}
+
+GuSeq* 
+gu_seq_new_fixed(int size, GuPool* pool)
+{
+	GuSeq* seq = gu_seq_new(pool);
+	gu_seq_resize_tail(seq, size);
 	return seq;
 }
 
@@ -68,7 +72,7 @@ gu_seq_index(GuSeq* seq, int idx)
 	}
 	gu_assert(0 <= idx && idx < seq->n_elems);
 	int buf_idx = gu_seq_buf_index(seq, idx);
-	return &seq->buf[buf_idx * seq->elem_size];
+	return &seq->buf[buf_idx];
 }
 
 void
@@ -77,18 +81,17 @@ gu_seq_resize_tail(GuSeq* seq, int change)
 	gu_assert(change >= -seq->n_elems);
 	int new_n_elems = seq->n_elems + change;
 	if (new_n_elems > seq->buf_size) {
-		size_t esz = seq->elem_size;
 		int head_rev_idx = seq->buf_size - seq->head_idx;
 		size_t allocation;
 		uint8_t* new_buf = gu_mem_buf_realloc(seq->buf, 
-						      new_n_elems * esz,
+						      new_n_elems,
 						      &allocation);
 		gu_assert(new_buf != NULL);
-		int new_buf_size = allocation / esz;
+		int new_buf_size = allocation;
 		int new_head_idx = new_buf_size - head_rev_idx;
-		memmove(&new_buf[new_head_idx * esz], 
-			&new_buf[seq->head_idx * esz], 
-			head_rev_idx * esz);
+		memmove(&new_buf[new_head_idx], 
+			&new_buf[seq->head_idx], 
+			head_rev_idx);
 		seq->buf = new_buf;	
 		seq->buf_size = new_buf_size;
 		seq->head_idx = new_head_idx;

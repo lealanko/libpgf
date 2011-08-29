@@ -59,7 +59,7 @@ GU_DEFINE_TYPE(PgfType, struct,
 
 GU_DEFINE_TYPE(PgfCCat, struct,
 	       GU_MEMBER_S(PgfCCat, cnccat, PgfCncCat),
-	       GU_MEMBER_P(PgfCCat, prods, PgfProductions));
+	       GU_MEMBER_P(PgfCCat, prods, PgfProductionSeq));
 
 GU_DEFINE_TYPE(PgfCCatId, shared, gu_type(PgfCCat));
 
@@ -152,6 +152,7 @@ GU_DEFINE_TYPE(
 		GU_MEMBER_P(PgfProductionConst, toks, GuString)));
 
 GU_DEFINE_TYPE(PgfProductions, GuList, gu_type(PgfProduction));
+GU_DEFINE_TYPE(PgfProductionSeq, GuSeq, gu_type(PgfProduction));
 
 GU_DEFINE_TYPE(
 	PgfPatt, GuVariant, 

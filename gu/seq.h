@@ -6,7 +6,10 @@
 typedef struct GuSeq GuSeq;
 
 GuSeq*
-gu_seq_new(GuPool* pool, size_t elem_size);
+gu_seq_new(GuPool* pool);
+
+GuSeq*
+gu_seq_new_fixed(int size, GuPool* pool);
 
 int
 gu_seq_size(const GuSeq* seq);
@@ -20,77 +23,85 @@ gu_seq_resize_head(GuSeq* seq, int change);
 void
 gu_seq_resize_tail(GuSeq* seq, int change);
 
-#define GU_SEQ_DEFINE(t_, pfx_, elem_t_)			\
-								\
-	typedef struct t_ t_;					\
-								\
-	static inline t_*					\
-	pfx_##_new(GuPool* pool)				\
-	{							\
-		t_* d_ = (t_*) gu_seq_new(pool, sizeof(elem_t_));	\
-		return d_;					\
-	}							\
-								\
-	static inline int					\
-	pfx_##_size(const t_* d_)				\
-	{							\
-		return gu_seq_size((const GuSeq*) d_);		\
-	}							\
-								\
-	static inline elem_t_*					\
-	pfx_##_index(t_* d_, int idx)				\
-	{							\
-		return gu_seq_index((GuSeq*) d_, idx);		\
-	}							\
-								\
-	static inline elem_t_					\
-	pfx_##_get(t_* d_, int idx)				\
-	{							\
-		return *pfx_##_index(d_, idx);			\
-	}							\
-								\
-	static inline void					\
-	pfx_##_set(t_* d_, int idx, elem_t_ v_)			\
-	{							\
-		*pfx_##_index(d_, idx) = v_;			\
-	}							\
-								\
-	static inline const elem_t_*				\
-	pfx_##_cindex(const t_* d_, int idx)			\
-	{							\
-		return gu_seq_index((GuSeq*) d_, idx);		\
-	}							\
-								\
-	static inline void					\
-	pfx_##_push(t_* d_, elem_t_ elem)			\
-	{							\
-		gu_seq_resize_tail((GuSeq*) d_, 1);		\
-		*pfx_##_index(d_, -1) = elem;			\
-	}							\
-								\
-	static inline elem_t_					\
-	pfx_##_pop(t_* d_)					\
-	{							\
-		elem_t_ ret = *pfx_##_index(d_, -1);		\
-		gu_seq_resize_tail((GuSeq*) d_, -1);		\
-		return ret;					\
-	}							\
-								\
-	static inline void					\
-	pfx_##_unshift(t_* d_, elem_t_ elem)			\
-	{							\
-		gu_seq_resize_head((GuSeq*) d_, 1);		\
-		*pfx_##_index(d_, 0) = elem;			\
-	}							\
-								\
-	static inline elem_t_					\
-	pfx_##_shift(t_* d_)					\
-	{							\
-		elem_t_ ret = *pfx_##_index(d_, 0);		\
-		gu_seq_resize_head((GuSeq*) d_, -1);		\
-		return ret;					\
-	}							\
-								\
+#define GU_SEQ_DEFINE(t_, pfx_, elem_t_)				\
+									\
+	typedef struct t_ t_;						\
+									\
+	static inline t_*						\
+	pfx_##_new(GuPool* pool)					\
+	{								\
+		t_* d_ = (t_*) gu_seq_new(pool);			\
+		return d_;						\
+	}								\
+									\
+	static inline t_*						\
+	pfx_##_new_fixed(int size, GuPool* pool)			\
+	{								\
+		t_* d_ = (t_*) gu_seq_new_fixed(size * sizeof(elem_t_), \
+						pool);			\
+		return d_;						\
+	}								\
+									\
+	static inline int						\
+	pfx_##_size(const t_* d_)					\
+	{								\
+		return gu_seq_size((const GuSeq*) d_) / sizeof(elem_t_); \
+	}								\
+									\
+	static inline elem_t_*						\
+	pfx_##_index(t_* d_, int idx)					\
+	{								\
+		return gu_seq_index((GuSeq*) d_, idx * sizeof(elem_t_)); \
+	}								\
+									\
+	static inline const elem_t_*					\
+	pfx_##_cindex(const t_* d_, int idx)				\
+	{								\
+		return pfx_##_index((t_*) d_, idx);			\
+	}								\
+									\
+	static inline elem_t_						\
+	pfx_##_get(const t_* d_, int idx)				\
+	{								\
+		return *pfx_##_cindex(d_, idx);				\
+	}								\
+									\
+	static inline void						\
+	pfx_##_set(t_* d_, int idx, elem_t_ v_)				\
+	{								\
+		*pfx_##_index(d_, idx) = v_;				\
+	}								\
+									\
+	static inline void						\
+	pfx_##_push(t_* d_, elem_t_ elem)				\
+	{								\
+		gu_seq_resize_tail((GuSeq*) d_, sizeof(elem_t_));	\
+		*pfx_##_index(d_, -1) = elem;				\
+	}								\
+									\
+	static inline elem_t_						\
+	pfx_##_pop(t_* d_)						\
+	{								\
+		elem_t_ ret = *pfx_##_index(d_, -1);			\
+		gu_seq_resize_tail((GuSeq*) d_, -(int)sizeof(elem_t_));	\
+		return ret;						\
+	}								\
+									\
+	static inline void						\
+	pfx_##_unshift(t_* d_, elem_t_ elem)				\
+	{								\
+		gu_seq_resize_head((GuSeq*) d_, sizeof(elem_t_));	\
+		*pfx_##_index(d_, 0) = elem;				\
+	}								\
+									\
+	static inline elem_t_						\
+	pfx_##_shift(t_* d_)						\
+	{								\
+		elem_t_ ret = pfx_##_get(d_, 0);			\
+		gu_seq_resize_head((GuSeq*) d_, -(int)sizeof(elem_t_));	\
+		return ret;						\
+	}								\
+									\
 	GU_DECLARE_DUMMY
 
 

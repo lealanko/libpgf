@@ -208,9 +208,9 @@ static void
 pgf_lzr_index_ccat(PgfLzr* lzr, PgfCCat* cat)
 {
 	gu_debug("ccat: %d", cat->fid);
-	int n_prods = gu_list_length(cat->prods);
+	int n_prods = pgf_production_seq_size(cat->prods);
 	for (int i = 0; i < n_prods; i++) {
-		PgfProduction prod = gu_list_index(cat->prods, i);
+		PgfProduction prod = pgf_production_seq_get(cat->prods, i);
 		pgf_lzr_index(lzr, cat, prod);
 	}
 }

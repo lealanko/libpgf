@@ -64,6 +64,9 @@ extern GU_DECLARE_TYPE(PgfType, struct);
 typedef GuVariant PgfProduction;
 typedef GuList(PgfProduction) PgfProductions;
 extern GU_DECLARE_TYPE(PgfProductions, GuList);
+GU_SEQ_DEFINE(PgfProductionSeq, pgf_production_seq, PgfProduction);
+extern GU_DECLARE_TYPE(PgfProductionSeq, GuSeq);
+
 typedef struct PgfCatFun PgfCatFun;
 typedef struct PgfCncCat PgfCncCat;
 extern GU_DECLARE_TYPE(PgfCncCat, struct);
@@ -155,6 +158,7 @@ struct PgfCatFun {
 };
 
 struct PgfCat {
+	// TODO: Add cid here
 	PgfHypos* context;
 	int n_functions;
 	PgfCatFun functions[]; // XXX: resolve to PgfFunDecl*?
@@ -192,7 +196,7 @@ struct PgfAlternative {
 
 struct PgfCCat {
 	PgfCncCat* cnccat;
-	PgfProductions* prods;
+	PgfProductionSeq* prods;
 	int fid;
 };
 
