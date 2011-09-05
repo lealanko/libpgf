@@ -122,13 +122,13 @@ typedef const struct GuConstructor GuConstructor;
 
 struct GuConstructor {
 	int c_tag;
-	const GuString* c_name;
+	const char* c_name;
 	const GuType* type;
 };
 
 #define GU_CONSTRUCTOR_V(ctag, c_type) {		\
 		.c_tag = ctag,	 \
-		.c_name = gu_cstring(#ctag), \
+		.c_name = #ctag, \
 		.type = c_type \
 }
 

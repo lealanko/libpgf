@@ -3,6 +3,7 @@
 #include <gu/variant.h>
 #include <gu/seq.h>
 #include <gu/assert.h>
+#include <gu/str.h>
 
 GuDumpCtx*
 gu_dump_ctx_new(GuPool* pool, FILE* out, GuTypeTable* dumpers) {
@@ -23,7 +24,7 @@ gu_dump(GuType* type, const void* value, GuDumpCtx* ctx)
 {
 	GuDumpFn* dumper = gu_type_map_get(ctx->dumpers, type);
 	if (ctx->print_address) {
-		GuString* str = gu_string_format(ctx->pool, "%p", value);
+		char* str = gu_asprintf(ctx->pool, "%p", value);
 		gu_yaml_comment(ctx->yaml, str);
 	}
 	(*dumper)(dumper, type, value, ctx);
@@ -47,7 +48,7 @@ gu_dump_int(GuDumpFn* dumper, GuType* type, const void* p,
 	(void) dumper;
 	(void) type;
 	const int* ip = p;
-	GuString* str = gu_string_format(ctx->pool, "%d", *ip);
+	char* str = gu_asprintf(ctx->pool, "%d", *ip);
 	gu_yaml_scalar(ctx->yaml, str);
 }
 
@@ -58,7 +59,7 @@ gu_dump_uint16(GuDumpFn* dumper, GuType* type, const void* p,
 	(void) dumper;
 	(void) type;
 	const uint16_t* ip = p;
-	GuString* str = gu_string_format(ctx->pool, "%" PRIu16, *ip);
+	char* str = gu_asprintf(ctx->pool, "%" PRIu16, *ip);
 	gu_yaml_scalar(ctx->yaml, str);
 }
 
@@ -71,7 +72,7 @@ gu_dump_double(GuDumpFn* dumper, GuType* type, const void* p,
 	(void) dumper;
 	(void) type;
 	const double* dp = p;
-	GuString* str = gu_string_format(ctx->pool, "%lf", *dp);
+	char* str = gu_asprintf(ctx->pool, "%lf", *dp);
 	gu_yaml_scalar(ctx->yaml, str);
 }
 
@@ -84,7 +85,7 @@ gu_dump_length(GuDumpFn* dumper, GuType* type, const void* p,
 	(void) dumper;
 	(void) type;
 	const GuLength* ip = p;
-	GuString* str = gu_string_format(ctx->pool, "%d", *ip);
+	char* str = gu_asprintf(ctx->pool, "%d", *ip);
 	gu_yaml_scalar(ctx->yaml, str);
 	GuLength* lenp = gu_map_get(ctx->data, gu_atom(gu_dump_length_key));
 	if (lenp != NULL) {
@@ -99,7 +100,22 @@ gu_dump_string(GuDumpFn* dumper, GuType* type, const void* p,
 	(void) dumper;
 	(void) type;
 	const GuString* s = p;
-	gu_yaml_scalar(ctx->yaml, s);
+	int len = gu_string_length(s);
+	char buf[len + 1];
+	const char* str = gu_string_cdata(s);
+	memcpy(buf, str, len);
+	buf[len] = '\0';
+	gu_yaml_scalar(ctx->yaml, buf);
+}
+
+static void 
+gu_dump_str(GuDumpFn* dumper, GuType* type, const void* p, 
+	    GuDumpCtx* ctx)
+{
+	(void) dumper;
+	(void) type;
+	const GuStr* sp = p;
+	gu_yaml_scalar(ctx->yaml, *sp);
 }
 
 
@@ -112,8 +128,8 @@ gu_dump_pointer(GuDumpFn* dumper, GuType* type, const void* p,
 	GuPointerType* ptype = (GuPointerType*) type;
 	void* const* pp = p;
 	if (*pp == NULL) {
-		gu_yaml_tag_secondary(ctx->yaml, gu_cstring("null"));
-		gu_yaml_scalar(ctx->yaml, gu_string_empty);
+		gu_yaml_tag_secondary(ctx->yaml, "null");
+		gu_yaml_scalar(ctx->yaml, NULL);
 	} else {
 		gu_dump(ptype->pointed_type, *pp, ctx);
 	}
@@ -249,8 +265,8 @@ gu_dump_shared(GuDumpFn* dumper, GuType* type, const void* p,
 	(void) dumper;
 	void* const* pp = p;
 	if (*pp == NULL) {
-		gu_yaml_tag_secondary(ctx->yaml, gu_cstring("null"));
-		gu_yaml_scalar(ctx->yaml, gu_string_empty);
+		gu_yaml_tag_secondary(ctx->yaml, "null");
+		gu_yaml_scalar(ctx->yaml, NULL);
 	} else {
 		bool created = gu_dump_anchor(ctx, *pp);
 		if (created) {
@@ -335,6 +351,7 @@ gu_dump_table = GU_TYPETABLE(
 	{ gu_kind(int), gu_fn(gu_dump_int) },
 	{ gu_kind(uint16_t), gu_fn(gu_dump_uint16) },
 	{ gu_kind(GuString), gu_fn(gu_dump_string) },
+	{ gu_kind(GuStr), gu_fn(gu_dump_str) },
 	{ gu_kind(struct), gu_fn(gu_dump_struct) },
 	{ gu_kind(pointer), gu_fn(gu_dump_pointer) },
 	{ gu_kind(GuMap), gu_fn(gu_dump_map) },

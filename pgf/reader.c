@@ -203,14 +203,11 @@ pgf_read_struct(GuStructRepr* stype, PgfReader* rdr, void* to,
 	GuLength length = -1;
 	uint8_t* p = NULL;
 	uint8_t* bto = to;
-	gu_enter("-> struct " GU_STRING_FMT,
-		 GU_STRING_FMT_ARGS(stype->name));
+	gu_enter("-> struct %s", stype->name);
 
 	for (int i = 0; i < stype->members.len; i++) {
 		const GuMember* m = &stype->members.elems[i];
-		gu_enter("-> " GU_STRING_FMT "." GU_STRING_FMT,
-			 GU_STRING_FMT_ARGS(stype->name),
-			 GU_STRING_FMT_ARGS(m->name));
+		gu_enter("-> %s.%s", stype->name, m->name);
 		if (m->is_flex) {
 			gu_assert(length >= 0 && p == NULL && pool != NULL);
 			size_t m_size = gu_type_size(m->type);
@@ -230,9 +227,7 @@ pgf_read_struct(GuStructRepr* stype, PgfReader* rdr, void* to,
 			gu_assert(length == -1);
 			length = gu_member(GuLength, to, m->offset);
 		}
-		gu_exit("<- " GU_STRING_FMT "." GU_STRING_FMT,
-			 GU_STRING_FMT_ARGS(stype->name),
-			 GU_STRING_FMT_ARGS(m->name));
+		gu_exit("<- %s.%s", stype->name, m->name);
 	}
 	if (p) {
 		memcpy(p, to, repr->size);
@@ -240,8 +235,7 @@ pgf_read_struct(GuStructRepr* stype, PgfReader* rdr, void* to,
 	if (size_out) {
 		*size_out = size;
 	}
-	gu_exit("<- struct " GU_STRING_FMT,
-		GU_STRING_FMT_ARGS(stype->name));
+	gu_exit("<- struct %s", stype->name);
 	return p;
 }
 
@@ -297,8 +291,7 @@ pgf_read_to_GuVariant(GuType* type, PgfReader* rdr, void* to)
 		return;
 	}
 	GuConstructor* ctor = &vtype->ctors.elems[btag];
-	gu_enter("-> variant " GU_STRING_FMT,
-		 GU_STRING_FMT_ARGS(ctor->c_name));
+	gu_enter("-> variant %s", ctor->c_name);
 	GuPool* tmp_pool = gu_pool_new();
 	GuTypeRepr* repr = gu_type_repr(ctor->type);
 	size_t size = repr->size;
@@ -306,8 +299,7 @@ pgf_read_to_GuVariant(GuType* type, PgfReader* rdr, void* to)
 	*vto = gu_variant_init_alloc(rdr->opool, btag, size,
 				     repr->align, init);
 	gu_pool_free(tmp_pool);
-	gu_exit("<- variant " GU_STRING_FMT,
-		 GU_STRING_FMT_ARGS(ctor->c_name));
+	gu_exit("<- variant %s", ctor->c_name);
 }
 
 static void

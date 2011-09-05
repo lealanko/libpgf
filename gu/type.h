@@ -87,8 +87,8 @@ typedef struct GuTypeRepr GuTypeRepr, GuType_repr;
 
 struct GuTypeRepr {
 	GuType type_base;
-	size_t size;
-	size_t align;
+	uint16_t size;
+	uint16_t align;
 };
 
 #define GU_TYPE_INIT_repr(k_, t_, _) {				\
@@ -164,12 +164,12 @@ typedef const struct GuTypeDef GuTypeDef, GuType_typedef;
 
 struct GuTypeDef {
         GuType_alias alias_base;
-	const GuString* name;
+	const char* name;
 };
 
 #define GU_TYPE_INIT_typedef(k_, t_, type_) {			\
 	.alias_base = GU_TYPE_INIT_alias(k_, t_, type_),	\
-	.name = gu_cstring(#t_),		\
+	.name = #t_,		\
 }
 
 extern GU_DECLARE_KIND(typedef);
@@ -206,14 +206,14 @@ typedef const struct GuMember GuMember;
 
 struct GuMember {
 	ptrdiff_t offset;
-	const GuString* name;
+	const char* name;
 	GuType* type;
 	bool is_flex;
 };
 
 struct GuStructRepr {
 	GuType_repr repr_base;
-	const GuString* name;
+	const char* name;
 	GuSList(GuMember) members;
 };
 
@@ -222,7 +222,7 @@ extern GU_DECLARE_KIND(struct);
 #define GU_MEMBER_AUX_(struct_, member_, type_, is_flex_)      \
 	{					      \
 		.offset = offsetof(struct_, member_), \
-		.name = gu_cstring(#member_),	      \
+		.name = #member_,	      \
 		.type = type_,		      \
 		.is_flex = is_flex_,  \
 	}
@@ -251,7 +251,7 @@ extern GU_DECLARE_KIND(struct);
 
 #define GU_TYPE_INIT_struct(k_, t_, ...)	{		\
 	.repr_base = GU_TYPE_INIT_repr(k_, t_, _),		\
-	.name = gu_cstring(#t_), \
+	.name = #t_, \
 	.members = GU_SLIST(GuMember, __VA_ARGS__)	\
 }
 
@@ -291,12 +291,12 @@ typedef const struct GuPrimType GuPrimType, GuType_primitive;
 
 struct GuPrimType {
 	GuType_repr repr_base;
-	const GuString* name;
+	const char* name;
 };
 
 #define GU_TYPE_INIT_primitive(k_, t_, _) {	\
 	.repr_base = GU_TYPE_INIT_repr(k_, t_, _),	\
-	.name = gu_cstring(#t_)			\
+	.name = #t_			\
 }	
 
 extern GU_DECLARE_KIND(primitive);
@@ -333,7 +333,7 @@ extern GU_DECLARE_KIND(enum);
 typedef const struct GuEnumConstant GuEnumConstant;
 
 struct GuEnumConstant {
-	const GuString* name;
+	const char* name;
 	int64_t value;
 	const void* enum_value;
 };
@@ -346,7 +346,7 @@ struct GuEnumType {
 };
 
 #define GU_ENUM_C(t_, x) {		\
-		.name = gu_cstring(#x), \
+		.name = #x, \
 		.value = x,		\
 		.enum_value = (const t_[1]){ x } \
  }

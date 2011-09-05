@@ -191,22 +191,31 @@ gu_yaml_end(GuYaml* yaml)
 
 
 void 
-gu_yaml_scalar(GuYaml* yaml, const GuString* str)
+gu_yaml_scalar(GuYaml* yaml, const char* str)
 {
 	gu_yaml_begin_node(yaml);
 	fputc('"', yaml->out);
+	const char* buf = str ? str : "";
 	int span_start = 0;
-	const char* buf = gu_string_cdata(str);
-	int len = gu_string_length(str);
-	for (int i = 0; i < len; i++) {
-		char c = buf[i];
-		if (c == '"' || c == '\\' || !isprint(c)) {
-			fwrite(&buf[span_start], 1, i - span_start, yaml->out);
+	int i = 0;
+	while (true) {
+		while (true) {
+			char c = buf[i];
+			if (!c || c == '"' || c == '\\' || !isprint(c)) {
+				break;
+			}
+			i++;
+		}
+		fwrite(&buf[span_start], 1, i - span_start, yaml->out);
+		if (buf[i]) {
 			span_start = i + 1;
-			fprintf(yaml->out, "\\%02x", (unsigned char) c);
+			// XXX: platform-dependent encoding
+			fprintf(yaml->out, "\\%02x", (unsigned char) buf[i]);
+			i++;
+		} else {
+			break;
 		}
 	}
-	fwrite(&buf[span_start], 1, len - span_start, yaml->out);
 	fputc('"', yaml->out);
 	gu_yaml_end_node(yaml);
 }
@@ -226,32 +235,31 @@ gu_yaml_tag(GuYaml* yaml, const char* format, ...)
 }
 
 void 
-gu_yaml_tag_primary(GuYaml* yaml, const GuString* tag) 
+gu_yaml_tag_primary(GuYaml* yaml, const char* tag) 
 {
 	// TODO: check tag validity
-	gu_yaml_tag(yaml, GU_STRING_FMT, GU_STRING_FMT_ARGS(tag));
+	gu_yaml_tag(yaml, "%s", tag);
 }
 
 void
-gu_yaml_tag_secondary(GuYaml* yaml, const GuString* tag)
+gu_yaml_tag_secondary(GuYaml* yaml, const char* tag)
 {
 	// TODO: check tag validity
-	gu_yaml_tag(yaml, "!" GU_STRING_FMT, GU_STRING_FMT_ARGS(tag));
+	gu_yaml_tag(yaml, "!%s", tag);
 }
 
 void
-gu_yaml_tag_named(GuYaml* yaml, const GuString* handle, const GuString* tag)
+gu_yaml_tag_named(GuYaml* yaml, const char* handle, const char* tag)
 {
 	// TODO: check tag validity
-	gu_yaml_tag(yaml, GU_STRING_FMT "!" GU_STRING_FMT,
-		    GU_STRING_FMT_ARGS(handle), GU_STRING_FMT_ARGS(tag));
+	gu_yaml_tag(yaml, "%s!%s", handle, tag);
 }
 
 void
-gu_yaml_tag_verbatim(GuYaml* yaml, const GuString* uri)
+gu_yaml_tag_verbatim(GuYaml* yaml, const char* uri)
 {
-	gu_yaml_tag(yaml, "<" GU_STRING_FMT ">",
-		    GU_STRING_FMT_ARGS(uri));
+	// XXX: uri escaping?
+	gu_yaml_tag(yaml, "<%s>", uri);
 }
 
 void
@@ -281,10 +289,11 @@ gu_yaml_alias(GuYaml* yaml, GuYamlAnchor anchor)
 	return;
 }
 
-void gu_yaml_comment(GuYaml* yaml, const GuString* comment)
+void gu_yaml_comment(GuYaml* yaml, const char* comment)
 {
 	gu_yaml_begin_line(yaml);
-	fprintf(yaml->out, "# " GU_STRING_FMT "\n", GU_STRING_FMT_ARGS(comment));
+	// XXX: escaping?
+	fprintf(yaml->out, "# %s\n", comment);
 	yaml->indented = false;
 }
 
