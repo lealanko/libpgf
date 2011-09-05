@@ -65,7 +65,7 @@ struct GuEqFn {
 typedef const struct GuHashFn GuHashFn;
 
 struct GuHashFn {
-	size_t (*fn)(GuHashFn* self, const void* p);
+	unsigned (*fn)(GuHashFn* self, const void* p);
 };
 
 extern GuEqFn gu_int_eq;

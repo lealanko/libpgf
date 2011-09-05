@@ -68,7 +68,7 @@ gu_string_copy(GuPool* pool, const GuString* from)
 	return to;
 }
 
-static size_t
+static unsigned
 gu_string_hash_fn(GuHashFn* self, const void* p)
 {
 	(void) self;

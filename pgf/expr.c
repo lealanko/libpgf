@@ -242,3 +242,44 @@ pgf_expr_parse(FILE* input, GuPool* pool)
 	gu_pool_free(tmp_pool);
 	return expr;
 }
+
+static void
+pgf_expr_print_with_paren(PgfExpr expr, bool need_paren, FILE* out)
+{
+	GuVariantInfo ei = gu_variant_open(expr);
+	switch (ei.tag) {
+	case PGF_EXPR_FUN: {
+		PgfExprFun* fun = ei.data;
+		fprintf(out, GU_STRING_FMT, GU_STRING_FMT_ARGS(fun->fun));
+		break;
+	}
+	case PGF_EXPR_APP: {
+		PgfExprApp* app = ei.data;
+		if (need_paren) {
+			fprintf(out, "(");
+		}
+		pgf_expr_print_with_paren(app->fun, false, out);
+		fprintf(out, " ");
+		pgf_expr_print_with_paren(app->arg, true, out);
+		if (need_paren) {
+			fprintf(out, ")");
+		}
+		break;
+	}
+	case PGF_EXPR_ABS:
+	case PGF_EXPR_LIT:
+	case PGF_EXPR_META:
+	case PGF_EXPR_VAR:
+	case PGF_EXPR_TYPED:
+	case PGF_EXPR_IMPL_ARG:
+		gu_impossible();
+		break;
+	default:
+		gu_impossible();
+	}
+}
+
+void
+pgf_expr_print(PgfExpr expr, FILE* out) {
+	pgf_expr_print_with_paren(expr, false, out);
+}

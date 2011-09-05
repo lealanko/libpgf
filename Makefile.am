@@ -52,6 +52,8 @@ libpgf_la_SOURCES = \
 	pgf/edsl.h \
 	pgf/expr.c \
 	pgf/expr.h \
+	pgf/parser.c \
+	pgf/parser.h \
 	pgf/reader.c \
 	pgf/linearize.c
 
@@ -63,16 +65,22 @@ noinst_PROGRAMS = \
 	test/test_type1 \
 	test/test-hash \
 	test/test-lin1 \
+	test/test-parse1 \
 	test/test-yaml1 \
 	test/test-dump1 \
 	test/test-seq \
 	test/test-prime \
+	test/test-translate \
 	test/test-ieee754
 
 
 test_test_type1_SOURCES = test/test_type1.c
 test_test_lin1_SOURCES = test/test-lin1.c
 test_test_lin1_LDADD = libpgf.la libgu.la
+test_test_parse1_SOURCES = test/test-parse1.c
+test_test_parse1_LDADD = libpgf.la libgu.la
+test_test_translate_SOURCES = test/test-translate.c
+test_test_translate_LDADD = libpgf.la libgu.la
 test_test_yaml1_SOURCES = test/test-yaml1.c
 test_test_dump1_SOURCES = test/test-dump1.c
 test_test_seq_SOURCES = test/test-seq.c

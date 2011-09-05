@@ -9,7 +9,7 @@ gu_int_eq_fn(GuEqFn* self, const void* a, const void* b)
 
 GuEqFn gu_int_eq = { gu_int_eq_fn };
 
-static size_t
+static unsigned
 gu_int_hash_fn(GuHashFn* self, const void* p)
 {
 	(void) self;

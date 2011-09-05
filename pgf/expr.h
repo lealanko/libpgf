@@ -80,4 +80,7 @@ pgf_expr_unapply(PgfExpr expr, GuPool* pool);
 PgfExpr
 pgf_expr_parse(FILE* input, GuPool* pool);
 
+void
+pgf_expr_print(PgfExpr expr, FILE* out);
+
 #endif /* EXPR_H_ */

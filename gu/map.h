@@ -77,6 +77,7 @@ pfx##_get(t_* map, GU_MAP__KEYTYPE_##KM(k_) key)			\
 GU_DECLARE_DUMMY
 
 
+GU_MAP_DEFINE(GuPtrMap, gu_ptrmap, R, void, R, void, NULL, NULL, NULL);
 				    
 #include <gu/string.h>
 
@@ -124,7 +125,9 @@ gu_map_new_from_type(GuMapType* mtype, GuPool* pool);
 	.empty_value = ev_ \
 }
 
-#define GuPtrMap GuMap
+// #define GuPtrMap GuMap
+extern GU_DECLARE_KIND(GuPtrMap);
+typedef GuType_GuMap GuType_GuPtrMap;
 #define GU_TYPE_INIT_GuPtrMap(k_, t_, h_, eq_, kt_, vt_)	\
 	GU_TYPE_INIT_GuMap(k_, t_, h_, eq_, false, kt_, false, vt_, NULL)
 

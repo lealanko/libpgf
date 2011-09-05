@@ -137,7 +137,15 @@ gu_flex_size(size_t ssize, size_t offset, int n_elems, size_t e_size)
 static inline unsigned
 gu_hash_mix(unsigned h, unsigned v)
 {
+	/* XXX TODO: This is the Paul Larson hash for _characters_,
+	 * not full words! Switch to e.g. MurMur2 or Meiyan. */
 	return h * 101 + v;
+}
+
+static inline unsigned
+gu_hash_ptr(void* ptr)
+{
+	return (unsigned) (uintptr_t) ptr;
 }
 
 // Dummy struct used for generic struct pointers

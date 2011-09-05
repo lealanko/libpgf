@@ -52,11 +52,13 @@ gu_log_full_v(GuLogKind kind, const char* func, const char* file, int line,
 	if (kind == GU_LOG_KIND_EXIT) {
 		gu_log_depth--;
 	}
-	int indent = gu_min(32 + gu_log_depth, 48);
-	fprintf(stderr, "%-*s: ", indent, func);
-	vfprintf(stderr, fmt, args);
-	fputc('\n', stderr);
-	fflush(stderr);
+	if (fmt) {
+		int indent = gu_min(32 + gu_log_depth, 48);
+		fprintf(stderr, "%-*s: ", indent, func);
+		vfprintf(stderr, fmt, args);
+		fputc('\n', stderr);
+		fflush(stderr);
+	}
 	if (kind == GU_LOG_KIND_ENTER) {
 		gu_log_depth++;
 	}

@@ -35,7 +35,7 @@ int main(int argc, char* argv[]) {
 	}
 
 	PgfCId* lang_s = gu_string_new_c(pool, lang);
-	PgfConcr* concr = gu_map_get(pgf->concretes, lang_s);
+	PgfConcr* concr = gu_stringmap_get(pgf->concretes, lang_s);
 	PgfLzr* lzr = pgf_lzr_new(pool, pgf, concr);
 
 	GuDumpCtx* ctx = gu_dump_ctx_new(pool, stdout, NULL);

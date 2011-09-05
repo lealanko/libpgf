@@ -54,7 +54,7 @@ typedef GuList(PgfCncFun*) PgfCncFuns;
 extern GU_DECLARE_TYPE(PgfCncFuns, GuList);
 typedef GuList(PgfFunId) PgfFunIds; 
 extern GU_DECLARE_TYPE(PgfFunIds, GuList);
-typedef GuMap PgfCIdMap; // PgfCId -> ?
+typedef GuStringMap PgfCIdMap; // PgfCId -> ?
 typedef PgfCIdMap PgfFlags; // PgfCId -> PgfLiteral
 extern GU_DECLARE_TYPE(PgfFlags, GuMap);
 typedef GuVariant PgfExpr;
@@ -169,6 +169,7 @@ struct PgfCncCat {
 	PgfCId* cid;
 	PgfCCatIds* cats;
 	PgfFunIds* lindefs;
+	int n_lins;
 
 	GuStrings* labels;
 	/**< Labels for tuples. All nested tuples, records and tables

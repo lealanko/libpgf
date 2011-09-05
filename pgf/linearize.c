@@ -56,7 +56,7 @@ typedef GuStringMap PgfLinProds;
 static GU_DEFINE_TYPE(PgfLinProds, GuStringPtrMap, gu_type(PgfCncProds));
 
 
-static size_t
+static unsigned
 pgf_lzr_cats_hash_fn(GuHashFn* self, const void* p)
 {
 	(void) self;
@@ -208,6 +208,9 @@ static void
 pgf_lzr_index_ccat(PgfLzr* lzr, PgfCCat* cat)
 {
 	gu_debug("ccat: %d", cat->fid);
+	if (cat->prods == NULL) {
+		return;
+	}
 	int n_prods = pgf_production_seq_size(cat->prods);
 	for (int i = 0; i < n_prods; i++) {
 		PgfProduction prod = pgf_production_seq_get(cat->prods, i);
@@ -533,9 +536,15 @@ pgf_lzr_linearize(PgfLzr* lzr, PgfLinForm form, int lin_idx, PgfLinFuncs** fnsp)
 				}
 				break;
 			}
-			case PGF_SYMBOL_KP:
-				// XXX: To be supported
-				gu_impossible(); 
+			case PGF_SYMBOL_KP: {
+				// TODO: correct prefix-dependencies
+				PgfSymbolKP* kp = sym_i.data;
+				if (fns->symbol_tokens) {
+					fns->symbol_tokens(fnsp,
+							   kp->default_form);
+				}
+				break;
+			}
 			default:
 				gu_impossible(); 
 			}

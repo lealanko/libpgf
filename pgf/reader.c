@@ -502,7 +502,9 @@ pgf_read_new_PgfCCat(GuType* type, PgfReader* rdr, GuPool* pool,
 	PgfCCat* ccat = gu_map_get(rdr->curr_ccats, &fid);
 	if (ccat == NULL) {
 		ccat = gu_new_s(pool, PgfCCat, 
-				.cnccat = NULL, .prods = NULL, .fid = -999);
+				.cnccat = NULL,
+				.prods = NULL,
+				.fid = fid);
 		gu_map_set(rdr->curr_ccats, &fid, ccat);
 	}
 	return ccat;
@@ -514,7 +516,8 @@ pgf_read_to_PgfCCatData(GuType* type, PgfReader* rdr, void* to)
 	gu_enter("->");
 	PgfCCat* cat = to;
 	cat->cnccat = NULL;
-	cat->prods = pgf_read_new(rdr, gu_type(PgfProductionSeq), rdr->opool, NULL);
+	cat->prods = pgf_read_new(rdr, gu_type(PgfProductionSeq),
+				  rdr->opool, NULL);
 	cat->fid = *(int*)rdr->curr_key;
 	gu_exit("<-");
 }
@@ -620,15 +623,50 @@ typedef struct {
 	PgfCCatSeq* seq;
 } PgfCCatCbCtx;
 
+static PgfCncCat*
+pgf_ccat_set_cnccat(PgfCCat* ccat, PgfCCatSeq* newly_set)
+{
+	if (!ccat->cnccat) {
+		int n_prods = pgf_production_seq_size(ccat->prods);
+		for (int i = 0; i < n_prods; i++) {
+			PgfProduction prod = 
+				pgf_production_seq_get(ccat->prods, i);
+			GuVariantInfo i = gu_variant_open(prod);
+			switch (i.tag) {
+			case PGF_PRODUCTION_COERCE: {
+				PgfProductionCoerce* pcoerce = i.data;
+				PgfCncCat* cnccat = 
+					pgf_ccat_set_cnccat(pcoerce->coerce,
+							    newly_set);
+				if (!ccat->cnccat) {
+					ccat->cnccat = cnccat;
+				} else if (ccat->cnccat != cnccat) {
+					// XXX: real error
+					gu_impossible();
+				}
+				break;
+			}
+			case PGF_PRODUCTION_APPLY:
+				// Shouldn't happen with current PGF.
+				// XXX: real error
+				gu_impossible();
+				break;
+			default:
+				gu_impossible();
+			}
+		}
+		pgf_ccat_seq_push(newly_set, ccat);
+	}
+	return ccat->cnccat;
+}
+
+
 static void
 pgf_read_ccat_cb(GuMapIterFn* fn, const void* key, void* value)
 {
 	PgfCCatCbCtx* ctx = (PgfCCatCbCtx*) fn;
 	PgfCCat* ccat = value;
-	
-	if (ccat->cnccat == NULL) {
-		pgf_ccat_seq_push(ctx->seq, ccat);
-	}
+	pgf_ccat_set_cnccat(ccat, ctx->seq);
 }
 
 static void*
@@ -667,6 +705,41 @@ pgf_read_new_PgfConcr(GuType* type, PgfReader* rdr, GuPool* pool,
 	return concr;
 }
 
+static bool
+pgf_ccat_n_lins(PgfCCat* cat, int* n_lins) {
+	if (cat->prods == NULL) {
+		return true;
+	}
+	int n_prods = pgf_production_seq_size(cat->prods);
+	for (int j = 0; j < n_prods; j++) {
+		PgfProduction prod = pgf_production_seq_get(cat->prods, j);
+		GuVariantInfo i = gu_variant_open(prod);
+		switch (i.tag) {
+		case PGF_PRODUCTION_APPLY: {
+			PgfProductionApply* papp = i.data;
+			if (*n_lins == -1) {
+				*n_lins = papp->fun->n_lins;
+			} else if (*n_lins != papp->fun->n_lins) {
+				// Inconsistent n_lins for different productions!
+				return false;
+			}
+			break;
+		}
+		case PGF_PRODUCTION_COERCE: {
+			PgfProductionCoerce* pcoerce = i.data;
+			bool succ = pgf_ccat_n_lins(pcoerce->coerce, n_lins);
+			if (!succ) {
+				return false;
+			}
+			break;
+		}
+		default:
+			gu_impossible();
+		}
+	}
+	return true;
+}
+
 static void*
 pgf_read_new_PgfCncCat(GuType* type, PgfReader* rdr, GuPool* pool,
 		       size_t* size_out)
@@ -679,6 +752,7 @@ pgf_read_new_PgfCncCat(GuType* type, PgfReader* rdr, GuPool* pool,
 	int last = pgf_read_int(rdr);
 	int len = last + 1 - first;
 	PgfCCatIds* cats = gu_list_new(PgfCCatIds, pool, len);
+	int n_lins = -1;
 	for (int i = 0; i < len; i++) {
 		int n = first + i;
 		PgfCCat* ccat = gu_map_get(rdr->curr_ccats, &n);
@@ -688,15 +762,24 @@ pgf_read_new_PgfCncCat(GuType* type, PgfReader* rdr, GuPool* pool,
 		if (ccat != NULL) {
 			// TODO: error if overlap
 			ccat->cnccat = cnccat;
+			if (!pgf_ccat_n_lins(ccat, &n_lins)) {
+				gu_raise(rdr->err, PgfReadError, );
+				goto fail;
+			}
+			
 		}
 		gu_debug("range[%d] = %d", i, ccat ? ccat->fid : -1);
 	}
+	cnccat->n_lins = n_lins;
 	cnccat->cats = cats;
 	cnccat->lindefs = gu_map_get(rdr->curr_lindefs, &first);
 	cnccat->labels = pgf_read_new(rdr, gu_type(GuStrings), 
 				      pool, NULL);
 	gu_exit("<-");
 	return cnccat;
+fail:
+	gu_exit("<- fail");
+	return NULL;
 }
 
 #define PGF_READ_TO_FN(k_, fn_)					\
