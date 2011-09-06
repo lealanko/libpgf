@@ -1,4 +1,3 @@
-#include <gu/string.h>
 #include <gu/mem.h>
 #include <stdio.h>
 

@@ -79,11 +79,6 @@ GU_DECLARE_DUMMY
 
 GU_MAP_DEFINE(GuPtrMap, gu_ptrmap, R, void, R, void, NULL, NULL, NULL);
 				    
-#include <gu/string.h>
-
-GU_MAP_DEFINE(GuStringMap, gu_stringmap, R, GuString, R, void, NULL,
-	      &gu_string_hash, &gu_string_eq);
-
 #include <gu/str.h>
 
 GU_MAP_DEFINE(GuStrMap, gu_strmap, V, GuCStr, R, void, NULL,
@@ -145,16 +140,6 @@ typedef GuType_GuMap GuType_GuIntMap;
 #define GuIntPtrMap GuIntMap
 #define GU_TYPE_INIT_GuIntPtrMap(k_, t_, vt_)	\
 	GU_TYPE_INIT_GuIntMap(k_, t_, false, vt_, NULL)
-
-extern GU_DECLARE_KIND(GuStringMap);
-typedef GuType_GuMap GuType_GuStringMap;
-#define GU_TYPE_INIT_GuStringMap(k_, t_, dv_, vt_, ev_)			\
-	GU_TYPE_INIT_GuMap(k_, t_, &gu_string_hash, &gu_string_eq,	\
-			   false, gu_type(GuString), dv_, vt_, ev_)
-
-#define GuStringPtrMap GuStringMap
-#define GU_TYPE_INIT_GuStringPtrMap(k_, t_, vt_)	\
-	GU_TYPE_INIT_GuStringMap(k_, t_, false, vt_, NULL)
 
 extern GU_DECLARE_KIND(GuStrMap);
 typedef GuType_GuMap GuType_GuStrMap;

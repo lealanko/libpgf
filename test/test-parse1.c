@@ -38,9 +38,7 @@ int main(int argc, char* argv[]) {
 		goto fail;
 	}
 
-	PgfCId* lang_s = gu_string_new_c(pool, lang);
-	PgfCId* cat_s = gu_string_new_c(pool, cat);
-	PgfConcr* concr = gu_stringmap_get(pgf->concretes, lang_s);
+	PgfConcr* concr = gu_stringmap_get(pgf->concretes, lang);
 	PgfParser* parser = pgf_parser_new(concr, pool);
 
 	while (true) {
@@ -56,7 +54,7 @@ int main(int argc, char* argv[]) {
 			break;
 		}
 		GuPool* ppool = gu_pool_new();
-		PgfParse* parse = pgf_parser_parse(parser, cat_s, 0, pool);
+		PgfParse* parse = pgf_parser_parse(parser, cat, 0, pool);
 		if (parse == NULL) {
 			fprintf(stderr, "Couldn't begin parsing");
 			status = EXIT_FAILURE;
@@ -65,8 +63,7 @@ int main(int argc, char* argv[]) {
 		char* tok = strtok(line, " \n");
 		while (tok) {
 			gu_debug("parsing token \"%s\"", tok);
-			GuString* tok_s = gu_string_new_c(ppool, tok);
-			parse = pgf_parse_token(parse, tok_s, ppool);
+			parse = pgf_parse_token(parse, tok, ppool);
 			tok = strtok(NULL, " \n");
 		}
 		PgfParseResult* res = pgf_parse_result(parse, ppool);

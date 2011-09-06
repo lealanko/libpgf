@@ -127,17 +127,6 @@ gu_list_type_alloc(GuListType* ltype, int n_elems, GuPool* pool);
 void*
 gu_list_type_index(GuListType* ltype, void* list, int i);
 
-#include <gu/string.h>
-
-typedef GuList(GuString*) GuStrings;
-typedef const GuList(GuCString*) GuCStrings;
-
-typedef GuStrings* GuStringsP;
-typedef GuCStrings* GuCStringsP;
-
-extern GU_DECLARE_TYPE(GuStrings, GuList);
-extern GU_DECLARE_TYPE(GuStringsP, pointer);
-
 #include <gu/str.h>
 
 typedef GuList(GuStr) GuStrs;

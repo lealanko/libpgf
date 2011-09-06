@@ -171,7 +171,7 @@ struct PgfCncCat {
 	PgfFunIds* lindefs;
 	int n_lins;
 
-	GuStrings* labels;
+	GuStrs* labels;
 	/**< Labels for tuples. All nested tuples, records and tables
 	 * in the GF linearization types are flattened into a single
 	 * tuple in the corresponding PGF concrete category. This
@@ -190,7 +190,7 @@ struct PgfAlternative {
 	PgfTokens* form;
 	/**< The form of this variant as a list of tokens. */
 
-	GuStrings* prefixes;
+	GuStrs* prefixes;
 	/**< The prefixes of the following symbol that trigger this
 	 * form. */
 };
@@ -203,8 +203,8 @@ struct PgfCCat {
 
 extern PgfCCat pgf_ccat_string, pgf_ccat_int, pgf_ccat_float, pgf_ccat_var;
 
-typedef GuStringMap PgfPrintNames;
-extern GU_DECLARE_TYPE(PgfPrintNames, GuStringMap);
+typedef GuStrMap PgfPrintNames;
+extern GU_DECLARE_TYPE(PgfPrintNames, GuStrMap);
 
 struct PgfConcr {
 	PgfFlags* cflags;
@@ -290,7 +290,7 @@ typedef struct PgfProductionCoerce
 typedef struct {
 	PgfExpr expr; // XXX
 	int n_toks;
-	GuString* toks[]; // XXX
+	GuStr toks[]; // XXX
 } PgfProductionConst;
 
 
@@ -311,7 +311,7 @@ typedef enum {
 } PgfLiteralTag;
 
 typedef struct {
-	GuString* val;
+	GuStr val;
 } PgfLiteralStr;
 
 typedef struct {

@@ -156,10 +156,6 @@ extern GU_DECLARE_KIND(alias);
 // typedef
 //
 
-// We must include string.h only after abstract has been defined.
-
-#include <gu/string.h>
-
 typedef const struct GuTypeDef GuTypeDef, GuType_typedef;
 
 struct GuTypeDef {

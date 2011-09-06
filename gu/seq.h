@@ -128,11 +128,6 @@ GU_DECLARE_TYPE(GuCharSeq, GuSeq);
 GU_SEQ_DEFINE(GuByteSeq, gu_byte_seq, uint8_t);
 GU_DECLARE_TYPE(GuByteSeq, GuSeq);
 
-#include <gu/string.h>
-
-GuString*
-gu_char_seq_to_string(GuCharSeq* charq, GuPool* pool);
-
 char*
 gu_char_seq_to_str(GuCharSeq* charq, GuPool* pool);
 

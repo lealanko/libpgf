@@ -1,19 +1,19 @@
 #include <gu/map.h>
-#include <gu/string.h>
+#include <gu/str.h>
 #include <gu/assert.h>
 #include <stdio.h>
 
 void test_strings(int n)
 {
 	GuPool* pool = gu_pool_new();
-	GuMap* ht = gu_map_new(pool, &gu_string_hash, &gu_string_eq);
+	GuMap* ht = gu_map_new(pool, &gu_str_hash, &gu_str_eq);
 	for (int i = 0; i < n; i++) {
-		GuString* str = gu_string_format(pool, "%d", i);
+		char* str = gu_asprintf(pool, "%d", i);
 		int* ip = gu_new_s(pool, int, i * i);
 		gu_map_set(ht, str, ip);
 	}
 	for (int i = 0; i < n; i++) {
-		GuString* str = gu_string_format(pool, "%d", i);
+		char* str = gu_asprintf(pool, "%d", i);
 		int* ip = gu_map_get(ht, str);
 		gu_assert(*ip == i * i);
 	}

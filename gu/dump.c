@@ -76,7 +76,7 @@ gu_dump_double(GuDumpFn* dumper, GuType* type, const void* p,
 	gu_yaml_scalar(ctx->yaml, str);
 }
 
-static GU_DEFINE_ATOM(gu_dump_length_key, "gu_dump_length_key");
+static const char gu_dump_length_key[] = "gu_dump_length_key";
 
 static void 
 gu_dump_length(GuDumpFn* dumper, GuType* type, const void* p, 
@@ -87,25 +87,10 @@ gu_dump_length(GuDumpFn* dumper, GuType* type, const void* p,
 	const GuLength* ip = p;
 	char* str = gu_asprintf(ctx->pool, "%d", *ip);
 	gu_yaml_scalar(ctx->yaml, str);
-	GuLength* lenp = gu_map_get(ctx->data, gu_atom(gu_dump_length_key));
+	GuLength* lenp = gu_map_get(ctx->data, gu_dump_length_key);
 	if (lenp != NULL) {
 		*lenp = *ip;
 	}
-}
-
-static void 
-gu_dump_string(GuDumpFn* dumper, GuType* type, const void* p, 
-	       GuDumpCtx* ctx)
-{
-	(void) dumper;
-	(void) type;
-	const GuString* s = p;
-	int len = gu_string_length(s);
-	char buf[len + 1];
-	const char* str = gu_string_cdata(s);
-	memcpy(buf, str, len);
-	buf[len] = '\0';
-	gu_yaml_scalar(ctx->yaml, buf);
 }
 
 static void 
@@ -172,9 +157,9 @@ gu_dump_struct(GuDumpFn* dumper, GuType* type, const void* p,
 	gu_yaml_begin_mapping(ctx->yaml);
 	const uint8_t* data = p;
 	GuLength* old_lenp = 
-		gu_map_get(ctx->data, gu_atom(gu_dump_length_key));
+		gu_map_get(ctx->data, gu_dump_length_key);
 	GuLength len = -1;
-	gu_map_set(ctx->data, gu_atom(gu_dump_length_key), &len);
+	gu_map_set(ctx->data, gu_dump_length_key, &len);
 
 	for (int i = 0; i < srepr->members.len; i++) {
 		const GuMember* member = &srepr->members.elems[i];
@@ -194,7 +179,7 @@ gu_dump_struct(GuDumpFn* dumper, GuType* type, const void* p,
 		}
 	}
 	gu_yaml_end(ctx->yaml);
-	gu_map_set(ctx->data, gu_atom(gu_dump_length_key), old_lenp);
+	gu_map_set(ctx->data, gu_dump_length_key, old_lenp);
 }
 
 static void
@@ -350,7 +335,6 @@ gu_dump_table = GU_TYPETABLE(
 	GU_SLIST_0,
 	{ gu_kind(int), gu_fn(gu_dump_int) },
 	{ gu_kind(uint16_t), gu_fn(gu_dump_uint16) },
-	{ gu_kind(GuString), gu_fn(gu_dump_string) },
 	{ gu_kind(GuStr), gu_fn(gu_dump_str) },
 	{ gu_kind(struct), gu_fn(gu_dump_struct) },
 	{ gu_kind(pointer), gu_fn(gu_dump_pointer) },

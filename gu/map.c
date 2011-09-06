@@ -283,7 +283,6 @@ gu_map_new_from_type(GuMapType* mtype, GuPool* pool)
 
 GU_DEFINE_KIND(GuPtrMap, GuMap);
 GU_DEFINE_KIND(GuMap, abstract);
-GU_DEFINE_KIND(GuStringMap, GuMap);
 GU_DEFINE_KIND(GuStrMap, GuMap);
 GU_DEFINE_KIND(GuIntMap, GuMap);
 

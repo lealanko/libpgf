@@ -740,7 +740,7 @@ static void*
 pgf_read_new_PgfCncCat(GuType* type, PgfReader* rdr, GuPool* pool,
 		       size_t* size_out)
 {
-	gu_enter("-> cid: " GU_STRING_FMT, GU_STRING_FMT_ARGS(rdr->curr_key));
+	gu_enter("-> cid: %s", rdr->curr_key);
 	(void) (type && size_out);
 	PgfCncCat* cnccat = gu_new(pool, PgfCncCat);
 	cnccat->cid = rdr->curr_key;

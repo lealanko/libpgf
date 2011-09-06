@@ -1,7 +1,8 @@
 #ifndef GU_INTERN_H_
 #define GU_INTERN_H_
+
 #include <gu/map.h>
-#include <gu/string.h>
+#include <gu/str.h>
 
 typedef struct GuIntern GuIntern;
 

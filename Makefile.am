@@ -22,7 +22,6 @@ include_HEADERS = \
 	gu/mem.h \
 	gu/prime.h \
 	gu/str.h \
-	gu/string.h \
 	gu/type.h \
 	gu/variant.h \
 	gu/yaml.h
@@ -43,7 +42,6 @@ libgu_la_SOURCES = \
 	gu/mem.c \
 	gu/prime.c \
 	gu/str.c \
-	gu/string.c \
 	gu/type.c \
 	gu/variant.c \
 	gu/yaml.c
