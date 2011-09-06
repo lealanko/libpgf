@@ -2,7 +2,7 @@
 
 struct GuIntern {
 	GuPool* str_pool;
-	GuStringMap* map;
+	GuStrMap* map;
 };
 
 GuIntern*
@@ -10,17 +10,17 @@ gu_intern_new(GuPool* pool, GuPool* str_pool)
 {
 	GuIntern* intern = gu_new(pool, GuIntern);
 	intern->str_pool = str_pool;
-	intern->map = gu_stringmap_new(pool);
+	intern->map = gu_strmap_new(pool);
 	return intern;
 }
 
-GuString*
-gu_intern_string(GuIntern* intern, GuCString* cstr)
+const char*
+gu_intern_str(GuIntern* intern, const char* cstr)
 {
-	GuString* str = gu_stringmap_get(intern->map, cstr);
+	char* str = gu_strmap_get(intern->map, (char*) cstr);
 	if (str == NULL) {
-		str = gu_string_copy(intern->str_pool, cstr);
-		gu_stringmap_set(intern->map, str, str);
+		str = gu_strdup(cstr, intern->str_pool);
+		gu_strmap_set(intern->map, str, str);
 	}
 	return str;
 }

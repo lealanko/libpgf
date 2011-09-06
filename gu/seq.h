@@ -133,4 +133,7 @@ GU_DECLARE_TYPE(GuByteSeq, GuSeq);
 GuString*
 gu_char_seq_to_string(GuCharSeq* charq, GuPool* pool);
 
+char*
+gu_char_seq_to_str(GuCharSeq* charq, GuPool* pool);
+
 #endif // GU_SEQ_H_

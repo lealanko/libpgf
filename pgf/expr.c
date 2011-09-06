@@ -77,7 +77,7 @@ GU_DEFINE_TYPE(
 	GU_CONSTRUCTOR_S(
 		PGF_EXPR_ABS, PgfExprAbs,
 		GU_MEMBER(PgfExprAbs, bind_type, PgfBindType),
-		GU_MEMBER_P(PgfExprAbs, id, GuString),
+		GU_MEMBER(PgfExprAbs, id, GuStr),
 		GU_MEMBER(PgfExprAbs, body, PgfExpr)),
 	GU_CONSTRUCTOR_S(
 		PGF_EXPR_APP, PgfExprApp,
@@ -91,7 +91,7 @@ GU_DEFINE_TYPE(
 		GU_MEMBER(PgfExprMeta, id, int)),
 	GU_CONSTRUCTOR_S(
 		PGF_EXPR_FUN, PgfExprFun,
-		GU_MEMBER_P(PgfExprFun, fun, GuString)),
+		GU_MEMBER(PgfExprFun, fun, GuStr)),
 	GU_CONSTRUCTOR_S(
 		PGF_EXPR_VAR, PgfExprVar,
 		GU_MEMBER(PgfExprVar, var, int)),
@@ -110,33 +110,34 @@ struct PgfExprParser {
 	FILE* input;
 	GuIntern* intern;
 	GuPool* expr_pool;
-	GuCString* lookahead;
+	const char* lookahead;
 };
 
-static GU_DEFINE_ATOM(pgf_expr_lpar, "(");
-static GU_DEFINE_ATOM(pgf_expr_rpar, ")");
-static GU_DEFINE_ATOM(pgf_expr_semic, ";");
 
-static GuCString*
+static const char pgf_expr_lpar[] = "(";
+static const char pgf_expr_rpar[] = ")";
+static const char pgf_expr_semic[] = ";";
+
+static const char*
 pgf_expr_parser_lookahead(PgfExprParser* parser)
 {
 	if (parser->lookahead != NULL) {
 		return parser->lookahead;
 	}
-	GuCString* str = NULL;
+	const char* str = NULL;
 	int c;
 	do {
 		c = fgetc(parser->input);
 	} while (isspace(c));
 	switch (c) {
 	case '(':
-		str = gu_atom(pgf_expr_lpar);
+		str = pgf_expr_lpar;
 		break;
 	case ')':
-		str = gu_atom(pgf_expr_rpar);
+		str = pgf_expr_rpar;
 		break;
 	case ';':
-		str = gu_atom(pgf_expr_semic);
+		str = pgf_expr_semic;
 		break;
 	default:
 		if (isalpha(c)) {
@@ -149,8 +150,8 @@ pgf_expr_parser_lookahead(PgfExprParser* parser)
 			if (c != EOF) {
 				ungetc(c, parser->input);
 			}
-			GuString* tmp_str = gu_char_seq_to_string(charq, tmp_pool);
-			str = gu_intern_string(parser->intern, tmp_str);
+			char* tmp_str = gu_char_seq_to_str(charq, tmp_pool);
+			str = gu_intern_str(parser->intern, tmp_str);
 			gu_pool_free(tmp_pool);
 		}
 	}
@@ -159,12 +160,12 @@ pgf_expr_parser_lookahead(PgfExprParser* parser)
 }
 
 static bool
-pgf_expr_parser_token_is_id(GuCString* str)
+pgf_expr_parser_token_is_id(const char* str)
 {
-	if (str == NULL || gu_string_length(str) == 0) {
+	if (str == NULL || !str[0]) {
 		return false;
 	}
-	char c = gu_string_cdata(str)[0];
+	char c = str[0];
 	return (isalpha(c) || c == '_');
 }
 
@@ -181,13 +182,13 @@ pgf_expr_parser_expr(PgfExprParser* parser);
 static PgfExpr
 pgf_expr_parser_term(PgfExprParser* parser)
 {
-	GuCString* la = pgf_expr_parser_lookahead(parser);
+	const char* la = pgf_expr_parser_lookahead(parser);
 
-	if (la == gu_atom(pgf_expr_lpar)) {
+	if (la == pgf_expr_lpar) {
 		pgf_expr_parser_consume(parser);
 		PgfExpr expr = pgf_expr_parser_expr(parser);
 		la = pgf_expr_parser_lookahead(parser);
-		if (la == gu_atom(pgf_expr_rpar)) {
+		if (la == pgf_expr_rpar) {
 			pgf_expr_parser_consume(parser);
 			return expr;
 		}
@@ -233,8 +234,8 @@ pgf_expr_parse(FILE* input, GuPool* pool)
 	parser->expr_pool = pool;
 	parser->lookahead = NULL;
 	PgfExpr expr = pgf_expr_parser_expr(parser);
-	GuCString* la = pgf_expr_parser_lookahead(parser);
-	if (la == gu_atom(pgf_expr_semic)) {
+	const char* la = pgf_expr_parser_lookahead(parser);
+	if (la == pgf_expr_semic) {
 		pgf_expr_parser_consume(parser);
 	} else {
 		expr = gu_variant_null;
@@ -250,7 +251,7 @@ pgf_expr_print_with_paren(PgfExpr expr, bool need_paren, FILE* out)
 	switch (ei.tag) {
 	case PGF_EXPR_FUN: {
 		PgfExprFun* fun = ei.data;
-		fprintf(out, GU_STRING_FMT, GU_STRING_FMT_ARGS(fun->fun));
+		fputs(fun->fun, out);
 		break;
 	}
 	case PGF_EXPR_APP: {

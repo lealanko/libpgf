@@ -2,7 +2,7 @@
 #define GU_STR_H_
 
 #include <gu/mem.h>
-#include <gu/type.h>
+#include <stdarg.h>
 
 typedef char* GuStr;
 typedef const char* GuCStr;
@@ -17,6 +17,8 @@ char* gu_asprintf(GuPool* pool, const char* fmt, ...);
 
 extern GuHashFn gu_str_hash;
 extern GuEqFn gu_str_eq;
+
+#include <gu/type.h>
 
 extern GU_DECLARE_TYPE(GuStr, repr);
 

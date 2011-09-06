@@ -22,13 +22,13 @@
 
 #include <gu/list.h>
 #include <gu/variant.h>
-#include <gu/string.h>
+#include <gu/str.h>
 #include <gu/map.h>
 #include <gu/type.h>
 #include <gu/seq.h>
 #include <pgf/pgf.h>
 
-typedef const GuString PgfCId;
+typedef GuCStr PgfCId;
 
 typedef struct PgfCCat PgfCCat;
 typedef PgfCCat* PgfCCatId;
@@ -54,7 +54,7 @@ typedef GuList(PgfCncFun*) PgfCncFuns;
 extern GU_DECLARE_TYPE(PgfCncFuns, GuList);
 typedef GuList(PgfFunId) PgfFunIds; 
 extern GU_DECLARE_TYPE(PgfFunIds, GuList);
-typedef GuStringMap PgfCIdMap; // PgfCId -> ?
+typedef GuStrMap PgfCIdMap; // PgfCId -> ?
 typedef PgfCIdMap PgfFlags; // PgfCId -> PgfLiteral
 extern GU_DECLARE_TYPE(PgfFlags, GuMap);
 typedef GuVariant PgfExpr;
@@ -71,8 +71,8 @@ typedef struct PgfCatFun PgfCatFun;
 typedef struct PgfCncCat PgfCncCat;
 extern GU_DECLARE_TYPE(PgfCncCat, struct);
 typedef GuVariant PgfPatt;
-typedef GuString PgfToken;			      
-typedef GuStrings PgfTokens;
+typedef GuCStr PgfToken;			      
+typedef GuCStrs PgfTokens;
 
 typedef enum {
 	PGF_BIND_TYPE_EXPLICIT,
@@ -84,7 +84,7 @@ extern GU_DECLARE_TYPE(PgfBindType, enum);
 struct PgfHypo {
 	PgfBindType bindtype;
 
-	PgfCId* cid;
+	PgfCId cid;
 	/**< Locally scoped name for the parameter if dependent types
 	 * are used. "_" for normal parameters. */
 
@@ -95,7 +95,7 @@ typedef GuList(PgfHypo) PgfHypos;
 
 struct PgfType {
 	PgfHypos* hypos;
-	PgfCId* cid; /// XXX: resolve to PgfCat*?
+	PgfCId cid; /// XXX: resolve to PgfCat*?
 	int n_exprs;
 	PgfExpr exprs[];
 };
@@ -112,7 +112,7 @@ typedef GuList(PgfEquation*) PgfEquations;
 typedef PgfEquations* PgfEquationsM;
 extern GU_DECLARE_TYPE(PgfEquationsM, pointer);
 
-typedef GuList(PgfCId*) PgfCIds;
+typedef GuList(PgfCId) PgfCIds;
 
 typedef struct PgfCat PgfCat;
 
@@ -137,7 +137,7 @@ struct PgfPGF {
 	uint16_t major_version;
 	uint16_t minor_version;
 	PgfFlags* gflags;
-	PgfCId* absname;
+	PgfCId absname;
 	PgfAbstr abstract;
 	PgfCIdMap* concretes; // |-> PgfConcr*
 	GuPool* pool;
@@ -154,7 +154,7 @@ struct PgfFunDecl {
 
 struct PgfCatFun {
 	double prob;
-	PgfCId* fun;
+	PgfCId fun;
 };
 
 struct PgfCat {
@@ -166,7 +166,7 @@ struct PgfCat {
 
 
 struct PgfCncCat {
-	PgfCId* cid;
+	PgfCId cid;
 	PgfCCatIds* cats;
 	PgfFunIds* lindefs;
 	int n_lins;
@@ -181,7 +181,7 @@ struct PgfCncCat {
 };
 
 struct PgfCncFun {
-	PgfCId* fun; // XXX: resolve to PgfFunDecl*?
+	PgfCId fun; // XXX: resolve to PgfFunDecl*?
 	int n_lins;
 	PgfSeqId lins[];
 };
@@ -339,7 +339,7 @@ typedef enum {
 } PgfPattTag;
 
 typedef	struct {
-	PgfCId* ctor;
+	PgfCId ctor;
 	int n_args;
 	PgfPatt args[];
 } PgfPattApp;
@@ -349,11 +349,11 @@ typedef struct {
 } PgfPattLit;
 
 typedef struct {
-	PgfCId* var;
+	PgfCId var;
 } PgfPattVar;
 
 typedef struct {
-	PgfCId* var;
+	PgfCId var;
 	PgfPatt patt;
 } PgfPattAs;
 

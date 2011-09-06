@@ -28,7 +28,7 @@
 #include <gu/assert.h>
 #include <pgf/expr.h>
 
-typedef GuStringMap PgfLinInfer;
+typedef GuStrMap PgfLinInfer;
 
 GU_SEQ_DEFINE(PgfProdSeq, pgf_prod_seq, PgfProduction);
 static GU_DEFINE_TYPE(PgfProdSeq, GuSeq, gu_type(PgfProduction));
@@ -52,8 +52,8 @@ static GU_DEFINE_TYPE(PgfLinInferSeq, GuSeq, gu_type(PgfLinInferEntry));
 typedef GuIntMap PgfCncProds;
 static GU_DEFINE_TYPE(PgfCncProds, GuIntPtrMap, gu_type(PgfProdSeq));
 
-typedef GuStringMap PgfLinProds;
-static GU_DEFINE_TYPE(PgfLinProds, GuStringPtrMap, gu_type(PgfCncProds));
+typedef GuStrMap PgfLinProds;
+static GU_DEFINE_TYPE(PgfLinProds, GuStrPtrMap, gu_type(PgfCncProds));
 
 
 static unsigned
@@ -100,8 +100,8 @@ static GU_DEFINE_TYPE(PgfInferMap, GuPtrMap,
 		      &pgf_lzr_cats_hash, &pgf_lzr_cats_eq,
 		      gu_type(PgfCCatIds), gu_type(PgfLinInferEntry));
 
-typedef GuStringMap PgfFunIndices;
-static GU_DEFINE_TYPE(PgfFunIndices, GuStringPtrMap, gu_type(PgfInferMap));
+typedef GuStrMap PgfFunIndices;
+static GU_DEFINE_TYPE(PgfFunIndices, GuStrPtrMap, gu_type(PgfInferMap));
 
 GU_MAP_DEFINE(PgfCoerceIdx, pgf_coerce_idx, R, PgfCCat, R, PgfCCatSeq, 
 	      NULL, NULL, NULL);
@@ -140,12 +140,11 @@ pgf_lzr_add_infer_entry(PgfLzr* lzr,
 		// XXX: What about the hypos in the args?
 		gu_list_index(arg_cats, i) = gu_list_index(args, i).ccat;
 	}
-	gu_debug("%d,%d,%d -> %d," GU_STRING_FMT,
+	gu_debug("%d,%d,%d -> %d, %s",
 		 n_args > 0 ? gu_list_index(arg_cats, 0)->fid : -1,
 		 n_args > 1 ? gu_list_index(arg_cats, 1)->fid : -1,
 		 n_args > 2 ? gu_list_index(arg_cats, 2)->fid : -1,
-		 cat->fid,
-		 GU_STRING_FMT_ARGS(papply->fun->fun));
+		 cat->fid, papply->fun->fun);
 	PgfLinInfers* entries = gu_map_get(infer_table, arg_cats);
 	if (entries == NULL) {
 		entries = pgf_lin_infers_new(lzr->pool);
@@ -171,15 +170,13 @@ pgf_lzr_index(PgfLzr* lzr, PgfCCat* cat, PgfProduction prod)
 	case PGF_PRODUCTION_APPLY: {
 		PgfProductionApply* papply = data;
 		PgfInferMap* infer =
-			gu_stringmap_get(lzr->fun_indices, papply->fun->fun);
-		gu_debug("index: " GU_STRING_FMT " -> %d",
-			 GU_STRING_FMT_ARGS(papply->fun->fun),
-			 cat->fid);
+			gu_strmap_get(lzr->fun_indices, papply->fun->fun);
+		gu_debug("index: %s -> %d", papply->fun->fun, cat->fid);
 		if (infer == NULL) {
 			infer = gu_map_new(lzr->pool, 
 					   &pgf_lzr_cats_hash, 
 					   &pgf_lzr_cats_eq);
-			gu_stringmap_set(lzr->fun_indices,
+			gu_strmap_set(lzr->fun_indices,
 					 papply->fun->fun, infer);
 		}
 		pgf_lzr_add_infer_entry(lzr, infer, cat, papply);
@@ -229,8 +226,7 @@ pgf_lzr_index_cnccat_cb(GuMapIterFn* fn, const void* key, void* value)
 	(void) key;
 	PgfLzrIndexFn* clo = (PgfLzrIndexFn*) fn;
 	PgfCncCat* cnccat = value;
-	gu_enter("-> cnccat: " GU_STRING_FMT,
-		 GU_STRING_FMT_ARGS(cnccat->cid));
+	gu_enter("-> cnccat: %s", cnccat->cid);
 	int n_ccats = gu_list_length(cnccat->cats);
 	for (int i = 0; i < n_ccats; i++) {
 		PgfCCat* cat = gu_list_index(cnccat->cats, i);
@@ -249,7 +245,7 @@ pgf_lzr_new(GuPool* pool, PgfPGF* pgf, PgfConcr* cnc)
 	lzr->pgf = pgf;
 	lzr->cnc = cnc;
 	lzr->pool = pool;
-	lzr->fun_indices = gu_stringmap_new(pool);
+	lzr->fun_indices = gu_strmap_new(pool);
 	lzr->coerce_idx = pgf_coerce_idx_new(pool);
 	PgfLzrIndexFn clo = { { pgf_lzr_index_cnccat_cb }, lzr };
 	gu_map_iter((GuMap*)cnc->cnccats, &clo.fn);
@@ -320,8 +316,7 @@ pgf_lzn_infer_apply_try(PgfLzn* lzn, PgfApplication* appl,
 			PgfCCatIds* arg_cats, int* ip, int n_args, 
 			GuPool* pool, PgfLinFormApp* app_out)
 {
-	gu_enter("f: " GU_STRING_FMT ", *ip: %d, n_args: %d",
-		 GU_STRING_FMT_ARGS(appl->fun), *ip, n_args);
+	gu_enter("f: %s, *ip: %d, n_args: %d", appl->fun, *ip, n_args);
 	PgfCCat* ret = NULL;
 	while (*ip < n_args) {
 		PgfLinForm* arg_treep = 
@@ -361,9 +356,8 @@ static PgfCCat*
 pgf_lzn_infer_application(PgfLzn* lzn, PgfApplication* appl, 
 			  GuPool* pool, PgfLinForm* form_out)
 {
-	PgfInferMap* infer = gu_stringmap_get(lzn->lzr->fun_indices, appl->fun);
-	gu_enter("-> f: " GU_STRING_FMT ", n_args: %d",
-		 GU_STRING_FMT_ARGS(appl->fun), appl->n_args);
+	PgfInferMap* infer = gu_strmap_get(lzn->lzr->fun_indices, appl->fun);
+	gu_enter("-> f: %s, n_args: %d", appl->fun, appl->n_args);
 	if (infer == NULL) {
 		gu_exit("<- couldn't find f");
 		return NULL;
@@ -571,9 +565,8 @@ pgf_file_lzn_symbol_tokens(PgfLinFuncs** funcs, PgfTokens* toks)
 {
 	PgfFileLin* flin = gu_container(funcs, PgfFileLin, funcs);
 	for (int i = 0; i < toks->len; i++) {
-		PgfToken* tok = toks->elems[i];
-		fprintf(flin->file, 
-			GU_STRING_FMT " ", GU_STRING_FMT_ARGS(tok));
+		PgfToken tok = toks->elems[i];
+		fprintf(flin->file, "%s ", tok);
 	}
 }
 

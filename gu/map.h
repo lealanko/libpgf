@@ -84,6 +84,11 @@ GU_MAP_DEFINE(GuPtrMap, gu_ptrmap, R, void, R, void, NULL, NULL, NULL);
 GU_MAP_DEFINE(GuStringMap, gu_stringmap, R, GuString, R, void, NULL,
 	      &gu_string_hash, &gu_string_eq);
 
+#include <gu/str.h>
+
+GU_MAP_DEFINE(GuStrMap, gu_strmap, V, GuCStr, R, void, NULL,
+	      &gu_str_hash, &gu_str_eq);
+
 #define GU_INTMAP_DEFINE(t_, pfx, VM, v_, empty_v_) \
 	GU_MAP_DEFINE(t_, pfx, V, int, VM, v_, empty_v_, \
 		      &gu_int_hash, &gu_int_eq);
@@ -150,6 +155,16 @@ typedef GuType_GuMap GuType_GuStringMap;
 #define GuStringPtrMap GuStringMap
 #define GU_TYPE_INIT_GuStringPtrMap(k_, t_, vt_)	\
 	GU_TYPE_INIT_GuStringMap(k_, t_, false, vt_, NULL)
+
+extern GU_DECLARE_KIND(GuStrMap);
+typedef GuType_GuMap GuType_GuStrMap;
+#define GU_TYPE_INIT_GuStrMap(k_, t_, dv_, vt_, ev_)			\
+	GU_TYPE_INIT_GuMap(k_, t_, &gu_str_hash, &gu_str_eq,	\
+			   true, gu_type(GuStr), dv_, vt_, ev_)
+
+#define GuStrPtrMap GuStrMap
+#define GU_TYPE_INIT_GuStrPtrMap(k_, t_, vt_)	\
+	GU_TYPE_INIT_GuStrMap(k_, t_, false, vt_, NULL)
 
 
 

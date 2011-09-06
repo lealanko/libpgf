@@ -22,7 +22,7 @@ typedef enum {
 
 typedef struct {
 	PgfBindType bind_type;
-	PgfCId* id; // 
+	PgfCId id; // 
 	PgfExpr body;
 } PgfExprAbs;
 		
@@ -40,7 +40,7 @@ typedef struct {
 } PgfExprMeta;
 
 typedef struct {
-	PgfCId* fun;
+	PgfCId fun;
 } PgfExprFun;
 
 typedef struct {
@@ -68,7 +68,7 @@ pgf_expr_unwrap(PgfExpr expr);
 typedef struct PgfApplication PgfApplication;
 
 struct PgfApplication {
-	PgfCId* fun;
+	PgfCId fun;
 	int n_args;
 	PgfExpr args[];
 };

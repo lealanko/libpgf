@@ -36,7 +36,7 @@ struct PgfLinFuncs {
 	void (*symbol_expr)(PgfLinFuncs** self, 
 			    int argno, PgfExpr expr, int lin_idx);
 
-	void (*expr_apply)(PgfLinFuncs** self, PgfCId* cid, int n_symbols);
+	void (*expr_apply)(PgfLinFuncs** self, PgfCId cid, int n_symbols);
 	void (*expr_literal)(PgfLinFuncs** self, PgfLiteral lit);
 
 	void (*abort)(PgfLinFuncs** self);

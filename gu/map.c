@@ -101,29 +101,37 @@ gu_map_lookup(GuMap* map, const void* key, size_t* idx_out)
 				break;
 			}
 		}
+	} else if (!key_size) {
+		for (idx = hash % n; ; idx = (idx + offset) % n) {
+			const void* entry_key = 
+				gu_map_field_get(&map->keys, idx);
+			if (entry_key == &gu_map_empty_key) {
+				break;
+			}
+			if (gu_apply(eq_fn, key, entry_key)) {
+				present = true;
+				break;
+			}
+		}
 	} else {
 		for (idx = hash % n; ; idx = (idx + offset) % n) {
 			const void* entry_key = 
 				gu_map_field_get(&map->keys, idx);
-			if (gu_apply(eq_fn, key, entry_key)) {
-				present = true;
-				break;
-			} 
-			if (!key_size) {
-				if (entry_key == &gu_map_empty_key) {
-					break;
-				}
-			} else if (memcmp(entry_key, 
-					  &gu_map_empty_key, 
-					  GU_MIN(key_size, 
-						 sizeof(gu_map_empty_key)))
-				   == 0) {
+			if (memcmp(entry_key, 
+				   &gu_map_empty_key, 
+				   GU_MIN(key_size, 
+					  sizeof(gu_map_empty_key)))
+			    == 0) {
 				// potentially empty, verify from value
 				void* entry_value = 
 					gu_map_field_get(&map->values, idx);
 				if (gu_map_value_is_empty(map, entry_value)) {
 					break;
 				}
+			}
+			if (gu_apply(eq_fn, key, entry_key)) {
+				present = true;
+				break;
 			}
 		}
 	}
@@ -276,6 +284,7 @@ gu_map_new_from_type(GuMapType* mtype, GuPool* pool)
 GU_DEFINE_KIND(GuPtrMap, GuMap);
 GU_DEFINE_KIND(GuMap, abstract);
 GU_DEFINE_KIND(GuStringMap, GuMap);
+GU_DEFINE_KIND(GuStrMap, GuMap);
 GU_DEFINE_KIND(GuIntMap, GuMap);
 
 

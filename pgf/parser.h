@@ -12,10 +12,10 @@ PgfParser*
 pgf_parser_new(PgfConcr* concr, GuPool* pool);
 
 PgfParse*
-pgf_parser_parse(PgfParser* parser, PgfCId* cat, int lin_idx, GuPool* pool);
+pgf_parser_parse(PgfParser* parser, PgfCId cat, int lin_idx, GuPool* pool);
 
 PgfParse*
-pgf_parse_token(PgfParse* parse, PgfToken* tok, GuPool* pool);
+pgf_parse_token(PgfParse* parse, PgfToken tok, GuPool* pool);
 
 PgfParseResult*
 pgf_parse_result(PgfParse* parse, GuPool* pool);

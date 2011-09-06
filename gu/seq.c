@@ -132,3 +132,14 @@ gu_char_seq_to_string(GuCharSeq* charq, GuPool* pool)
 	}
 	return string;
 }
+
+char*
+gu_char_seq_to_str(GuCharSeq* charq, GuPool* pool)
+{
+	int size = gu_char_seq_size(charq);
+	char* str = gu_str_alloc(size, pool);
+	for (int i = 0; i < size; i++) {
+		str[i] = *gu_char_seq_index(charq, i);
+	}
+	return str;
+}

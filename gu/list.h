@@ -138,5 +138,14 @@ typedef GuCStrings* GuCStringsP;
 extern GU_DECLARE_TYPE(GuStrings, GuList);
 extern GU_DECLARE_TYPE(GuStringsP, pointer);
 
+#include <gu/str.h>
+
+typedef GuList(GuStr) GuStrs;
+typedef GuList(GuCStr) GuCStrs;
+typedef GuStrs* GuStrsP;
+		       
+extern GU_DECLARE_TYPE(GuStrs, GuList);
+extern GU_DECLARE_TYPE(GuStrsP, pointer);
+
 
 #endif // GU_LIST_H_

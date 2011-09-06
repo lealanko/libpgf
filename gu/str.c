@@ -6,7 +6,16 @@ char*
 gu_str_alloc(int size, GuPool* pool)
 {
 	char* str = gu_malloc_aligned(pool, size + 1, 1);
-	memset(str, 0, size + 1);
+	str[size] = '\0';
+	return str;
+}
+
+char*
+gu_strdup(const char* cstr, GuPool* pool)
+{
+	int len = strlen(cstr);
+	char* str = gu_str_alloc(len, pool);
+	memcpy(str, cstr, len);
 	return str;
 }
 
@@ -17,7 +26,7 @@ gu_vasprintf(const char* fmt, va_list args, GuPool* pool)
 	va_copy(args2, args);
 	int len = vsnprintf(NULL, 0, fmt, args2);
 	va_end(args2);
-	char* str = gu_malloc_aligned(pool, len + 1, 1);
+	char* str = gu_str_alloc(len, pool);
 	vsnprintf(str, len + 1, fmt, args);
 	return str;
 }

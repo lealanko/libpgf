@@ -43,7 +43,7 @@ GuPrimType GU_TYPE_IDENT(void) = {
 		.size = 0,
 		.align = 1,
 	},
-	.name = gu_cstring("void"),
+	.name = "void",
 };
 
 GU_DEFINE_KIND(enum, repr);
