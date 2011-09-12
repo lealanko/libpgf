@@ -8,6 +8,7 @@ struct GuSeq {
 	int buf_size;
 	int n_elems;
 	int head_idx;
+	GuFinalizer fin;
 };
 
 static void
@@ -18,10 +19,9 @@ gu_seq_assert_invariant(GuSeq* seq)
 }
 
 static void
-gu_seq_free_fn(GuFn* fnp)
+gu_seq_free_fn(GuFinalizer* fin)
 {
-	GuClo1* clo = (GuClo1*) fnp;
-	GuSeq* seq = clo->env1;
+	GuSeq* seq = gu_container(fin, GuSeq, fin);
 	gu_mem_buf_free(seq->buf);
 }
 
@@ -33,8 +33,8 @@ gu_seq_new(GuPool* pool)
 	seq->buf = NULL;
 	seq->buf_size = 0;
 	seq->head_idx = 0;
-	GuClo1* clo = gu_new_s(pool, GuClo1, gu_seq_free_fn, seq);
-	gu_pool_finally(pool, &clo->fn);
+	seq->fin.fn = gu_seq_free_fn;
+	gu_pool_finally(pool, &seq->fin);
 	gu_seq_assert_invariant(seq);
 	return seq;
 }

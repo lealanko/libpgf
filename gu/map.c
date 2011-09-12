@@ -24,6 +24,7 @@ struct GuMap {
 	GuMapField values;
 
 	const void* empty_value;
+	GuFinalizer fin;
 };
 
 static const uint64_t gu_map_empty_key = UINT64_C(0xdeadc0defee15bad);
@@ -53,10 +54,9 @@ gu_map_field_set(GuMapField* fld, size_t idx, void* val)
 }
 
 static void
-gu_map_finalize(GuFn* fnp)
+gu_map_finalize(GuFinalizer* fin)
 {
-	GuClo1* clo = gu_container(fnp, GuClo1, fn);
-	GuMap* map = clo->env1;
+	GuMap* map = gu_container(fin, GuMap, fin);
 	gu_mem_buf_free(map->keys.data);
 	gu_mem_buf_free(map->values.data);
 }
@@ -149,7 +149,7 @@ gu_map_resize(GuMap* map)
 	GuMapField old_values = map->values;
 	int old_n_entries = map->n_entries;
 
-	int req_entries = (map->n_occupied + 1) * 5 / 4;
+	int req_entries = GU_MAX(11, map->n_occupied * 4 / 3 + 1);
 
 	size_t key_size = gu_map_field_size(&map->keys);
 	size_t key_alloc = 0;
@@ -260,12 +260,8 @@ gu_map_new_full(GuPool* pool, GuHashFn* hash_fn, GuEqFn* eq_fn,
 	} else {
 		map->empty_value = empty_value;
 	}
-
-	GuClo1* clo = gu_new_s(
-		pool, GuClo1,
-		.fn = gu_map_finalize,
-		.env1 = map);
-	gu_pool_finally(pool, &clo->fn);
+	map->fin.fn = gu_map_finalize;
+	gu_pool_finally(pool, &map->fin);
 	gu_map_resize(map);
 	return map;
 }

@@ -1,6 +1,7 @@
 #include <gu/assert.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <stdarg.h>
 
 const char*
 gu_assert_mode_descs[] = {
@@ -19,5 +20,21 @@ gu_abort_(GuAssertMode mode, const char* msg,
 	if (msg != NULL) {
 		(void) fprintf(stderr, "\t%s\n", msg);
 	}
+	abort();
+}
+
+
+
+void 
+gu_fatal(const char* fmt, ...)
+{
+	va_list args;
+	va_start(args, fmt);
+	fputs("Fatal error", stderr);
+	if (fmt) {
+		fputs(": ", stderr);
+		(void) vfprintf(stderr, fmt, args);
+	}
+	fputc('\n', stderr);
 	abort();
 }

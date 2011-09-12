@@ -28,6 +28,12 @@
 #include <gu/defs.h>
 #include <gu/fun.h>
 
+typedef struct GuFinalizer GuFinalizer;
+
+struct GuFinalizer {
+	void (*fn)(GuFinalizer* self);
+};
+
 /// @name Memory pools
 /// @{
 
@@ -40,7 +46,7 @@ GuPool* gu_pool_new(void);
  */
 
 
-void gu_pool_finally(GuPool* pool, GuFn0* finalize);
+void gu_pool_finally(GuPool* pool, GuFinalizer* finalize);
 /**< Register a function to be run when the pool is freed.
  *
  * @relates GuPool */

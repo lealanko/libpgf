@@ -31,4 +31,7 @@ gu_abort_(GuAssertMode mode, const char* msg,
 #define gu_ensure(expr) gu_assertion_(GU_ASSERT_POSTCOND, expr, #expr)
 #define gu_impossible() gu_assertion_(GU_ASSERT_ASSERTION, false, NULL)
 
+void 
+gu_fatal(const char* fmt, ...);
+
 #endif /* GU_ASSERT_H_ */

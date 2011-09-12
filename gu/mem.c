@@ -21,321 +21,77 @@
 #include <gu/fun.h>
 #include <gu/bits.h>
 #include <gu/assert.h>
+#include <gu/log.h>
 #include <string.h>
 #include <stdlib.h>
 
-// #define GU_MEM_DEBUG
+static const size_t
+// Maximum request size for a chunk. The actual maximum chunk size
+// may be somewhat larger.
+gu_mem_chunk_max_size = 1024 * sizeof(void*),
 
-#ifdef GU_MEM_DEBUG
-#include <stdio.h>
-#endif // GU_MEM_DEBUG
+// number of bytes to allocate in the pool when it is created
+	gu_mem_pool_initial_size = 16 * sizeof(void*),
 
-
-enum {
-	// Must be maximally aligned.
-	GU_MEM_UNIT_SIZE = 64,
-
-	GU_MEM_CHUNK_MAX_UNITS = 144,
-	// Should be a fibonacci number.
-
+// Pool allocations larger than this will get their own chunk if
+// there's no room in the current one. Allocations smaller than this may trigger
+// the creation of a new chunk, in which case the remaining space in
+// the current chunk is left unused (internal fragmentation).
+	gu_mem_max_shared_alloc = 64 * sizeof(void*),
 	
-	GU_MEM_CHUNK_DEDICATED_THRESHOLD = 256,
-	
-	// malloc tuning
-	// these defaults are tuned for glibc
-	
-	// The additional memory used by malloc next to the allocated
-	// object
-	GU_MALLOC_OVERHEAD = sizeof(size_t),
+// Should not be smaller than the granularity for malloc
+	gu_mem_unit_size = 2 * sizeof(void*),
 
-	// Alignment of memory returned by malloc
-	GU_MALLOC_ALIGNMENT = GU_MAX(gu_alignof(long double),
-				  2 * GU_MALLOC_OVERHEAD),
-};
-
-GU_STATIC_ASSERT(GU_MEM_CHUNK_MAX_UNITS <= UINT8_MAX);
-
-// We use lowermost bits of struct pointers for tags,
-// hence we must make sure that there is space for them.
-GU_STATIC_ASSERT(gu_alignof(GuPool*) >= 4);
+/* Malloc tuning: the additional memory used by malloc next to the
+   allocated object */
+	gu_malloc_overhead = sizeof(size_t);
 
 
-typedef struct GuMemNode GuMemNode;
-
-struct GuMemNode {
-	uintptr_t u;
-};
-
-typedef enum {
-	GU_MEM_NODE_CHUNK = 0x0,
-	GU_MEM_NODE_FINALIZER = 0x1,
-	GU_MEM_NODE_DEDICATED = 0x2,
-	GU_MEM_NODE_POOL = 0x3,
-} GuMemNodeTag;
-
-static GuMemNodeTag
-gu_mem_node_tag(GuMemNode node)
-{
-	return node.u & 0x3;
-}
-
-static void*
-gu_mem_node_addr(GuMemNode node)
-{
-	return (void*) (node.u & ~0x3);
-}
-
-static GuMemNode
-gu_mem_node(GuMemNodeTag tag, void* addr)
-{
-	uintptr_t u = (uintptr_t) addr;
-	gu_assert((u & 0x3) == 0);
-	return (GuMemNode) { u | (uintptr_t) tag };
-}
 
 
-typedef struct GuMemFinalizer GuMemFinalizer;	
-
-struct GuMemFinalizer {
-	GuMemNode next;
-	GuFn0* finalizer;
-};
-
-typedef struct GuMemChunk GuMemChunk;
-
-struct GuMemChunk {
-	GuMemNode next;
-	uint8_t data[];
-};
-
-struct GuPool {
-	uint8_t* curr_buf; // actually GuMemChunk*
-	uint16_t left_edge;
-	uint16_t right_edge;
-	uint8_t curr_size;
-	uint8_t next_size;
-	bool in_stack : 1;
-	uint8_t init_buf[];
-};
+typedef union {
+	char c;
+	short s;
+	int i;
+	long l;
+	long long ll;
+	intmax_t im;
+	float f;
+	double d;
+	long double ld;
+	void* p;
+	void (*fp)();
+} GuMaxAlign;
 
 
 static void*
-gu_mem_alloc(size_t size) 
+gu_mem_realloc(void* p, size_t size)
 {
-	void* p = malloc(size);
-	gu_assert(p != NULL);
-#ifdef GU_MEM_DEBUG
-	fprintf(stderr, "malloc %u: %p\n", (unsigned) size, p);
-#endif
-	return p;
+	void* buf = realloc(p, size);
+	if (size != 0 && buf == NULL) {
+		gu_fatal("Memory allocation failed");
+	}
+	gu_debug("%p %zu -> %p", p, size, buf); // strictly illegal
+	return buf;
 }
-#define gu_mem_flex_new(t,m,n)			\
-	((t*) gu_mem_alloc(GU_FLEX_SIZE(t,m,n)))
+
+static void*
+gu_mem_alloc(size_t size)
+{
+	void* buf = malloc(size);
+	if (buf == NULL) {
+		gu_fatal("Memory allocation failed");
+	}
+	gu_debug("%zu -> %p", size, buf);
+	return buf;
+}
 
 static void
 gu_mem_free(void* p)
 {
-#ifdef GU_MEM_DEBUG
-	fprintf(stderr, "free: %p\n", p);
-#endif
+	gu_debug("%p", p);
 	free(p);
 }
-
-GuPool* 
-gu_pool_init(void* p, size_t size, bool in_stack)
-{
-	gu_assert(size >= offsetof(GuPool, init_buf));
-	GuPool* pool = p;
-	pool->curr_buf = (uint8_t*) pool;
-	pool->left_edge = offsetof(GuPool, init_buf);
-	pool->right_edge = size;
-	pool->in_stack = in_stack;
-	if (in_stack) {
-		pool->curr_size = 1;
-		pool->next_size = 0;
-	} else {
-		pool->curr_size = 0;
-		pool->next_size = 1;
-	}
-	return pool;
-}
-
-
-GuPool*
-gu_pool_new(void) 
-{
-	size_t size = GU_MEM_UNIT_SIZE - GU_MALLOC_OVERHEAD;
-	void* p = gu_mem_alloc(size);
-	return gu_pool_init(p, size, false);
-}
-
-static size_t
-gu_pool_expansion_size(GuPool* pool, size_t alignment)
-{
-	size_t next_size = gu_max(pool->next_size, 1);
-	size_t chunk_size = (next_size * GU_MEM_UNIT_SIZE
-			     - GU_MALLOC_OVERHEAD);
-	size_t offset = gu_align_forward(offsetof(GuMemChunk, data), alignment);
-	return chunk_size - offset;
-}
-
-static GuMemNode
-gu_pool_root_node(GuPool* pool)
-{
-	void* p = pool->curr_buf;
-	GuMemNodeTag tag = p == pool ? GU_MEM_NODE_POOL : GU_MEM_NODE_CHUNK;
-	return gu_mem_node(tag, p);
-}
-
-static void
-gu_pool_expand(GuPool* pool)
-{
-	size_t data_size = gu_pool_expansion_size(pool, 1);
-	GuMemChunk* chunk = gu_mem_flex_new(GuMemChunk, data, data_size);
-	chunk->next = gu_pool_root_node(pool);
-	size_t curr_size = pool->curr_size;
-	pool->curr_size = pool->next_size;
-	pool->next_size += curr_size;
-	pool->curr_buf = (uint8_t*) chunk;
-	pool->left_edge = offsetof(GuMemChunk, data);
-	pool->right_edge = pool->left_edge + data_size;
-}
-
-static GuMemChunk*
-gu_pool_curr_chunk(GuPool* pool)
-{
-	if (pool->curr_buf == (uint8_t*) pool) {
-		gu_pool_expand(pool);
-		gu_assert(pool->curr_buf != (uint8_t*) pool);
-	}
-	return (GuMemChunk*) pool->curr_buf;
-}		
-
-
-void*
-gu_pool_malloc_large(GuPool* pool, size_t size, size_t alignment) {
-	gu_assert(alignment > 0);
-	size_t extra = (gu_align_forward(offsetof(GuMemChunk, data), alignment)
-			- offsetof(GuMemChunk, data));
-	GuMemChunk* chunk = gu_mem_flex_new(GuMemChunk, data, extra + size);
-	GuMemChunk* curr = gu_pool_curr_chunk(pool);
-	chunk->next = curr->next;
-	curr->next = gu_mem_node(GU_MEM_NODE_DEDICATED, chunk);
-	return &chunk->data[extra];
-}
-
-void*
-gu_pool_malloc_aligned(GuPool* pool, size_t size, size_t alignment) 
-{
-	gu_assert(alignment > 0);
-	gu_assert(size < GU_MEM_CHUNK_DEDICATED_THRESHOLD);
-	size_t left = gu_align_forward(pool->left_edge, alignment);
-	size_t avail = pool->right_edge - left;
-	if (size <= avail) {
-		pool->left_edge = left + size;
-		return &pool->curr_buf[left];
-	} else if (size <= gu_pool_expansion_size(pool, alignment)) {
-		gu_pool_expand(pool);
-		return gu_pool_malloc_aligned(pool, size, alignment);
-	} else {
-		return gu_pool_malloc_large(pool, size, alignment);
-	}
-}
-
-void*
-gu_pool_malloc_unaligned(GuPool* pool, size_t size)
-{
-	size_t right = pool->right_edge;
-	size_t avail = right - pool->left_edge;
-	if (size <= avail) {
-		right -= size;
-		pool->right_edge = right;
-		return &pool->curr_buf[right];
-	} else if (size <= gu_pool_expansion_size(pool, 1)) {
-		gu_pool_expand(pool);
-		return gu_pool_malloc_unaligned(pool, size);
-	} else {
-		return gu_pool_malloc_large(pool, size, 1);
-	}
-}
-
-void*
-gu_malloc_aligned(GuPool* pool, size_t size, size_t alignment)
-{
-	if (size >= GU_MEM_CHUNK_DEDICATED_THRESHOLD) {
-		return gu_pool_malloc_large(pool, size, alignment);
-	} else if (alignment > 1) {
-		return gu_pool_malloc_aligned(pool, size, alignment);
-	} else {
-		return gu_pool_malloc_unaligned(pool, size);
-	}
-}
-
-
-void 
-gu_pool_finally(GuPool* pool, GuFn0* finalize)
-{
-	GuMemFinalizer* fin = gu_new(pool, GuMemFinalizer);
-	fin->finalizer = finalize;
-	GuMemChunk* curr = gu_pool_curr_chunk(pool);
-	fin->next = curr->next;
-	curr->next = gu_mem_node(GU_MEM_NODE_FINALIZER, fin);
-}
-
-void
-gu_pool_free(GuPool* pool)
-{
-	GuMemChunk* chunk = NULL;
-	GuMemNode node = gu_pool_root_node(pool);
-	GuMemNodeTag tag;
-	do {
-		tag = gu_mem_node_tag(node);
-		void* addr = gu_mem_node_addr(node);
-		switch (tag) {
-		case GU_MEM_NODE_FINALIZER: {
-			// Finalizers are allocated from within chunks,
-			// so don't free, just run the finalizer.
-			GuMemFinalizer* fin = addr;
-			node = fin->next;
-			(*fin->finalizer)(fin->finalizer);
-			break;
-		}
-		case GU_MEM_NODE_DEDICATED: {
-			// Just an individually allocated chunk
-			GuMemChunk* dedicated = addr;
-			node = dedicated->next;
-			gu_mem_free(dedicated);
-			break;
-		}
-		case GU_MEM_NODE_CHUNK: {
-			// The finalizers between this chunk and the next are
-			// allocated from this chunk. Hence, keep this in
-			// memory and free the previous chunk.
-			if (chunk != NULL) {
-				gu_mem_free(chunk);
-			}
-			chunk = addr;
-			node = chunk->next;
-			break;
-		}
-		case GU_MEM_NODE_POOL: {
-			if (chunk != NULL) {
-				gu_mem_free(chunk);
-			}
-		}
-		}
-	} while (tag != GU_MEM_NODE_POOL);
-	if (!pool->in_stack) {
-		gu_mem_free(pool);
-	}
-}
-
-
-extern inline void* gu_malloc(GuPool* pool, size_t size);
-
-extern inline void* 
-gu_malloc_init_aligned(GuPool* pool, size_t size, size_t alignment, 
-		       const void* init);
 
 static size_t
 gu_mem_padovan(size_t min)
@@ -363,13 +119,11 @@ gu_mem_padovan(size_t min)
 void*
 gu_mem_buf_realloc(void* old_buf, size_t min_size, size_t* real_size_out)
 {
-	size_t min_blocks = ((min_size + GU_MALLOC_OVERHEAD - 1) / GU_MEM_UNIT_SIZE) + 1;
+	size_t min_blocks = ((min_size + gu_malloc_overhead - 1) /
+			     gu_mem_unit_size) + 1;
 	size_t blocks = gu_mem_padovan(min_blocks);
-	size_t size = blocks * GU_MEM_UNIT_SIZE - GU_MALLOC_OVERHEAD;
-	void* buf = realloc(old_buf, size);
-	if (buf == NULL) {
-		size = 0;
-	}
+	size_t size = blocks * gu_mem_unit_size - gu_malloc_overhead;
+	void* buf = gu_mem_realloc(old_buf, size);
 	*real_size_out = size;
 	return buf;
 }
@@ -382,5 +136,179 @@ gu_mem_buf_alloc(size_t min_size, size_t* real_size_out)
 void
 gu_mem_buf_free(void* buf)
 {
-	free(buf);
+	gu_mem_free(buf);
 }
+
+
+typedef struct GuMemChunk GuMemChunk;
+
+struct GuMemChunk {
+	GuMemChunk* next;
+	uint8_t data[];
+};
+
+typedef struct GuFinalizerNode GuFinalizerNode;
+
+struct GuFinalizerNode {
+	GuFinalizerNode* next;
+	GuFinalizer* fin;
+};
+
+struct GuPool {
+	uint8_t* curr_buf; // actually GuMemChunk*
+	GuMemChunk* chunks;
+	GuFinalizerNode* finalizers;
+	uint16_t left_edge;
+	uint16_t right_edge;
+	uint16_t curr_size;
+	uint8_t init_buf[];
+};
+
+GuPool* 
+gu_pool_new(void)
+{
+	size_t sz = GU_FLEX_SIZE(GuPool, init_buf, gu_mem_pool_initial_size);
+	GuPool* pool = gu_mem_buf_alloc(sz, &sz);
+	pool->curr_size = sz;
+	pool->curr_buf = (uint8_t*) pool;
+	pool->chunks = NULL;
+	pool->finalizers = NULL;
+	pool->left_edge = offsetof(GuPool, init_buf);
+	pool->right_edge = sz;
+	return pool;
+}
+
+static void
+gu_pool_expand(GuPool* pool, size_t req)
+{
+	size_t real_req = GU_MAX(req, GU_MIN(((size_t)pool->curr_size) + 1,
+					     gu_mem_chunk_max_size));
+	gu_assert(real_req >= sizeof(GuMemChunk));
+	size_t size = 0;
+	GuMemChunk* chunk = gu_mem_buf_alloc(real_req, &size);
+	chunk->next = pool->chunks;
+	pool->chunks = chunk;
+	pool->curr_buf = (uint8_t*) chunk;
+	pool->left_edge = offsetof(GuMemChunk, data);
+	pool->right_edge = pool->curr_size = size;
+	// size should always fit in uint16_t
+	gu_assert((size_t) pool->right_edge == size); 
+}
+
+static size_t
+gu_mem_advance(size_t old_pos, size_t pre_align, size_t pre_size,
+	       size_t align, size_t size)
+{
+	size_t p = gu_align_forward(old_pos, pre_align);
+	p += pre_size;
+	p = gu_align_forward(p, align);
+	p += size;
+	return p;
+}
+
+static void*
+gu_pool_malloc_aligned(GuPool* pool, size_t pre_align, size_t pre_size,
+		       size_t align, size_t size) 
+{
+	gu_require(pre_align > 0 && align > 0);
+	gu_require(size <= gu_mem_max_shared_alloc);
+	size_t pos = gu_mem_advance(pool->left_edge, pre_align, pre_size,
+				    align, size);
+	if (pos > (size_t) pool->right_edge) {
+		pos = gu_mem_advance(offsetof(GuMemChunk, data),
+				     pre_align, pre_size, align, size);
+		gu_pool_expand(pool, pos);
+		gu_assert(pos <= pool->right_edge);
+	} 
+	pool->left_edge = pos;
+	return &pool->curr_buf[pos - size];
+
+}
+
+static size_t
+gu_pool_avail(GuPool* pool)
+{
+	return (size_t) pool->right_edge - (size_t) pool->left_edge;
+}
+
+void*
+gu_pool_malloc_unaligned(GuPool* pool, size_t size)
+{
+	if (size > gu_pool_avail(pool)) {
+		gu_pool_expand(pool, offsetof(GuMemChunk, data) + size);
+		gu_assert(size <= gu_pool_avail(pool));
+	}
+	pool->right_edge -= size;
+	return &pool->curr_buf[pool->right_edge];
+}
+
+void*
+gu_malloc_prefixed(GuPool* pool, size_t pre_align, size_t pre_size,
+		   size_t align, size_t size)
+{
+	gu_require(gu_aligned(pre_size, pre_align));
+	gu_require(gu_aligned(size, align));
+	size_t full_size = gu_mem_advance(offsetof(GuMemChunk, data),
+					  pre_align, pre_size, align, size);
+	if (full_size > gu_mem_max_shared_alloc) {
+		GuMemChunk* chunk = gu_mem_alloc(full_size);
+		chunk->next = pool->chunks;
+		pool->chunks = chunk;
+		return &chunk->data[full_size - size
+				    - offsetof(GuMemChunk, data)];
+	} else if (pre_align == 1 && align == 1) {
+		uint8_t* buf = gu_pool_malloc_unaligned(pool, pre_size + size);
+		return &buf[pre_size];
+	} else {
+		return gu_pool_malloc_aligned(pool, pre_align, pre_size,
+					      align, size);
+	}
+}
+
+void*
+gu_malloc_aligned(GuPool* pool, size_t size, size_t align)
+{
+	gu_enter("-> %p %zu %zu", pool, size, align);
+	if (align == 0) {
+		align = GU_MIN(size, gu_alignof(GuMaxAlign));
+	}
+	void* ret = gu_malloc_prefixed(pool, 1, 0, align, size);
+	gu_exit("<- %p", ret);
+	return ret;
+}
+
+
+void 
+gu_pool_finally(GuPool* pool, GuFinalizer* finalizer)
+{
+	GuFinalizerNode* node = gu_new(pool, GuFinalizerNode);
+	node->next = pool->finalizers;
+	node->fin = finalizer;
+	pool->finalizers = node;
+}
+
+void
+gu_pool_free(GuPool* pool)
+{
+	GuFinalizerNode* node = pool->finalizers;
+	while (node) {
+		GuFinalizerNode* next = node->next;
+		node->fin->fn(node->fin);
+		node = next;
+	}
+	GuMemChunk* chunk = pool->chunks;
+	while (chunk) {
+		GuMemChunk* next = chunk->next;
+		gu_mem_buf_free(chunk);
+		chunk = next;
+	}
+	gu_mem_buf_free(pool);
+}
+
+
+extern inline void* gu_malloc(GuPool* pool, size_t size);
+
+extern inline void* 
+gu_malloc_init_aligned(GuPool* pool, size_t size, size_t alignment, 
+		       const void* init);
+

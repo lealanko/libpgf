@@ -37,7 +37,7 @@ int main(int argc, char* argv[]) {
 	if (!gu_ok(err)) {
 		fprintf(stderr, "Reading PGF failed\n");
 		status = EXIT_FAILURE;
-		goto fail;
+		goto fail_read;
 	}
 
 	PgfConcr* from_concr = gu_strmap_get(pgf->concretes, from_lang);
@@ -92,6 +92,8 @@ int main(int argc, char* argv[]) {
 		}
 		gu_pool_free(ppool);
 	}
+fail_read:
+	fclose(infile);
 fail:
 	gu_pool_free(pool);
 	return status;

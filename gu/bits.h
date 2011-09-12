@@ -4,11 +4,12 @@
 #include <gu/defs.h>
 #include <gu/assert.h>
 
-typedef unsigned long GuWord;
+typedef uintptr_t GuWord;
 
 enum {
 	GU_WORD_BITS = sizeof(GuWord) * CHAR_BIT
 };
+
 
 /*
  * Based on the Bit Twiddling Hacks collection by Sean Eron Anderson
@@ -26,6 +27,13 @@ static inline size_t
 gu_ceildiv(size_t size, size_t div)
 {
 	return (size + div - 1) / div;
+}
+
+static inline bool
+gu_aligned(uintptr_t addr, size_t alignment)
+{
+	gu_require(alignment == gu_ceil2e(alignment));
+	return (addr & (alignment - 1)) == 0;
 }
 
 static inline uintptr_t
@@ -60,6 +68,29 @@ static inline size_t
 gu_bits_size(size_t n_bits) {
 	return gu_ceildiv(n_bits, GU_WORD_BITS) * sizeof(GuWord);
 }
+
+
+static inline int
+gu_word_tag(GuWord w, size_t alignment) {
+	return (int) (w & (alignment - 1));
+}
+
+static inline void*
+gu_word_ptr(GuWord w, size_t alignment) {
+	return (void*) gu_align_backward(w, alignment);
+}
+
+static inline GuWord
+gu_word(void* ptr, size_t alignment, unsigned tag) {
+	gu_require(tag < alignment);
+	uintptr_t u = (uintptr_t) ptr;
+	gu_require(gu_align_backward(u, alignment) == u);
+	return (GuWord) { u | tag };
+}
+
+#define GuTagged() struct { GuWord w_; }
+
+typedef GuTagged() GuTagged_;
 
 #include <gu/error.h>
 #include <gu/type.h>
