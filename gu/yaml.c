@@ -79,7 +79,7 @@ struct GuYaml {
 	bool indent;
 	int indent_level;
 	bool indented;
-	GuYamlStack* stack;
+	GuYamlStack stack;
 };
 
 

@@ -142,7 +142,7 @@ pgf_expr_parser_lookahead(PgfExprParser* parser)
 	default:
 		if (isalpha(c)) {
 			GuPool* tmp_pool = gu_pool_new();
-			GuCharSeq* charq = gu_char_seq_new(tmp_pool);
+			GuCharSeq charq = gu_char_seq_new(tmp_pool);
 			while (isalnum(c) || c == '_') {
 				gu_char_seq_push(charq, c);
 				c = fgetc(parser->input);

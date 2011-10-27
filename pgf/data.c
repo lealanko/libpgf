@@ -5,10 +5,10 @@
 #include <gu/assert.h>
 
 
-PgfCCat pgf_ccat_string = { NULL, NULL, -1 };
-PgfCCat pgf_ccat_int = { NULL, NULL, -2 };
-PgfCCat pgf_ccat_float = { NULL, NULL, -3 };
-PgfCCat pgf_ccat_var = { NULL, NULL, -4 };
+PgfCCat pgf_ccat_string = { NULL, { GU_SEQ_NULL }, -1 };
+PgfCCat pgf_ccat_int = { NULL, { GU_SEQ_NULL }, -2 };
+PgfCCat pgf_ccat_float = { NULL, { GU_SEQ_NULL }, -3 };
+PgfCCat pgf_ccat_var = { NULL, { GU_SEQ_NULL }, -4 };
 
 PgfCCatId
 pgf_literal_cat(PgfLiteral lit)
@@ -59,7 +59,7 @@ GU_DEFINE_TYPE(PgfType, struct,
 
 GU_DEFINE_TYPE(PgfCCat, struct,
 	       GU_MEMBER_S(PgfCCat, cnccat, PgfCncCat),
-	       GU_MEMBER_P(PgfCCat, prods, PgfProductionSeq));
+	       GU_MEMBER(PgfCCat, prods, PgfProductionSeq));
 
 GU_DEFINE_TYPE(PgfCCatId, shared, gu_type(PgfCCat));
 

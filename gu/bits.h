@@ -69,22 +69,27 @@ gu_bits_size(size_t n_bits) {
 	return gu_ceildiv(n_bits, GU_WORD_BITS) * sizeof(GuWord);
 }
 
+static inline int
+gu_word_max_tag(void)
+{
+	return sizeof(GuWord) - 1;
+}
 
 static inline int
-gu_word_tag(GuWord w, size_t alignment) {
-	return (int) (w & (alignment - 1));
+gu_word_tag(GuWord w) {
+	return (int) (w & (sizeof(GuWord) - 1));
 }
 
 static inline void*
-gu_word_ptr(GuWord w, size_t alignment) {
-	return (void*) gu_align_backward(w, alignment);
+gu_word_ptr(GuWord w) {
+	return (void*) gu_align_backward(w, sizeof(GuWord));
 }
 
 static inline GuWord
-gu_word(void* ptr, size_t alignment, unsigned tag) {
-	gu_require(tag < alignment);
+gu_word(void* ptr, int tag) {
+	gu_require(0 <= tag && tag < (int) sizeof(GuWord));
 	uintptr_t u = (uintptr_t) ptr;
-	gu_require(gu_align_backward(u, alignment) == u);
+	gu_require(gu_align_backward(u, sizeof(GuWord)) == u);
 	return (GuWord) { u | tag };
 }
 
@@ -97,7 +102,7 @@ typedef GuTagged() GuTagged_;
 
 typedef struct { int dummy_; } GuIntDecodeError;
 
-GU_DECLARE_TYPE(GuIntDecodeError, abstract);
+extern GU_DECLARE_TYPE(GuIntDecodeError, abstract);
 
 #define GU_DECODE_2C_(u_, t_, umax_, posmax_, tmin_, err_)	\
 	(((u_) <= (posmax_))					\

@@ -37,7 +37,7 @@ static void dump_int(GuTypeMap* map, GuType* type, void* p) {
 
 static void dump_typedef(GuTypeMap* map, GuType* type, void* p) {
 	GuType_typedef* td = (GuType_typedef*)type;
-	printf(GU_STRING_FMT "(", GU_STRING_FMT_ARGS(td->name));
+	printf("%s(", td->name);
 	dump_aux(map, td->alias_base.type, p);
 	printf(")\n");
 }
@@ -50,7 +50,7 @@ static void dump_struct(GuTypeMap* map, GuType* type, void* p) {
 	
 	for (int i = 0; i < stype->members.len; i++) {
 		GuMember* m = &stype->members.elems[i];
-		printf(GU_STRING_FMT " = ", GU_STRING_FMT_ARGS(m->name));
+		printf("%s = ", m->name);
 		dump_aux(map, m->type, &u[m->offset]);
 		printf(",\n");
 	}

@@ -47,7 +47,7 @@ static GU_DEFINE_TYPE(
 	);
 
 GU_SEQ_DEFINE(PgfLinInfers, pgf_lin_infers, PgfLinInferEntry);
-static GU_DEFINE_TYPE(PgfLinInferSeq, GuSeq, gu_type(PgfLinInferEntry));
+static GU_DEFINE_TYPE(PgfLinInfers, GuSeq, gu_type(PgfLinInferEntry));
 
 typedef GuIntMap PgfCncProds;
 static GU_DEFINE_TYPE(PgfCncProds, GuIntPtrMap, gu_type(PgfProdSeq));
@@ -95,16 +95,21 @@ pgf_lzr_cats_eq_fn(GuEqFn* self, const void* p1, const void* p2)
 static GuEqFn
 pgf_lzr_cats_eq = { pgf_lzr_cats_eq_fn };
 
-typedef GuMap PgfInferMap;
-static GU_DEFINE_TYPE(PgfInferMap, GuPtrMap, 
+GU_MAP_DEFINE(PgfInferMap, pgf_infer_map, 
+	      R, PgfCCatIds, V, PgfLinInfers, GU_SEQ_NULL, 
+	      &pgf_lzr_cats_hash, &pgf_lzr_cats_eq);
+
+static GU_DEFINE_TYPE(PgfInferMap, GuMap, 
 		      &pgf_lzr_cats_hash, &pgf_lzr_cats_eq,
-		      gu_type(PgfCCatIds), gu_type(PgfLinInferEntry));
+		      false, gu_type(PgfCCatIds), 
+		      true, gu_type(PgfLinInfers), 
+		      &(PgfLinInfers) { GU_SEQ_NULL });
 
 typedef GuStrMap PgfFunIndices;
 static GU_DEFINE_TYPE(PgfFunIndices, GuStrPtrMap, gu_type(PgfInferMap));
 
-GU_MAP_DEFINE(PgfCoerceIdx, pgf_coerce_idx, R, PgfCCat, R, PgfCCatSeq, 
-	      NULL, NULL, NULL);
+GU_MAP_DEFINE(PgfCoerceIdx, pgf_coerce_idx, R, PgfCCat, V, PgfCCatSeq, 
+	      GU_SEQ_NULL, NULL, NULL);
 
 static GU_DEFINE_TYPE(PgfCoerceIdx, GuPtrMap, NULL, NULL, 
 		      gu_type(PgfCCat), gu_type(PgfCCatSeq));
@@ -145,10 +150,10 @@ pgf_lzr_add_infer_entry(PgfLzr* lzr,
 		 n_args > 1 ? gu_list_index(arg_cats, 1)->fid : -1,
 		 n_args > 2 ? gu_list_index(arg_cats, 2)->fid : -1,
 		 cat->fid, papply->fun->fun);
-	PgfLinInfers* entries = gu_map_get(infer_table, arg_cats);
-	if (entries == NULL) {
+	PgfLinInfers entries = pgf_infer_map_get(infer_table, arg_cats);
+	if (pgf_lin_infers_is_null(entries)) {
 		entries = pgf_lin_infers_new(lzr->pool);
-		gu_map_set(infer_table, arg_cats, entries);
+		pgf_infer_map_set(infer_table, arg_cats, entries);
 	} else {
 		// XXX: arg_cats is duplicate, we ought to free it
 		// Display warning?
@@ -173,20 +178,18 @@ pgf_lzr_index(PgfLzr* lzr, PgfCCat* cat, PgfProduction prod)
 			gu_strmap_get(lzr->fun_indices, papply->fun->fun);
 		gu_debug("index: %s -> %d", papply->fun->fun, cat->fid);
 		if (infer == NULL) {
-			infer = gu_map_new(lzr->pool, 
-					   &pgf_lzr_cats_hash, 
-					   &pgf_lzr_cats_eq);
+			infer = pgf_infer_map_new(lzr->pool);
 			gu_strmap_set(lzr->fun_indices,
-					 papply->fun->fun, infer);
+				      papply->fun->fun, infer);
 		}
 		pgf_lzr_add_infer_entry(lzr, infer, cat, papply);
 		break;
 	}
 	case PGF_PRODUCTION_COERCE: {
 		PgfProductionCoerce* pcoerce = data;
-		PgfCCatSeq* cats = pgf_coerce_idx_get(lzr->coerce_idx,
-						      pcoerce->coerce);
-		if (cats == NULL) {
+		PgfCCatSeq cats = pgf_coerce_idx_get(lzr->coerce_idx,
+						     pcoerce->coerce);
+		if (pgf_ccat_seq_is_null(cats)) {
 			cats = pgf_ccat_seq_new(lzr->pool);
 			pgf_coerce_idx_set(lzr->coerce_idx, 
 					   pcoerce->coerce, cats);
@@ -205,7 +208,7 @@ static void
 pgf_lzr_index_ccat(PgfLzr* lzr, PgfCCat* cat)
 {
 	gu_debug("ccat: %d", cat->fid);
-	if (cat->prods == NULL) {
+	if (pgf_production_seq_is_null(cat->prods)) {
 		return;
 	}
 	int n_prods = pgf_production_seq_size(cat->prods);
@@ -291,8 +294,8 @@ pgf_lzn_pick_supercat(PgfLzn* lzn, PgfCCat* cat)
 {
 	gu_enter("->");
 	while (true) {
-		PgfCCatSeq* supers = pgf_coerce_idx_get(lzn->lzr->coerce_idx, cat);
-		if (supers == NULL) {
+		PgfCCatSeq supers = pgf_coerce_idx_get(lzn->lzr->coerce_idx, cat);
+		if (pgf_ccat_seq_is_null(supers)) {
 			break;
 		}
 		gu_debug("n_supers: %d", pgf_ccat_seq_size(supers));
@@ -330,8 +333,8 @@ pgf_lzn_infer_apply_try(PgfLzn* lzn, PgfApplication* appl,
 		gu_list_index(arg_cats, *ip) = arg_i;
 		marks[++*ip] = gu_choice_mark(lzn->ch);
 	}
-	PgfLinInfers* entries = gu_map_get(infer, arg_cats);
-	if (entries == NULL) {
+	PgfLinInfers entries = pgf_infer_map_get(infer, arg_cats);
+	if (pgf_lin_infers_is_null(entries)) {
 		goto finish;
 	}
 	int n_entries = pgf_lin_infers_size(entries);

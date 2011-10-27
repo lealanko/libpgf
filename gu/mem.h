@@ -71,6 +71,11 @@ gu_malloc_aligned(GuPool* pool, size_t size, size_t alignment);
  *
  */
 
+void*
+gu_malloc_prefixed(GuPool* pool, size_t pre_align, size_t pre_size,
+		   size_t align, size_t size);
+
+
 inline void*
 gu_malloc(GuPool* pool, size_t size) {
 	return gu_malloc_aligned(pool, size, 0);
@@ -99,6 +104,14 @@ gu_malloc_init(GuPool* pool, size_t size, const void* init)
 
 #define gu_new(pool, type) \
 	((type*)gu_malloc_aligned((pool), sizeof(type), gu_alignof(type)))
+
+#define gu_new_prefixed(pool, pre_type, type)				\
+	((type*)(gu_malloc_prefixed((pool),				\
+				    gu_alignof(pre_type), sizeof(pre_type), \
+				    gu_alignof(type), sizeof(type))))
+
+
+	
 
 /**< Allocate memory to store an object of a given type.
  *

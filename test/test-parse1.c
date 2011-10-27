@@ -38,7 +38,7 @@ int main(int argc, char* argv[]) {
 		goto fail;
 	}
 
-	PgfConcr* concr = gu_stringmap_get(pgf->concretes, lang);
+	PgfConcr* concr = gu_strmap_get(pgf->concretes, lang);
 	PgfParser* parser = pgf_parser_new(concr, pool);
 
 	while (true) {

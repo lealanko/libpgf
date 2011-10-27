@@ -319,11 +319,17 @@ gu_dump_seq(GuDumpFn* dumper, GuType* type, const void* p,
 	(void) dumper;
 	GuSeqType* dtype = gu_type_cast(type, GuSeq);
 	size_t elem_size = gu_type_size(dtype->elem_type);
-	const GuSeq* seq = p;
+	const GuSeq* seqp = p;
+	GuSeq seq = *seqp;
+	if (gu_seq_is_null(seq)) {
+		gu_yaml_tag_secondary(ctx->yaml, "null");
+		gu_yaml_scalar(ctx->yaml, NULL);
+		return;
+	}
 	int len = gu_seq_size(seq);
 	gu_yaml_begin_sequence(ctx->yaml);
 	for (int i = 0; i < len; i += elem_size) {
-		const void* elemp = gu_seq_index((GuSeq*) seq, i);
+		const void* elemp = gu_seq_index(seq, i);
 		gu_dump(dtype->elem_type, elemp, ctx);
 	}
 	gu_yaml_end(ctx->yaml);

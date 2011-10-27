@@ -76,21 +76,24 @@ gu_map_lookup(GuMap* map, const void* key, size_t* idx_out)
 {
 	GuHashFn* hash_fn = map->hash_fn;
 	GuEqFn* eq_fn = map->eq_fn;
+	size_t key_size = map->keys.size;
 	size_t hash = 0;
 	if (hash_fn) {
 		hash = gu_apply(hash_fn, key);
+	} else if (key_size) {
+		const uint8_t* p = key;
+		for (int i = 0; i < (int) key_size; i++) {
+			hash = gu_hash_mix(hash, p[i]);
+		}
 	} else {
-		gu_assert(!map->keys.size);
 		hash = (uintptr_t) key;
 	}
 	size_t n = map->n_entries;
 	size_t offset = (hash % (n - 1)) + 1;
 	size_t idx = 0;
-	size_t key_size = map->keys.size;
 	bool present = false;
-	if (!eq_fn) {
+	if (!eq_fn && !key_size) {
 		// fastpath for by-identity maps
-		gu_assert(!key_size);
 		for (idx = hash % n; ; idx = (idx + offset) % n) {
 			const void* entry_key = 
 				((const void**)map->keys.data)[idx];
@@ -101,27 +104,19 @@ gu_map_lookup(GuMap* map, const void* key, size_t* idx_out)
 				break;
 			}
 		}
-	} else if (!key_size) {
-		for (idx = hash % n; ; idx = (idx + offset) % n) {
-			const void* entry_key = 
-				gu_map_field_get(&map->keys, idx);
-			if (entry_key == &gu_map_empty_key) {
-				break;
-			}
-			if (gu_apply(eq_fn, key, entry_key)) {
-				present = true;
-				break;
-			}
-		}
 	} else {
 		for (idx = hash % n; ; idx = (idx + offset) % n) {
 			const void* entry_key = 
 				gu_map_field_get(&map->keys, idx);
-			if (memcmp(entry_key, 
-				   &gu_map_empty_key, 
-				   GU_MIN(key_size, 
-					  sizeof(gu_map_empty_key)))
-			    == 0) {
+			bool key_empty = 
+				(key_size 
+				 ? (memcmp(entry_key, 
+					   &gu_map_empty_key, 
+					   GU_MIN(key_size, 
+						  sizeof(gu_map_empty_key)))
+				    == 0)
+				 : entry_key == &gu_map_empty_key);
+			if (key_empty) {
 				// potentially empty, verify from value
 				void* entry_value = 
 					gu_map_field_get(&map->values, idx);
@@ -129,7 +124,12 @@ gu_map_lookup(GuMap* map, const void* key, size_t* idx_out)
 					break;
 				}
 			}
-			if (gu_apply(eq_fn, key, entry_key)) {
+			bool found = (eq_fn 
+				      ? gu_apply(eq_fn, key, entry_key)
+				      : key_size
+				      ? memcmp(key, entry_key, key_size) == 0
+				      : key == entry_key);
+			if (found) {
 				present = true;
 				break;
 			}

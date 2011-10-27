@@ -197,7 +197,7 @@ struct PgfAlternative {
 
 struct PgfCCat {
 	PgfCncCat* cnccat;
-	PgfProductionSeq* prods;
+	PgfProductionSeq prods;
 	int fid;
 };
 
@@ -210,7 +210,7 @@ struct PgfConcr {
 	PgfFlags* cflags;
 	PgfPrintNames* printnames;
 	PgfCIdMap* cnccats;
-	PgfCCatSeq* extra_ccats;
+	PgfCCatSeq extra_ccats;
 };
 
 extern GU_DECLARE_TYPE(PgfConcr, struct);

@@ -246,8 +246,6 @@ void*
 gu_malloc_prefixed(GuPool* pool, size_t pre_align, size_t pre_size,
 		   size_t align, size_t size)
 {
-	gu_require(gu_aligned(pre_size, pre_align));
-	gu_require(gu_aligned(size, align));
 	size_t full_size = gu_mem_advance(offsetof(GuMemChunk, data),
 					  pre_align, pre_size, align, size);
 	if (full_size > gu_mem_max_shared_alloc) {

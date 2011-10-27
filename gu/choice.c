@@ -4,7 +4,7 @@
 #include <gu/log.h>
 
 struct GuChoice {
-	GuByteSeq* path;
+	GuByteSeq path;
 	int path_idx;
 };
 

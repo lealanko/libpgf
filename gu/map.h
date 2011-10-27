@@ -45,7 +45,7 @@ gu_map_iter(GuMap* ht, GuMapIterFn* fn);
 #define GU_MAP__RET_V(t_, x_) (*(t_*)(x_))
 
 #define GU_MAP__EMPTY_R(t_, x_) (x_)
-#define GU_MAP__EMPTY_V(t_, x_) (&(t_)(x_))
+#define GU_MAP__EMPTY_V(t_, x_) (&(t_){x_})
 
 #define GU_MAP_DEFINE(t_, pfx, KM, k_, VM, v_, empty_v_, hash_, eq_) \
 									\
@@ -76,17 +76,22 @@ pfx##_get(t_* map, GU_MAP__KEYTYPE_##KM(k_) key)			\
 }									\
 GU_DECLARE_DUMMY
 
+#define GU_PTRMAP_DEFINE(t_, pfx, k_, VM, v_, empty_v_) \
+	GU_MAP_DEFINE(t_, pfx, R, k_, VM, v_, empty_v_, NULL, NULL)
 
-GU_MAP_DEFINE(GuPtrMap, gu_ptrmap, R, void, R, void, NULL, NULL, NULL);
+GU_PTRMAP_DEFINE(GuPtrMap, gu_ptrmap, void, R, void, NULL);
 				    
 #include <gu/str.h>
 
-GU_MAP_DEFINE(GuStrMap, gu_strmap, V, GuCStr, R, void, NULL,
-	      &gu_str_hash, &gu_str_eq);
+#define GU_STRMAP_DEFINE(t_, pfx, VM, v_, empty_v_) \
+	GU_MAP_DEFINE(t_, pfx, V, GuCStr, VM, v_, empty_v_, \
+		      &gu_str_hash, &gu_str_eq)
+
+GU_STRMAP_DEFINE(GuStrMap, gu_strmap, R, void, NULL);
 
 #define GU_INTMAP_DEFINE(t_, pfx, VM, v_, empty_v_) \
 	GU_MAP_DEFINE(t_, pfx, V, int, VM, v_, empty_v_, \
-		      &gu_int_hash, &gu_int_eq);
+		      &gu_int_hash, &gu_int_eq)
 
 #define GU_INTPTRMAP_DEFINE(t_, pfx, v_) \
 	GU_INTMAP_DEFINE(t_, pfx, R, v_, NULL)
