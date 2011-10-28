@@ -26,6 +26,22 @@ pgf_literal_cat(PgfLiteral lit)
 	}
 }
 
+bool 
+pgf_tokens_equal(PgfTokens* t1, PgfTokens* t2)
+{
+	int len = gu_list_length(t1);
+	if (len != gu_list_length(t2)) {
+		return false;
+	}
+	for (int i = 0; i < len; i++) {
+		if (strcmp(gu_list_index(t1, i), 
+			   gu_list_index(t2, i)) != 0) {
+			return false;
+		}
+	}
+	return true;
+}
+
 
 
 

@@ -74,6 +74,9 @@ typedef GuVariant PgfPatt;
 typedef GuCStr PgfToken;			      
 typedef GuCStrs PgfTokens;
 
+bool pgf_tokens_equal(PgfTokens* t1, PgfTokens* t2);
+
+
 typedef enum {
 	PGF_BIND_TYPE_EXPLICIT,
 	PGF_BIND_TYPE_IMPLICIT
