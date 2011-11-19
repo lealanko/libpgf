@@ -4,16 +4,17 @@
 #include <gu/seq.h>
 #include <gu/assert.h>
 #include <gu/str.h>
+#include <gu/file.h>
 
 GuDumpCtx*
-gu_dump_ctx_new(GuPool* pool, FILE* out, GuTypeTable* dumpers) {
+gu_dump_ctx_new(GuPool* pool, GuWriter* wtr, GuTypeTable* dumpers) {
 	GuDumpCtx* ctx = gu_new(pool, GuDumpCtx);
 	ctx->pool = pool;
 	if (dumpers == NULL) {
 		dumpers = &gu_dump_table;
 	}
 	ctx->dumpers = gu_type_map_new(pool, dumpers);
-	ctx->yaml = gu_yaml_new(pool, out);
+	ctx->yaml = gu_yaml_new(pool, wtr);
 	ctx->data = gu_map_new(pool, NULL, NULL);
 	ctx->print_address = false;
 	return ctx;
@@ -24,8 +25,8 @@ gu_dump(GuType* type, const void* value, GuDumpCtx* ctx)
 {
 	GuDumpFn* dumper = gu_type_map_get(ctx->dumpers, type);
 	if (ctx->print_address) {
-		char* str = gu_asprintf(ctx->pool, "%p", value);
-		gu_yaml_comment(ctx->yaml, str);
+		wchar_t* wcs = gu_asprintf(ctx->pool, "%p", value);
+		gu_yaml_comment(ctx->yaml, wcs);
 	}
 	(*dumper)(dumper, type, value, ctx);
 }
@@ -34,12 +35,30 @@ void
 gu_dump_stderr(GuType* type, const void* value)
 {
 	GuPool* pool = gu_pool_new();
-	GuDumpCtx* ctx = gu_dump_ctx_new(pool, stderr, NULL);
+	GuFile* errf = gu_file(stderr, pool);
+	GuDumpCtx* ctx = gu_dump_ctx_new(pool, &errf->wtr, NULL);
 	gu_dump(type, value, ctx);
 	gu_pool_free(pool);
 }
 
+static void
+gu_dump_scalar(GuDumpCtx* ctx, const char* fmt, ...)
+{
+	GuPool* tmp_pool = gu_pool_new();
+	va_list args;
+	va_start(args, fmt);
+	wchar_t* wcs = gu_vasprintf(fmt, args, tmp_pool);
+	va_end(args);
+	gu_yaml_scalar(ctx->yaml, wcs);
+	gu_pool_free(tmp_pool);
+}
 
+static void
+gu_dump_null(GuDumpCtx* ctx)
+{
+	gu_yaml_tag_secondary(ctx->yaml, "null");
+	gu_yaml_scalar(ctx->yaml, L"");
+}
 
 static void 
 gu_dump_int(GuDumpFn* dumper, GuType* type, const void* p, 
@@ -48,8 +67,7 @@ gu_dump_int(GuDumpFn* dumper, GuType* type, const void* p,
 	(void) dumper;
 	(void) type;
 	const int* ip = p;
-	char* str = gu_asprintf(ctx->pool, "%d", *ip);
-	gu_yaml_scalar(ctx->yaml, str);
+	gu_dump_scalar(ctx, "%d", *ip);
 }
 
 static void 
@@ -59,8 +77,7 @@ gu_dump_uint16(GuDumpFn* dumper, GuType* type, const void* p,
 	(void) dumper;
 	(void) type;
 	const uint16_t* ip = p;
-	char* str = gu_asprintf(ctx->pool, "%" PRIu16, *ip);
-	gu_yaml_scalar(ctx->yaml, str);
+	gu_dump_scalar(ctx, "%" PRIu16, *ip);
 }
 
 
@@ -72,8 +89,7 @@ gu_dump_double(GuDumpFn* dumper, GuType* type, const void* p,
 	(void) dumper;
 	(void) type;
 	const double* dp = p;
-	char* str = gu_asprintf(ctx->pool, "%lf", *dp);
-	gu_yaml_scalar(ctx->yaml, str);
+	gu_dump_scalar(ctx, "%lf", *dp);
 }
 
 static const char gu_dump_length_key[] = "gu_dump_length_key";
@@ -85,8 +101,7 @@ gu_dump_length(GuDumpFn* dumper, GuType* type, const void* p,
 	(void) dumper;
 	(void) type;
 	const GuLength* ip = p;
-	char* str = gu_asprintf(ctx->pool, "%d", *ip);
-	gu_yaml_scalar(ctx->yaml, str);
+	gu_dump_scalar(ctx, "%d", *ip);
 	GuLength* lenp = gu_map_get(ctx->data, gu_dump_length_key);
 	if (lenp != NULL) {
 		*lenp = *ip;
@@ -100,7 +115,7 @@ gu_dump_str(GuDumpFn* dumper, GuType* type, const void* p,
 	(void) dumper;
 	(void) type;
 	const GuStr* sp = p;
-	gu_yaml_scalar(ctx->yaml, *sp);
+	gu_dump_scalar(ctx, "%s", *sp);
 }
 
 
@@ -113,8 +128,7 @@ gu_dump_pointer(GuDumpFn* dumper, GuType* type, const void* p,
 	GuPointerType* ptype = (GuPointerType*) type;
 	void* const* pp = p;
 	if (*pp == NULL) {
-		gu_yaml_tag_secondary(ctx->yaml, "null");
-		gu_yaml_scalar(ctx->yaml, NULL);
+		gu_dump_null(ctx);
 	} else {
 		gu_dump(ptype->pointed_type, *pp, ctx);
 	}
@@ -163,7 +177,7 @@ gu_dump_struct(GuDumpFn* dumper, GuType* type, const void* p,
 
 	for (int i = 0; i < srepr->members.len; i++) {
 		const GuMember* member = &srepr->members.elems[i];
-		gu_yaml_scalar(ctx->yaml, member->name);
+		gu_dump_scalar(ctx, "%s", member->name);
 		const uint8_t* memp = &data[member->offset];
 		if (member->is_flex) {
 			// Flexible array member
@@ -250,8 +264,7 @@ gu_dump_shared(GuDumpFn* dumper, GuType* type, const void* p,
 	(void) dumper;
 	void* const* pp = p;
 	if (*pp == NULL) {
-		gu_yaml_tag_secondary(ctx->yaml, "null");
-		gu_yaml_scalar(ctx->yaml, NULL);
+		gu_dump_null(ctx);
 	} else {
 		bool created = gu_dump_anchor(ctx, *pp);
 		if (created) {
@@ -290,7 +303,7 @@ gu_dump_variant(GuDumpFn* dumper, GuType* type, const void* p,
 		GuConstructor* ctor = &vtype->ctors.elems[i];
 		if (ctor->c_tag == tag) {
 			gu_yaml_begin_mapping(ctx->yaml);
-			gu_yaml_scalar(ctx->yaml, ctor->c_name);
+			gu_dump_scalar(ctx, "%s", ctor->c_name);
 			void* data = gu_variant_data(*vp);
 			gu_dump(ctor->type, data, ctx);
 			gu_yaml_end(ctx->yaml);
@@ -309,7 +322,7 @@ gu_dump_enum(GuDumpFn* dumper, GuType* type, const void* p,
 	GuEnumType* etype = gu_type_cast(type, enum);
 	GuEnumConstant* cp = gu_enum_value(etype, p);
 	gu_assert(cp != NULL);
-	gu_yaml_scalar(ctx->yaml, cp->name);
+	gu_dump_scalar(ctx, "%s", cp->name);
 }
 
 static void
@@ -322,8 +335,7 @@ gu_dump_seq(GuDumpFn* dumper, GuType* type, const void* p,
 	const GuSeq* seqp = p;
 	GuSeq seq = *seqp;
 	if (gu_seq_is_null(seq)) {
-		gu_yaml_tag_secondary(ctx->yaml, "null");
-		gu_yaml_scalar(ctx->yaml, NULL);
+		gu_dump_null(ctx);
 		return;
 	}
 	int len = gu_seq_size(seq);

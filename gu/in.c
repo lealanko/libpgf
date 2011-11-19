@@ -8,7 +8,7 @@ GU_DEFINE_TYPE(GuBadValue, abstract, _);
 size_t
 gu_in_some(GuIn* in, uint8_t* buf, size_t len, GuError* err)
 {
-	return gu_apply(in, buf, len, err);
+	return in->input(in, buf, len, err);
 }
 
 void
@@ -147,31 +147,3 @@ gu_in_f64be(GuIn* in, GuError* err)
 }
 
 
-typedef struct GuInFile GuInFile;
-
-struct GuInFile {
-	GuIn in;
-	FILE* file;
-};
-
-
-size_t 
-gu_in_file_read(GuIn* in, uint8_t* buf, size_t max_len, GuError* err)
-{
-	GuInFile* inf = (GuInFile*) in;
-	size_t got = fread(buf, 1, max_len, inf->file);
-	if (got == 0) {
-		if (ferror(inf->file)) {
-			gu_raise(err, GuReadError, 0);
-		}
-	}
-	return got;
-}
-
-GuIn* gu_in_file(GuPool* pool, FILE* file)
-{
-	GuInFile* inf = gu_new(pool, GuInFile);
-	inf->in.fn = gu_in_file_read;
-	inf->file = file;
-	return &inf->in;
-}

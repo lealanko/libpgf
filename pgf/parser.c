@@ -373,6 +373,7 @@ pgf_parsing_symbol(PgfParsing* parsing, PgfItem* item, PgfSymbol sym) {
 			for (int i = 0; i < skp->n_forms; i++) {
 				PgfTokens* toks = skp->forms[i].form;
 				PgfTokens* toks2 = skp->default_form;
+				// XXX: do nubbing properly
 				bool skip = pgf_tokens_equal(toks, toks2);
 				for (int j = 0; j < i; j++) {
 					PgfTokens* toks2 = skp->forms[j].form;
@@ -482,6 +483,7 @@ pgf_parsing_scan(PgfParsing* parsing, PgfItem* item, PgfToken tok)
 			succ = pgf_parsing_scan_toks(parsing, item, tok, 0, 
 						      kp->default_form);
 			for (int i = 0; i < kp->n_forms; i++) {
+				// XXX: do nubbing properly
 				PgfTokens* toks = kp->forms[i].form;
 				PgfTokens* toks2 = kp->default_form;
 				bool skip = pgf_tokens_equal(toks, toks2);

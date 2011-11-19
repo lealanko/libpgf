@@ -1,6 +1,7 @@
 #include <gu/variant.h>
 #include <gu/map.h>
 #include <gu/dump.h>
+#include <gu/file.h>
 #include <pgf/pgf.h>
 #include "pgf/data.h"
 #include "pgf/linearize.h"
@@ -26,8 +27,8 @@ int main(int argc, char* argv[]) {
 		goto fail;
 	}
 	GuError* err = gu_error_new(pool);
-	GuIn* in = gu_in_file(pool, infile);
-	PgfPGF* pgf = pgf_read(in, pool, err);
+	GuFile* inf = gu_file(infile, pool);
+	PgfPGF* pgf = pgf_read(&inf->in, pool, err);
 	if (!gu_ok(err)) {
 		fprintf(stderr, "Reading PGF failed\n");
 		status = EXIT_FAILURE;
@@ -37,7 +38,8 @@ int main(int argc, char* argv[]) {
 	PgfConcr* concr = gu_strmap_get(pgf->concretes, lang);
 	PgfLzr* lzr = pgf_lzr_new(pool, pgf, concr);
 
-	GuDumpCtx* ctx = gu_dump_ctx_new(pool, stdout, NULL);
+	GuFile* outf = gu_file(stdout, pool);
+	GuDumpCtx* ctx = gu_dump_ctx_new(pool, &outf->wtr, NULL);
 	ctx->print_address = true;
 	// gu_dump(gu_type(PgfLinearizer), lzr, ctx);
 

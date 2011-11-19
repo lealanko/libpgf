@@ -1,6 +1,8 @@
 #include <gu/yaml.h>
 #include <gu/seq.h>
 #include <gu/assert.h>
+#include <gu/read.h>
+#include <gu/ucs.h>
 #include <stdio.h>
 #include <stdarg.h>
 #include <ctype.h>
@@ -69,7 +71,8 @@ struct GuYamlFrame {
 GU_SEQ_DEFINE(GuYamlStack, gu_yaml_stack, GuYamlFrame);
 
 struct GuYaml {
-	FILE* out;
+	GuWriter* wtr;
+	GuError* err;
 	GuPool* pool;
 	GuYamlState* state;
 	bool in_node;
@@ -84,11 +87,12 @@ struct GuYaml {
 
 
 GuYaml*
-gu_yaml_new(GuPool* pool, FILE* out)
+gu_yaml_new(GuPool* pool, GuWriter* wtr)
 {
 	GuYaml* yaml = gu_new(pool, GuYaml);
-	yaml->out = out;
+	yaml->wtr = wtr;
 	yaml->pool = pool;
+	yaml->err = gu_error_new(pool);
 	yaml->state = &gu_yaml_states.document;
 	yaml->in_node = false;
 	yaml->have_anchor = false;
@@ -101,13 +105,33 @@ gu_yaml_new(GuPool* pool, FILE* out)
 	return yaml;
 }
 
+static void
+gu_yaml_printf(GuYaml* yaml, const char* fmt, ...)
+{
+	va_list args;
+	va_start(args, fmt);
+	gu_vprintf(yaml->wtr, fmt, args, yaml->err);
+	va_end(args);
+}
+
+static void
+gu_yaml_putc(GuYaml* yaml, char c)
+{
+	gu_yaml_printf(yaml, "%c", c);
+}
+
+static void
+gu_yaml_puts(GuYaml* yaml, const char* str)
+{
+	gu_yaml_printf(yaml, "%s", str);
+}
 
 static void
 gu_yaml_begin_line(GuYaml* yaml)
 {
 	if (yaml->indent && !yaml->indented) {
 		for (int i = 0; i < yaml->indent_level; i++) {
-			fputc(' ', yaml->out);
+			gu_yaml_putc(yaml, L' ');
 		}
 		yaml->indented = true;
 	}
@@ -117,7 +141,7 @@ static void
 gu_yaml_end_line(GuYaml* yaml)
 {
 	if (yaml->indent) {
-		fputc('\n', yaml->out);
+		gu_yaml_putc(yaml, L'\n');
 	}
 	yaml->indented = false;
 }
@@ -129,7 +153,7 @@ gu_yaml_begin_node(GuYaml* yaml)
 	gu_yaml_begin_line(yaml);
 	if (!yaml->in_node) {
 		if (yaml->state->prefix != NULL) {
-			fputs(yaml->state->prefix, yaml->out);
+			gu_yaml_puts(yaml, yaml->state->prefix);
 		}
 		yaml->in_node = true;
 	}
@@ -140,7 +164,7 @@ gu_yaml_end_node(GuYaml* yaml)
 {
 	gu_assert(yaml->in_node);
 	if (yaml->state->suffix != NULL) {
-		fputs(yaml->state->suffix, yaml->out);
+		gu_yaml_puts(yaml, yaml->state->suffix);
 	}
 	gu_yaml_end_line(yaml);
 	yaml->in_node = false;
@@ -155,7 +179,7 @@ static void
 gu_yaml_begin(GuYaml* yaml, GuYamlFrameClass* klass)
 {
 	gu_yaml_begin_node(yaml);
-	fputs(klass->open, yaml->out);
+	gu_yaml_puts(yaml, klass->open);
 	gu_yaml_stack_push(yaml->stack, (GuYamlFrame)
 			   { .klass = klass, .next = yaml->state});
 	yaml->state = klass->first;
@@ -183,7 +207,7 @@ gu_yaml_end(GuYaml* yaml)
 	yaml->indent_level--;
 	gu_yaml_begin_line(yaml);
 	GuYamlFrame f = gu_yaml_stack_pop(yaml->stack);
-	fputs(f.klass->close, yaml->out);
+	gu_yaml_puts(yaml, f.klass->close);
 	yaml->state = f.next;
 	yaml->in_node = true;
 	gu_yaml_end_node(yaml);
@@ -191,32 +215,39 @@ gu_yaml_end(GuYaml* yaml)
 
 
 void 
-gu_yaml_scalar(GuYaml* yaml, const char* str)
+gu_yaml_scalar(GuYaml* yaml, const wchar_t* wcs)
 {
 	gu_yaml_begin_node(yaml);
-	fputc('"', yaml->out);
-	const char* buf = str ? str : "";
-	int span_start = 0;
-	int i = 0;
+	gu_yaml_putc(yaml, '"');
+	GuPool* tmp_pool = gu_pool_new();
+	GuReader* rdr = gu_wcs_reader(wcs, wcslen(wcs), tmp_pool);
+
+	static const char esc[0x20] = {
+		[0x00] = '0',
+		[0x07] = 'a', 'b', 't', 'n', 'v', 'f', 'r',
+		[0x1b] = 'e'
+	};
+
 	while (true) {
-		while (true) {
-			char c = buf[i];
-			if (!c || c == '"' || c == '\\' || !isprint(c)) {
-				break;
-			}
-			i++;
-		}
-		fwrite(&buf[span_start], 1, i - span_start, yaml->out);
-		if (buf[i]) {
-			span_start = i + 1;
-			// XXX: platform-dependent encoding
-			fprintf(yaml->out, "\\%02x", (unsigned char) buf[i]);
-			i++;
-		} else {
+		GuUcs u = gu_read_ucs(rdr, yaml->err);
+		if (u == GU_UCS_EOF) {
 			break;
 		}
+		if (u == 0x22 || u == 0x5c) {
+			gu_yaml_putc(yaml, L'\\');
+			gu_write_ucs(yaml->wtr, u, yaml->err);
+		} else if (u < 0x20 && esc[u]) {
+			gu_yaml_printf(yaml, "\\%c", esc[u]);
+		} else if (u >= 0x7f && u <= 0xff) {
+			gu_yaml_printf(yaml, "\\x%02x", (unsigned) u);
+		} else if ((u >= 0xd800 && u <= 0xdfff) ||
+			   (u >= 0xfffe && u <= 0xffff)) {
+			gu_yaml_printf(yaml, "\\u%04x", (unsigned) u);
+		} else {
+			gu_write_ucs(yaml->wtr, u, yaml->err);
+		}
 	}
-	fputc('"', yaml->out);
+	gu_yaml_putc(yaml, L'"');
 	gu_yaml_end_node(yaml);
 }
 
@@ -225,12 +256,12 @@ gu_yaml_tag(GuYaml* yaml, const char* format, ...)
 {
 	gu_yaml_begin_node(yaml);
 	gu_assert(!yaml->have_tag);
-	fputc('!', yaml->out);
+	gu_yaml_putc(yaml, L'!');
 	va_list args;
 	va_start(args, format);
-	vfprintf(yaml->out, format, args);
+	gu_vprintf(yaml->wtr, format, args, yaml->err);
 	va_end(args);
-	fputc(' ', yaml->out);
+	gu_yaml_putc(yaml, L' ');
 	yaml->have_tag = true;
 }
 
@@ -275,7 +306,7 @@ gu_yaml_anchor(GuYaml* yaml)
 	gu_assert(!yaml->have_anchor);
 	yaml->have_anchor = true;
 	int anchor = yaml->next_anchor++;
-	fprintf(yaml->out, "&%d ", anchor);
+	gu_yaml_printf(yaml, "&%d ", anchor);
 	return anchor;
 }
 
@@ -284,16 +315,16 @@ gu_yaml_alias(GuYaml* yaml, GuYamlAnchor anchor)
 {
 	gu_yaml_begin_node(yaml);
 	gu_assert(!yaml->have_anchor && !yaml->have_tag);
-	fprintf(yaml->out, "*%d", anchor);
+	gu_yaml_printf(yaml, "*%d ", anchor);
 	gu_yaml_end_node(yaml);
 	return;
 }
 
-void gu_yaml_comment(GuYaml* yaml, const char* comment)
+void gu_yaml_comment(GuYaml* yaml, const wchar_t* comment)
 {
 	gu_yaml_begin_line(yaml);
-	// XXX: escaping?
-	fprintf(yaml->out, "# %s\n", comment);
+	// TODO: verify no newlines in comment
+	gu_yaml_printf(yaml, "# %ls\n", comment);
 	yaml->indented = false;
 }
 

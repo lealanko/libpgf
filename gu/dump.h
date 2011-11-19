@@ -19,7 +19,7 @@ struct GuDumpCtx {
 typedef void (*GuDumpFn)(GuFn* self, GuType* type, const void* value, GuDumpCtx* ctx);
 
 GuDumpCtx*
-gu_dump_ctx_new(GuPool* pool, FILE* out, GuTypeTable* dumpers);
+gu_dump_ctx_new(GuPool* pool, GuWriter* wtr, GuTypeTable* dumpers);
 
 void
 gu_dump(GuType* type, const void* value, GuDumpCtx* ctx);

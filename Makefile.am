@@ -10,6 +10,7 @@ include_HEADERS = \
 	gu/choice.h \
 	gu/defs.h \
 	gu/error.h \
+	gu/file.h \
 	gu/fun.h \
 	gu/seq.h \
 	gu/dump.h \
@@ -20,10 +21,13 @@ include_HEADERS = \
 	gu/log.h \
 	gu/map.h \
 	gu/mem.h \
+	gu/out.h \
 	gu/prime.h \
 	gu/str.h \
 	gu/type.h \
+	gu/ucs.h \
 	gu/variant.h \
+	gu/write.h \
 	gu/yaml.h
 
 libgu_la_SOURCES = \
@@ -33,6 +37,7 @@ libgu_la_SOURCES = \
 	gu/seq.c \
 	gu/dump.c \
 	gu/error.c \
+	gu/file.c \
 	gu/fun.c \
 	gu/in.c \
 	gu/intern.c \
@@ -40,9 +45,13 @@ libgu_la_SOURCES = \
 	gu/log.c \
 	gu/map.c \
 	gu/mem.c \
+	gu/out.c \
 	gu/prime.c \
+	gu/read.c \
 	gu/str.c \
 	gu/type.c \
+	gu/write.c \
+	gu/ucs.c \
 	gu/variant.c \
 	gu/yaml.c
 

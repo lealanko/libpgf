@@ -51,11 +51,16 @@ gu_error_raise(GuError* err,
 	       const char* filename, const char* func, int lineno)
 {
 	gu_assert(type);
-	GuTypeRepr* repr = gu_type_repr(type);
-	gu_assert(repr);
-	void* err_data = gu_malloc_init_aligned(err->pool, 
-						repr->size, repr->align,
-						data);
+	
+	void* err_data = NULL;
+
+	if (data) {
+		GuTypeRepr* repr = gu_type_repr(type);
+		gu_assert(repr);
+		err_data = gu_malloc_init_aligned(err->pool, 
+						  repr->size, repr->align,
+						  data);
+	}
 	err->frame = gu_new_s(err->pool, GuErrorFrame,
 			      .type = type,
 			      .data = err_data,
@@ -64,3 +69,6 @@ gu_error_raise(GuError* err,
 			      .lineno = lineno,
 			      .cause = err->frame);
 }
+
+
+GU_DEFINE_TYPE(GuErrno, int, _);

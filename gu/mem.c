@@ -97,7 +97,7 @@ static size_t
 gu_mem_padovan(size_t min)
 {
 	// This could in principle be done faster with Q-matrices for
-	// Padovan numbers, but not really worth for our commonly
+	// Padovan numbers, but not really worth it for our commonly
 	// small numbers.
 	if (min <= 5) {
 		return min;
@@ -106,7 +106,7 @@ gu_mem_padovan(size_t min)
 	while (min > a) {
 		if (b < a) {
 			// overflow
-			return min;
+			return SIZE_MAX;
 		}
 		size_t tmp = a + b;
 		a = b;
@@ -124,7 +124,7 @@ gu_mem_buf_realloc(void* old_buf, size_t min_size, size_t* real_size_out)
 	size_t blocks = gu_mem_padovan(min_blocks);
 	size_t size = blocks * gu_mem_unit_size - gu_malloc_overhead;
 	void* buf = gu_mem_realloc(old_buf, size);
-	*real_size_out = size;
+	*real_size_out = buf ? size : 0;
 	return buf;
 }
 void*

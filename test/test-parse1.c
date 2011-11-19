@@ -1,6 +1,7 @@
 #include <gu/variant.h>
 #include <gu/map.h>
 #include <gu/dump.h>
+#include <gu/file.h>
 #include <gu/log.h>
 #include <pgf/pgf.h>
 #include "pgf/data.h"
@@ -30,8 +31,8 @@ int main(int argc, char* argv[]) {
 		goto fail;
 	}
 	GuError* err = gu_error_new(pool);
-	GuIn* in = gu_in_file(pool, infile);
-	PgfPGF* pgf = pgf_read(in, pool, err);
+	GuFile* inf = gu_file(infile, pool);
+	PgfPGF* pgf = pgf_read(&inf->in, pool, err);
 	if (!gu_ok(err)) {
 		fprintf(stderr, "Reading PGF failed\n");
 		status = EXIT_FAILURE;

@@ -4,10 +4,10 @@
 #include <gu/defs.h>
 #include <gu/error.h>
 
-typedef struct GuIn GuIn;
+typedef const struct GuIn GuIn;
 
 struct GuIn {
-	size_t (*fn)(GuIn* self, uint8_t* buf, size_t max_len, GuError* err);
+	size_t (*input)(GuIn* self, uint8_t* buf, size_t max_len, GuError* err);
 };
 
 size_t
@@ -15,9 +15,6 @@ gu_in_some(GuIn* in, uint8_t* buf, size_t len, GuError* err);
 
 void
 gu_in_bytes(GuIn* in, uint8_t* buf, size_t len, GuError* err);
-
-char 
-gu_in_char(GuIn* in, GuError* err);
 
 int8_t 
 gu_in_s8(GuIn* in, GuError* err);
@@ -67,17 +64,9 @@ gu_in_f64le(GuIn* in, GuError* err);
 double
 gu_in_f64be(GuIn* in, GuError* err);
 
-
-
-#include <stdio.h>
-
-GuIn* gu_in_file(GuPool* pool, FILE* file);
+GuIn* gu_in_buf(const uint8_t* buf, size_t size, GuPool* pool);
+GuIn* gu_in_str(const char* str, GuPool* pool);
 
 #include <gu/type.h>
-
-typedef struct { int dummy_; } GuReadError;
-
-GU_DECLARE_TYPE(GuReadError, abstract);
-
 
 #endif // GU_IN_H_

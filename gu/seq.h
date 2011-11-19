@@ -146,9 +146,15 @@ typedef const struct GuSeqType GuSeqType, GuType_GuSeq;
 	}								\
 									\
 	static inline void						\
+	pfx_##_push_n(t_ s, elem_t_ const* elems, size_t n)		\
+	{								\
+		gu_seq_push(s.seq_, elems, n * sizeof(elem_t_));	\
+	}								\
+									\
+	static inline void						\
 	pfx_##_push(t_ s, elem_t_ elem)					\
 	{								\
-		gu_seq_push(s.seq_, &elem, sizeof(elem_t_));		\
+		pfx_##_push_n(s, &elem, 1);				\
 	}								\
 									\
 	static inline elem_t_						\
@@ -179,12 +185,16 @@ GU_SEQ_DEFINE(GuCharSeq, gu_char_seq, char);
 GU_DECLARE_TYPE(GuCharSeq, GuSeq);
 GU_SEQ_DEFINE(GuByteSeq, gu_byte_seq, uint8_t);
 GU_DECLARE_TYPE(GuByteSeq, GuSeq);
+GU_SEQ_DEFINE(GuWcSeq, gu_wc_seq, wchar_t);
+GU_DECLARE_TYPE(GuWcSeq, GuSeq);
 
 char*
 gu_char_seq_to_str(GuCharSeq charq, GuPool* pool);
 
+#include <wchar.h>
 
-
+wchar_t*
+gu_wc_seq_wcs(GuWcSeq* wcq, GuPool* pool);
 
 
 #endif // GU_SEQ_H_

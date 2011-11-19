@@ -125,7 +125,7 @@ gu_char_seq_to_str(GuCharSeq charq, GuPool* pool)
 {
 	int size = gu_char_seq_size(charq);
 	char* data = gu_char_seq_data(charq);
-	char* str = gu_str_alloc(size, pool);
+	char* str = gu_str_new(size, pool);
 	memcpy(str, data, size);
 	return str;
 }

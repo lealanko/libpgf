@@ -63,11 +63,6 @@ struct PgfReadTagError {
 
 static GU_DEFINE_TYPE(PgfReadTagError, abstract, _);
 
-typedef struct PgfReadError PgfReadError;
-
-struct PgfReadError {
-};
-
 static GU_DEFINE_TYPE(PgfReadError, abstract, _);
 
 static uint8_t
@@ -153,7 +148,7 @@ pgf_read_utf8_char(PgfReader* rdr, GuByteSeq byteq)
 	
 	return;
 err:
-	gu_raise(rdr->err, PgfReadError,);
+	gu_raise_null(rdr->err, PgfReadError);
 }
 
 
@@ -471,7 +466,7 @@ pgf_read_to_GuStr(GuType* type, PgfReader* rdr, void* to)
 		pgf_read_utf8_char(rdr, byteq);
 	}
 	int nbytes = gu_byte_seq_size(byteq);
-	char* tmp = gu_str_alloc(nbytes, tmp_pool);
+	char* tmp = gu_str_new(nbytes, tmp_pool);
 	for (int i = 0; i < nbytes; i++) {
 		tmp[i] = (char) gu_byte_seq_get(byteq, i);
 	}
@@ -583,7 +578,7 @@ pgf_read_to_PgfSeqId(GuType* type, PgfReader* rdr, void* to)
 	int32_t id = pgf_read_int(rdr);
 	gu_return_on_error(rdr->err,);
 	if (id < 0 || id >= gu_list_length(rdr->curr_sequences)) {
-		gu_raise(rdr->err, PgfReadError,);
+		gu_raise_null(rdr->err, PgfReadError);
 		return;
 	}
 	*(PgfSeqId*) to = gu_list_elems(rdr->curr_sequences)[id];
@@ -597,7 +592,7 @@ pgf_read_to_PgfFunId(GuType* type, PgfReader* rdr, void* to)
 	int32_t id = pgf_read_int(rdr);
 	gu_return_on_error(rdr->err,);
 	if (id < 0 || id >= gu_list_length(rdr->curr_cncfuns)) {
-		gu_raise(rdr->err, PgfReadError,);
+		gu_raise_null(rdr->err, PgfReadError);
 		return;
 	}
 	*(PgfFunId*) to = gu_list_elems(rdr->curr_cncfuns)[id];
@@ -740,10 +735,11 @@ static void*
 pgf_read_new_PgfCncCat(GuType* type, PgfReader* rdr, GuPool* pool,
 		       size_t* size_out)
 {
-	gu_enter("-> cid: %s", rdr->curr_key);
+	const char* cid = *(const char**) rdr->curr_key;
+	gu_enter("-> cid: %s", cid);
 	(void) (type && size_out);
 	PgfCncCat* cnccat = gu_new(pool, PgfCncCat);
-	cnccat->cid = rdr->curr_key;
+	cnccat->cid = cid;
 	int first = pgf_read_int(rdr);
 	int last = pgf_read_int(rdr);
 	int len = last + 1 - first;
@@ -759,7 +755,7 @@ pgf_read_new_PgfCncCat(GuType* type, PgfReader* rdr, GuPool* pool,
 			// TODO: error if overlap
 			ccat->cnccat = cnccat;
 			if (!pgf_ccat_n_lins(ccat, &n_lins)) {
-				gu_raise(rdr->err, PgfReadError, );
+				gu_raise_null(rdr->err, PgfReadError);
 				goto fail;
 			}
 			

@@ -1,31 +1,32 @@
 #include <gu/yaml.h>
+#include <gu/file.h>
 
 
-
-static const char* blotozz = "blotozz";
-static char* strunk = "strunk";
+static const wchar_t* blotozz = L"blotozz";
+static wchar_t* strunk = L"strunk";
 
 static struct {
 	const char* kreegah;
-	const char* fnord;
+	const wchar_t* fnord;
 	const char* strouh;
 } lits = {
 	.kreegah = "kreegah",
-	.fnord = "fnord",
+	.fnord = L"fnord",
 	.strouh = "strouh",
 };
 
 
-static const char bloh[] = "bloh";
+static const wchar_t bloh[] = L"bloh";
 static const char ugga_mugga[] = "ugga-mugga";
 	
 int main(void)
 {
 	GuPool* pool = gu_pool_new();
-	GuYaml* yaml = gu_yaml_new(pool, stdout);
+	GuFile* outf = gu_file(stdout, pool);
+	GuYaml* yaml = gu_yaml_new(pool, &outf->wtr);
 
 	gu_yaml_begin_mapping(yaml);
-	gu_yaml_scalar(yaml, "fnord");
+	gu_yaml_scalar(yaml, L"fnord");
 	gu_yaml_scalar(yaml, bloh);
 	gu_yaml_end(yaml);
 
@@ -40,7 +41,7 @@ int main(void)
 	gu_yaml_begin_sequence(yaml);
 	gu_yaml_scalar(yaml, lits.fnord);
 	gu_yaml_tag_primary(yaml, ugga_mugga);
-	gu_yaml_scalar(yaml, "strouhki");
+	gu_yaml_scalar(yaml, L"strouhki");
 	gu_yaml_end(yaml);
 	gu_yaml_end(yaml);
 

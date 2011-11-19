@@ -39,9 +39,14 @@ void
 gu_error_raise(GuError* err, GuType* type, const void* data,
 	       const char* filename, const char* func, int lineno);
 
-#define gu_raise(error_, t_, ...) \
-	gu_error_raise(error_, gu_type(t_), &(t_) { __VA_ARGS__ }, \
+#define gu_raise_ptr(error_, t_, val_)		\
+	gu_error_raise(error_, gu_type(t_), val_,	\
 		       __FILE__, __func__, __LINE__)
+#define gu_raise(error_, t_, ...) \
+	gu_raise_ptr(error_, t_, (&(t_) { __VA_ARGS__ }))
+
+#define gu_raise_null(error_, t_) \
+	gu_raise_ptr(error_, t_, NULL)
 
 static inline bool
 gu_ok(GuError* err) {
@@ -53,6 +58,15 @@ gu_ok(GuError* err) {
 	if (gu_error_raised(err_)) return retval_;	\
 	GU_END
 
+
+#include <errno.h>
+
+typedef int GuErrno;
+
+extern GU_DECLARE_TYPE(GuErrno, int);
+
+#define gu_raise_errno(error_) \
+	gu_raise(error_, GuErrno, errno)
 
 #include <stdio.h>
 

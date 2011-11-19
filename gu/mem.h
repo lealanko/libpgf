@@ -102,8 +102,11 @@ gu_malloc_init(GuPool* pool, size_t size, const void* init)
 	return gu_malloc_init_aligned(pool, size, 0, init);
 }
 
+#define gu_new_n(pool, type, n)						\
+	((type*)gu_malloc_aligned((pool), sizeof(type) * (n), gu_alignof(type)))
+
 #define gu_new(pool, type) \
-	((type*)gu_malloc_aligned((pool), sizeof(type), gu_alignof(type)))
+	gu_new_n(pool, type, 1)
 
 #define gu_new_prefixed(pool, pre_type, type)				\
 	((type*)(gu_malloc_prefixed((pool),				\
