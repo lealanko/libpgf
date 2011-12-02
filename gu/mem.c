@@ -26,7 +26,7 @@
 #include <stdlib.h>
 
 #ifdef USE_VALGRIND
-#include <valgrind.h>
+#include <valgrind/valgrind.h>
 #define VG(X) X
 #else
 #define VG(X) GU_NOP
@@ -229,7 +229,7 @@ gu_pool_malloc_aligned(GuPool* pool, size_t pre_align, size_t pre_size,
 		gu_pool_expand(pool, pos);
 		gu_assert(pos <= pool->right_edge);
 	}
-	size_t left = pool->left_edge;
+	VG(size_t left = pool->left_edge);
 	pool->left_edge = pos;
 	void* addr = &pool->curr_buf[pos - size];
 	VG(VALGRIND_MEMPOOL_ALLOC(pool, addr, pos - left));

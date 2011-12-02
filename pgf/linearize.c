@@ -113,7 +113,7 @@ static GU_DEFINE_TYPE(PgfCCatBuf, GuBuf, gu_ptr_type(PgfCCat));
 
 typedef GuMap PgfCoerceIdx;
 static GU_DEFINE_TYPE(PgfCoerceIdx, GuMap,
-		      gu_type(PgfCCat), gu_null_hasher,
+		      gu_type(PgfCCat), NULL,
 		      gu_ptr_type(PgfCCatBuf), &gu_null_struct);
 
 struct PgfLzr {

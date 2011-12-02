@@ -305,7 +305,7 @@ gu_make_map(size_t key_size, GuHasher* hasher,
 	    GuPool* pool)
 {
 	GuMapKind kind =
-		((hasher == gu_null_hasher || hasher == gu_addr_hasher)
+		((!hasher || hasher == gu_addr_hasher)
 		 ? GU_MAP_ADDR
 		 : (key_size == sizeof(GuWord) && hasher == gu_word_hasher)
 		 ? GU_MAP_WORD
@@ -339,8 +339,7 @@ GuMap*
 gu_map_type_make(GuMapType* mtype, GuPool* pool)
 {
 	size_t key_size = 0;
-	if (!(mtype->hasher == gu_null_hasher ||
-	      mtype->hasher == gu_addr_hasher)) {
+	if (mtype->hasher && mtype->hasher != gu_addr_hasher) {
 		key_size = gu_type_size(mtype->key_type);
 	}
 	size_t value_size = gu_type_size(mtype->value_type);

@@ -66,11 +66,11 @@ typedef GuMap PgfContsMap;
 static GU_DEFINE_TYPE(PgfItemBuf, abstract, _);
 static GU_DEFINE_TYPE(PgfItemBufs, abstract, _);
 static GU_DEFINE_TYPE(PgfContsMap, GuMap,
-		      gu_type(PgfCCat), gu_null_hasher,
+		      gu_type(PgfCCat), NULL,
 		      gu_ptr_type(PgfItemBufs), &gu_null_struct);
 
 static GU_DEFINE_TYPE(PgfGenCatMap, GuMap,
-		      gu_type(PgfItemBuf), gu_null_hasher,
+		      gu_type(PgfItemBuf), NULL,
 		      gu_ptr_type(PgfCCat), &gu_null_struct);
 
 static GU_DEFINE_TYPE(PgfTransitions, GuStringMap,
