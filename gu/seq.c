@@ -3,6 +3,7 @@
 #include <gu/assert.h>
 #include <string.h>
 
+
 struct GuBuf {
 	uint8_t* buf;
 	size_t elem_size;
@@ -56,6 +57,8 @@ gu_make_buf(size_t elem_size, GuPool* pool)
 	return buf;
 }
 
+static const GuWord gu_empty_seq[2] = {0, 0};
+
 GuSeq
 gu_make_seq(size_t elem_size, size_t length, GuPool* pool)
 {
@@ -63,6 +66,8 @@ gu_make_seq(size_t elem_size, size_t length, GuPool* pool)
 	if (0 < length && length <= GU_TAG_MAX) {
 		void* buf = gu_malloc(pool, size);
 		return (GuSeq) { gu_tagged(buf, length) };
+	} else if (size == 0) {
+		return (GuSeq) { gu_tagged((void*)&gu_empty_seq[1], 0) };
 	} else {
 		void* buf = gu_malloc_prefixed(pool,
 					       gu_alignof(GuWord), 

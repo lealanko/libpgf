@@ -53,7 +53,7 @@ struct PgfItemBase {
 
 struct PgfItem {
 	PgfItemBase* base;
-	PgfPArgs* args;
+	PgfPArgs args;
 	PgfSymbol curr_sym;
 	uint16_t seq_idx;
 	uint8_t tok_idx;
@@ -195,9 +195,10 @@ pgf_item_new(PgfItemBase* base, GuPool* pool)
 	}
 	case PGF_PRODUCTION_COERCE: {
 		PgfProductionCoerce* pcoerce = pi.data;
-		item->args = gu_list_new(PgfPArgs, pool, 1);
-		gu_list_index(item->args, 0) = 
-			(PgfPArg) { .hypos = NULL, .ccat = pcoerce->coerce };
+		item->args = gu_new_seq(PgfPArg, 1, pool);
+		PgfPArg* parg = gu_seq_index(item->args, PgfPArg, 0);
+		parg->hypos = NULL;
+		parg->ccat = pcoerce->coerce;
 		break;
 	}
 	default:
@@ -237,14 +238,14 @@ pgf_parsing_combine(PgfParsing* parsing, PgfItem* cont, PgfCCat* cat)
 		return;
 	}
 	PgfItem* item = pgf_item_copy(cont, parsing->pool);
-	int nargs = gu_list_length(cont->args);
-	item->args = gu_list_new(PgfPArgs, parsing->pool, nargs);
-	memcpy(gu_list_elems(item->args), gu_list_elems(cont->args),
+	size_t nargs = gu_seq_length(cont->args);
+	item->args = gu_new_seq(PgfPArg, nargs, parsing->pool);
+	memcpy(gu_seq_data(item->args), gu_seq_data(cont->args),
 	       nargs * sizeof(PgfPArg));
 	gu_assert(gu_variant_tag(item->curr_sym) == PGF_SYMBOL_CAT);
 	PgfSymbolCat* pcat = gu_variant_data(cont->curr_sym);
-	gu_list_index(item->args, pcat->d) =
-		(PgfPArg) { .hypos = NULL, .ccat = cat };
+	gu_seq_set(item->args, PgfPArg, pcat->d,
+		   ((PgfPArg) { .hypos = NULL, .ccat = cat }));
 	pgf_item_advance(item, parsing->pool);
 	pgf_parsing_item(parsing, item);
 }
@@ -285,7 +286,7 @@ pgf_parsing_complete(PgfParsing* parsing, PgfItem* item)
 				       PGF_PRODUCTION_COERCE,
 				       PgfProductionCoerce,
 				       &prod);
-		PgfPArg* parg = &gu_list_index(item->args, 0);
+		PgfPArg* parg = gu_seq_index(item->args, PgfPArg, 0);
 		gu_assert(!parg->hypos || !parg->hypos->len);
 		new_pcoerce->coerce = parg->ccat;
 		break;
@@ -365,48 +366,50 @@ pgf_parsing_symbol(PgfParsing* parsing, PgfItem* item, PgfSymbol sym) {
 	switch (gu_variant_tag(sym)) {
 	case PGF_SYMBOL_CAT: {
 		PgfSymbolCat* scat = gu_variant_data(sym);
-		PgfPArg* parg = &gu_list_index(item->args, scat->d);
+		PgfPArg* parg = gu_seq_index(item->args, PgfPArg, scat->d);
 		gu_assert(!parg->hypos || !parg->hypos->len);
 		pgf_parsing_predict(parsing, item, parg->ccat, scat->r);
-		break;;
+		break;
 	}
 	case PGF_SYMBOL_KS: {
 		PgfSymbolKS* sks = gu_variant_data(sym);
-		gu_assert(item->tok_idx < gu_list_length(sks->tokens));
-		PgfToken tok = gu_list_index(sks->tokens, item->tok_idx);
+		gu_assert(item->tok_idx < gu_seq_length(sks->tokens));
+		PgfToken tok = 
+			gu_seq_get(sks->tokens, PgfToken, item->tok_idx);
 		pgf_parsing_add_transition(parsing, tok, item);
 		break;
 	}
 	case PGF_SYMBOL_KP: {
 		PgfSymbolKP* skp = gu_variant_data(sym);
-		int idx = item->tok_idx;
-		int alt = item->alt;
-		gu_assert(idx < gu_list_length(skp->default_form));
+		size_t idx = item->tok_idx;
+		size_t alt = item->alt;
+		gu_assert(idx < gu_seq_length(skp->default_form));
 		if (idx == 0) {
-			PgfToken tok = gu_list_index(skp->default_form, 0);
+			PgfToken tok = gu_seq_get(skp->default_form, PgfToken, 0);
 			pgf_parsing_add_transition(parsing, tok, item);
-			for (int i = 0; i < skp->n_forms; i++) {
-				PgfTokens* toks = skp->forms[i].form;
-				PgfTokens* toks2 = skp->default_form;
+			for (size_t i = 0; i < skp->n_forms; i++) {
+				PgfTokens toks = skp->forms[i].form;
+				PgfTokens toks2 = skp->default_form;
 				// XXX: do nubbing properly
 				bool skip = pgf_tokens_equal(toks, toks2);
-				for (int j = 0; j < i; j++) {
-					PgfTokens* toks2 = skp->forms[j].form;
+				for (size_t j = 0; j < i; j++) {
+					PgfTokens toks2 = skp->forms[j].form;
 					skip |= pgf_tokens_equal(toks, toks2);
 				}
 				if (skip) {
 					continue;
 				}
-				PgfToken tok = gu_list_index(toks, 0);
+				PgfToken tok = gu_seq_get(toks, PgfToken, 0);
 				pgf_parsing_add_transition(parsing, tok, item);
 			}
 		} else if (alt == 0) {
-			PgfToken tok = gu_list_index(skp->default_form, idx);
+			PgfToken tok = 
+				gu_seq_get(skp->default_form, PgfToken, idx);
 			pgf_parsing_add_transition(parsing, tok, item);
 		} else {
 			gu_assert(alt <= skp->n_forms);
-			PgfToken tok = gu_list_index(skp->forms[alt - 1].form, 
-						     idx);
+			PgfToken tok = gu_seq_get(skp->forms[alt - 1].form, 
+						  PgfToken, idx);
 			pgf_parsing_add_transition(parsing, tok, item);
 		}
 		break;
@@ -463,16 +466,17 @@ pgf_parsing_item(PgfParsing* parsing, PgfItem* item)
 
 static bool
 pgf_parsing_scan_toks(PgfParsing* parsing, PgfItem* old_item, 
-		      PgfToken tok, int alt, PgfTokens* toks)
+		      PgfToken tok, int alt, PgfTokens toks)
 {
-	gu_assert(old_item->tok_idx < gu_list_length(toks));
-	if (!gu_string_eq(gu_list_index(toks, old_item->tok_idx), tok)) {
+	gu_assert(old_item->tok_idx < gu_seq_length(toks));
+	if (!gu_string_eq(gu_seq_get(toks, PgfToken, old_item->tok_idx), 
+			  tok)) {
 		return false;
 	}
 	PgfItem* item = pgf_item_copy(old_item, parsing->pool);
 	item->tok_idx++;
 	item->alt = alt;
-	if (item->tok_idx == gu_list_length(toks)) {
+	if (item->tok_idx == gu_seq_length(toks)) {
 		item->tok_idx = 0;
 		pgf_item_advance(item, parsing->pool);
 	}
@@ -500,11 +504,11 @@ pgf_parsing_scan(PgfParsing* parsing, PgfItem* item, PgfToken tok)
 						      kp->default_form);
 			for (int i = 0; i < kp->n_forms; i++) {
 				// XXX: do nubbing properly
-				PgfTokens* toks = kp->forms[i].form;
-				PgfTokens* toks2 = kp->default_form;
+				PgfTokens toks = kp->forms[i].form;
+				PgfTokens toks2 = kp->default_form;
 				bool skip = pgf_tokens_equal(toks, toks2);
-				for (int j = 0; j < i; j++) {
-					PgfTokens* toks2 = kp->forms[j].form;
+				for (size_t j = 0; j < i; j++) {
+					PgfTokens toks2 = kp->forms[j].form;
 					skip |= pgf_tokens_equal(toks, toks2);
 				}
 				if (!skip) {
@@ -584,9 +588,9 @@ pgf_production_to_expr(PgfProduction prod, GuChoice* choice, GuPool* pool)
 		PgfExpr expr = gu_variant_new_i(pool, PGF_EXPR_FUN,
 						PgfExprFun,
 						.fun = papp->fun->fun);
-		int n_args = gu_list_length(papp->args);
-		for (int i = 0; i < n_args; i++) {
-			PgfPArg* parg = &gu_list_index(papp->args, i);
+		size_t n_args = gu_seq_length(papp->args);
+		for (size_t i = 0; i < n_args; i++) {
+			PgfPArg* parg = gu_seq_index(papp->args, PgfPArg, i);
 			gu_assert(!parg->hypos || !parg->hypos->len);
 			PgfExpr earg = pgf_cat_to_expr(parg->ccat, choice, pool);
 			expr = gu_variant_new_i(pool, PGF_EXPR_APP,

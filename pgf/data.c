@@ -27,15 +27,17 @@ pgf_literal_cat(PgfLiteral lit)
 }
 
 bool 
-pgf_tokens_equal(PgfTokens* t1, PgfTokens* t2)
+pgf_tokens_equal(PgfTokens t1, PgfTokens t2)
 {
-	int len = gu_list_length(t1);
-	if (len != gu_list_length(t2)) {
+	size_t len1 = gu_seq_length(t1);
+	size_t len2 = gu_seq_length(t2);
+	if (len1 != len2) {
 		return false;
 	}
-	for (int i = 0; i < len; i++) {
-		if (gu_string_eq(gu_list_index(t1, i), 
-				 gu_list_index(t2, i))) {
+	for (size_t i = 0; i < len1; i++) {
+		GuString s1 = gu_seq_get(t1, PgfToken, i);
+		GuString s2 = gu_seq_get(t2, PgfToken, i);
+		if (!gu_string_eq(s1, s2)) {
 			return false;
 		}
 	}
@@ -44,6 +46,7 @@ pgf_tokens_equal(PgfTokens* t1, PgfTokens* t2)
 
 
 
+GU_DEFINE_TYPE(PgfTokens, GuSeq, gu_type(GuString));
 
 GU_DEFINE_TYPE(PgfCId, typedef, gu_type(GuString));
 
@@ -73,10 +76,10 @@ GU_DEFINE_TYPE(PgfHypo, struct,
 	       GU_MEMBER(PgfHypo, cid, PgfCId),
 	       GU_MEMBER_P(PgfHypo, type, PgfType));
 
-GU_DEFINE_TYPE(PgfHypos, GuList, gu_type(PgfHypo));
+GU_DEFINE_TYPE(PgfHypos, GuSeq, gu_type(PgfHypo));
 
 GU_DEFINE_TYPE(PgfType, struct,
-	       GU_MEMBER_P(PgfType, hypos, PgfHypos),
+	       GU_MEMBER(PgfType, hypos, PgfHypos),
 	       GU_MEMBER(PgfType, cid, PgfCId),
 	       GU_MEMBER(PgfType, n_exprs, GuLength),
 	       GU_FLEX_MEMBER(PgfType, exprs, PgfExpr));
@@ -92,7 +95,7 @@ GU_DEFINE_TYPE(PgfCCatIds, GuList, gu_type(PgfCCatId));
 GU_DEFINE_TYPE(PgfCCatSeq, GuSeq, gu_type(PgfCCatId));
 
 GU_DEFINE_TYPE(PgfAlternative, struct,
-	       GU_MEMBER_P(PgfAlternative, form, GuStringL),
+	       GU_MEMBER(PgfAlternative, form, PgfTokens),
 	       GU_MEMBER_P(PgfAlternative, prefixes, GuStringL));
 
 
@@ -112,10 +115,10 @@ GU_DEFINE_TYPE(
 		GU_MEMBER(PgfSymbolVar, r, int)),
 	GU_CONSTRUCTOR_S(
 		PGF_SYMBOL_KS, PgfSymbolKS,
-		GU_MEMBER_P(PgfSymbolKS, tokens, PgfTokens)),
+		GU_MEMBER(PgfSymbolKS, tokens, PgfTokens)),
 	GU_CONSTRUCTOR_S(
 		PGF_SYMBOL_KP, PgfSymbolKP,
-		GU_MEMBER_P(PgfSymbolKP, default_form, PgfTokens),
+		GU_MEMBER(PgfSymbolKP, default_form, PgfTokens),
 		GU_MEMBER(PgfSymbolKP, n_forms, GuLength),
 		GU_FLEX_MEMBER(PgfSymbolKP, forms, PgfAlternative)));
 
@@ -159,14 +162,14 @@ GU_DEFINE_TYPE(
 	GU_MEMBER_P(PgfPArg, hypos, PgfCCatIds),
 	GU_MEMBER(PgfPArg, ccat, PgfCCatId));
 
-GU_DEFINE_TYPE(PgfPArgs, GuList, gu_type(PgfPArg));
+GU_DEFINE_TYPE(PgfPArgs, GuSeq, gu_type(PgfPArg));
 
 GU_DEFINE_TYPE(
 	PgfProduction, GuVariant,
 	GU_CONSTRUCTOR_S(
 		PGF_PRODUCTION_APPLY, PgfProductionApply,
 		GU_MEMBER(PgfProductionApply, fun, PgfFunId),
-		GU_MEMBER_P(PgfProductionApply, args, PgfPArgs)),
+		GU_MEMBER(PgfProductionApply, args, PgfPArgs)),
 	GU_CONSTRUCTOR_S(
 		PGF_PRODUCTION_COERCE, PgfProductionCoerce,
 		GU_MEMBER(PgfProductionCoerce, coerce, PgfCCatId)),
@@ -211,10 +214,8 @@ GU_DEFINE_TYPE(
 	GU_MEMBER(PgfEquation, n_patts, GuLength),
 	GU_MEMBER(PgfEquation, patts, PgfPatt));
 
-GU_DEFINE_TYPE(PgfEquations, GuList, gu_type(PgfEquation));
-
 // Distinct type so we can give it special treatment in the reader
-GU_DEFINE_TYPE(PgfEquationsM, pointer, gu_type(PgfEquations));
+GU_DEFINE_TYPE(PgfEquationsM, GuSeq, gu_type(PgfEquation));
 
 GU_DEFINE_TYPE(
 	PgfFunDecl, struct, 
@@ -230,7 +231,7 @@ GU_DEFINE_TYPE(
 
 GU_DEFINE_TYPE(
 	PgfCat, struct, 
-	GU_MEMBER_V(PgfCat, context, gu_ptr_type(PgfHypos)),
+	GU_MEMBER(PgfCat, context, PgfHypos),
 	GU_MEMBER(PgfCat, n_functions, GuLength),
 	GU_FLEX_MEMBER(PgfCat, functions, PgfCatFun));
 

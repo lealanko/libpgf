@@ -12,6 +12,9 @@ typedef GuOpaque() GuSeq;
 GuSeq
 gu_make_seq(size_t elem_size, size_t len, GuPool* pool);
 
+#define gu_new_seq(T, N, POOL)			\
+	gu_make_seq(sizeof(T), (N), (POOL))
+
 static inline size_t
 gu_seq_length(GuSeq seq)
 {
@@ -52,7 +55,7 @@ gu_seq_is_null(GuSeq seq)
 #define gu_seq_get(SEQ, T, I)			\
 	(*gu_seq_index(SEQ, T, I))
 
-#define gu_seq_set(SEQ, T, I)			\
+#define gu_seq_set(SEQ, T, I, V)			\
 	GU_BEGIN				\
 	(*gu_seq_index(SEQ, T, I) = (V));	\
 	GU_END

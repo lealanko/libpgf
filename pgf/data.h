@@ -79,12 +79,12 @@ extern GU_DECLARE_TYPE(PgfCncCat, struct);
 typedef GuVariant PgfPatt;
 typedef GuString PgfToken;			      
 typedef GuList(GuString) GuStringL;
-#define PgfTokens GuStringL						       
-// typedef GuStringL PgfTokens;
 extern GU_DECLARE_TYPE(GuStringL, GuList);
+typedef GuSeq PgfTokens;  // -> PgfToken
+extern GU_DECLARE_TYPE(PgfTokens, GuSeq);
 
 bool
-pgf_tokens_equal(PgfTokens* t1, PgfTokens* t2);
+pgf_tokens_equal(PgfTokens t1, PgfTokens t2);
 
 
 typedef enum {
@@ -104,10 +104,10 @@ struct PgfHypo {
 	PgfType* type;
 };
 
-typedef GuList(PgfHypo) PgfHypos;
+typedef GuSeq PgfHypos;
 
 struct PgfType {
-	PgfHypos* hypos;
+	PgfHypos hypos;
 	PgfCId cid; /// XXX: resolve to PgfCat*?
 	int n_exprs;
 	PgfExpr exprs[];
@@ -121,10 +121,9 @@ typedef int PgfMetaId;
 typedef PgfExpr PgfTree;
 
 typedef struct PgfEquation PgfEquation;
-typedef GuList(PgfEquation*) PgfEquations;
-typedef PgfEquations* PgfEquationsM;
-extern GU_DECLARE_TYPE(PgfEquationsM, pointer);
-
+typedef GuSeq PgfEquations;
+typedef PgfEquations PgfEquationsM; // can be null
+extern GU_DECLARE_TYPE(PgfEquationsM, GuSeq);
 typedef GuList(PgfCId) PgfCIds;
 
 typedef struct PgfCat PgfCat;
@@ -172,7 +171,7 @@ struct PgfCatFun {
 
 struct PgfCat {
 	// TODO: Add cid here
-	PgfHypos* context;
+	PgfHypos context;
 	int n_functions;
 	PgfCatFun functions[]; // XXX: resolve to PgfFunDecl*?
 };
@@ -200,7 +199,7 @@ struct PgfCncFun {
 };
 
 struct PgfAlternative {
-	PgfTokens* form;
+	PgfTokens form;
 	/**< The form of this variant as a list of tokens. */
 
 	GuStringL* prefixes;
@@ -246,14 +245,14 @@ struct PgfSymbolIdx {
 typedef PgfSymbolIdx PgfSymbolCat, PgfSymbolLit, PgfSymbolVar;
 
 typedef struct {
-	PgfTokens* tokens;
+	PgfTokens tokens;
 } PgfSymbolKS;
 
 typedef struct PgfSymbolKP
 /** A prefix-dependent symbol. The form that this symbol takes
  * depends on the form of a prefix of the following symbol. */
 {
-	PgfTokens* default_form; 
+	PgfTokens default_form; 
 	/**< Default form that this symbol takes if none of of the
 	 * variant forms is triggered. */
 
@@ -283,13 +282,13 @@ struct PgfPArg {
 
 GU_DECLARE_TYPE(PgfPArg, struct);
 
-typedef GuList(PgfPArg) PgfPArgs;
+typedef GuSeq PgfPArgs;
 
-GU_DECLARE_TYPE(PgfPArgs, GuList);
+GU_DECLARE_TYPE(PgfPArgs, GuSeq);
 
 typedef struct {
 	PgfFunId fun; 
-	PgfPArgs* args;
+	PgfPArgs args;
 } PgfProductionApply;
 
 typedef struct PgfProductionCoerce

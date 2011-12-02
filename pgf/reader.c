@@ -331,32 +331,6 @@ pgf_read_to_alias(GuType* type, PgfReader* rdr, void* to)
 	pgf_read_to(rdr, atype->type, to);
 }
 
-// works only for otherwise non-null pointers
-static void
-pgf_read_to_maybe(GuType* type, PgfReader* rdr, void* to)
-{
-	GuPointerType* ptype = gu_type_cast(type, pointer);
-	GuTypeRepr* prepr = gu_type_repr(ptype->pointed_type);
-	// We only handle struct pointers for the moment
-	gu_require(prepr == NULL ||
-		   gu_type_has_kind((GuType*)prepr, gu_kind(struct)));
-	GuStruct** sto = to;
-	uint8_t tag = pgf_read_u8(rdr);
-	gu_return_on_error(rdr->err,);
-	switch (tag) {
-	case 0:
-		*sto = NULL;
-		break;
-	case 1:
-		*sto = pgf_read_new(rdr, type, rdr->opool, NULL);
-		break;
-	default:
-		gu_raise_i(rdr->err, PgfReadTagError,
-			   .type = type, .tag = tag);
-		break;
-	}
-}
-
 static void
 pgf_read_into_map(GuMapType* mtype, PgfReader* rdr, GuMap* map, GuPool* pool)
 {
@@ -529,6 +503,7 @@ pgf_read_new_GuList(GuType* type, PgfReader* rdr, GuPool* pool, size_t* size_out
 static void
 pgf_read_to_GuSeq(GuType* type, PgfReader* rdr, void* to)
 {
+	gu_enter("->");
 	GuSeqType* stype = gu_type_cast(type, GuSeq);
 	GuLength length = pgf_read_len(rdr);
 	GuTypeRepr* repr = gu_type_repr(stype->elem_type);
@@ -542,14 +517,37 @@ pgf_read_to_GuSeq(GuType* type, PgfReader* rdr, void* to)
 	}
 	GuSeq* sto = to;
 	*sto = seq;
+	gu_exit("<-");
 }
+
+static void
+pgf_read_to_maybe_seq(GuType* type, PgfReader* rdr, void* to)
+{
+	GuSeqType* stype = gu_type_cast(type, GuSeq);
+	GuSeq* sto = to;
+	uint8_t tag = pgf_read_u8(rdr);
+	gu_return_on_error(rdr->err,);
+	switch (tag) {
+	case 0:
+		*sto = gu_null_seq;
+		break;
+	case 1:
+		pgf_read_to_GuSeq(type, rdr, to);
+		break;
+	default:
+		gu_raise_i(rdr->err, PgfReadTagError,
+			   .type = type, .tag = tag);
+		break;
+	}
+}
+
 
 static void*
 pgf_read_new_idarray(GuType* type, PgfReader* rdr, GuPool* pool,
 		     size_t* size_out)
 {
 	(void) type;
-	void* list = pgf_read_new_GuList(type, rdr, pool, size_out);
+	void* list = pgf_read_new_GuList(type, rdr, rdr->curr_pool, size_out);
 	if (type == gu_type(PgfSequences)) {
 		rdr->curr_sequences = list;
 	} else if (type == gu_type(PgfCncFuns)) {
@@ -791,7 +789,7 @@ pgf_read_to_table = GU_TYPETABLE(
 	PGF_READ_TO(GuString),
 	PGF_READ_TO(double),
 	PGF_READ_TO(pointer),
-	PGF_READ_TO_FN(PgfEquationsM, pgf_read_to_maybe),
+	PGF_READ_TO_FN(PgfEquationsM, pgf_read_to_maybe_seq),
 	PGF_READ_TO(GuSeq),
 	PGF_READ_TO(PgfCCatId),
 	PGF_READ_TO(PgfCCat),

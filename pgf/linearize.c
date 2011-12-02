@@ -141,12 +141,12 @@ pgf_lzr_add_infer_entry(PgfLzr* lzr,
 			PgfCCat* cat,
 			PgfProductionApply* papply)
 {
-	PgfPArgs* args = papply->args;
-	int n_args = gu_list_length(args);
+	PgfPArgs args = papply->args;
+	size_t n_args = gu_seq_length(args);
 	PgfCCatIds* arg_cats = gu_list_new(PgfCCatIds, lzr->pool, n_args);
-	for (int i = 0; i < n_args; i++) {
+	for (size_t i = 0; i < n_args; i++) {
 		// XXX: What about the hypos in the args?
-		gu_list_index(arg_cats, i) = gu_list_index(args, i).ccat;
+		gu_list_index(arg_cats, i) = gu_seq_get(args, PgfPArg, i).ccat;
 	}
 	gu_debug("%d,%d,%d -> %d, %s",
 		 n_args > 0 ? gu_list_index(arg_cats, 0)->fid : -1,
@@ -572,14 +572,15 @@ struct PgfSimpleLin {
 };
 
 static void
-pgf_file_lzn_symbol_tokens(PgfLinFuncs** funcs, PgfTokens* toks)
+pgf_file_lzn_symbol_tokens(PgfLinFuncs** funcs, PgfTokens toks)
 {
 	PgfSimpleLin* flin = gu_container(funcs, PgfSimpleLin, funcs);
 	if (!gu_ok(flin->err)) {
 		return;
 	}
-	for (int i = 0; i < toks->len; i++) {
-		PgfToken tok = toks->elems[i];
+	size_t len = gu_seq_length(toks);
+	for (size_t i = 0; i < len; i++) {
+		PgfToken tok = gu_seq_get(toks, PgfToken, i);
 		gu_string_write(tok, flin->wtr, flin->err);
 		gu_putc(' ', flin->wtr, flin->err);
 	}

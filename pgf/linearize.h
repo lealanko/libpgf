@@ -32,7 +32,7 @@ typedef GuVariant PgfLinForm;
 typedef struct PgfLinFuncs PgfLinFuncs;
 
 struct PgfLinFuncs {
-	void (*symbol_tokens)(PgfLinFuncs** self, PgfTokens* toks);
+	void (*symbol_tokens)(PgfLinFuncs** self, PgfTokens toks);
 	void (*symbol_expr)(PgfLinFuncs** self, 
 			    int argno, PgfExpr expr, int lin_idx);
 
