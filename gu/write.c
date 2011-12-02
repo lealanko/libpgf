@@ -209,15 +209,15 @@ gu_locale_writer_write(GuWriter* wtr,
 #endif
 	uint8_t cbuf[256];
 	while (done < size && gu_ok(err)) {
-		char* p = (char*) cbuf;
-		char* edge = (char*) &cbuf[bufsize - margin];
+		uint8_t* p = cbuf;
+		uint8_t* edge = &cbuf[bufsize - margin];
 		size_t n;
 		for  (n = done; p <= edge && n < size; n++) {
 #ifdef GU_UCS_WCHAR
 			wchar_t wc = buf[n];
-			size_t nb = wcrtomb(p, wc, &lwtr->ps);
+			size_t nb = wcrtomb((char*) p, wc, &lwtr->ps);
 #else
-			*p = gu_ucs_char(buf[n], err);
+			*p = (uint8_t) gu_ucs_char(buf[n], err);
 			size_t nb = 1;
 			if (!gu_ok(err)) {
 				gu_error_clear(err);
@@ -225,12 +225,12 @@ gu_locale_writer_write(GuWriter* wtr,
 			}
 #endif
 			if (nb == (size_t) -1) {
-				*p++ = '?';
+				*p++ = (uint8_t) '?';
 			} else {
 				p += nb;
 			}
 		}
-		gu_out_bytes(lwtr->owtr.out, cbuf, n, err);
+		gu_out_bytes(lwtr->owtr.out, cbuf, p - cbuf, err);
 		if (gu_ok(err)) {
 			done = n;
 		}
