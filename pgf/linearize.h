@@ -54,8 +54,8 @@ int
 pgf_lin_form_n_fields(PgfLinForm form);
 
 void
-pgf_lzr_linearize_to_file(PgfLzr* lzr, PgfLinForm form, int lin_idx, 
-			  FILE* file_out);
+pgf_lzr_linearize_simple(PgfLzr* lzr, PgfLinForm form,
+			 int lin_idx, GuWriter* wtr, GuError* err);
 
 PgfLzn*
 pgf_lzn_new(PgfLzr* lzr, PgfExpr expr, GuPool* pool);

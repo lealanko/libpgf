@@ -1,5 +1,5 @@
 /* 
- * Copyright 2010 University of Helsinki.
+ * Copyright 2011 University of Helsinki.
  *   
  * This file is part of libgu.
  * 
@@ -20,159 +20,106 @@
 #ifndef GU_STRING_H_
 #define GU_STRING_H_
 
-#include <stdarg.h>
-#include <gu/mem.h>
-#include <gu/fun.h>
+#include <gu/bits.h>
+#include <gu/read.h>
+#include <gu/write.h>
 
-// This is not fully portable: GuString* pointers are actually char
-// pointers so they are char-aligned, whereas a struct pointer might
-// have a different representation. But typedefing a GuString to char 
-// or void diminishes type safety.
-//
-// We could of course create a struct for the pointers themselves, but
-// then we lose the convenient void*-compatibility,
+typedef GuOpaque() GuString;
 
-typedef struct GuString GuString;
+extern const GuString gu_empty_string;
 
-typedef const GuString GuCString;
+GuString
+gu_string_copy(GuString string, GuPool* pool);
 
-typedef GuString* GuStringP;
-typedef GuCString* GuCStringP;
+void
+gu_string_write(GuString string, GuWriter* wtr, GuError* err);
 
-GuString* 
-gu_string_new(GuPool* pool, int len);
+GuReader*
+gu_string_reader(GuString string, GuPool* pool);
 
-GuString* 
-gu_string_new_c(GuPool* pool, const char* cstr);
+bool
+gu_string_is_stable(GuString string);
 
-GuString* 
-gu_string_copy(GuPool* pool, const GuString* from);
+GuString
+gu_ucs_string(const GuUCS* ubuf, size_t len, GuPool* pool);
 
-GuString*
-gu_string_format(GuPool* pool, const char* fmt, ...);
+typedef struct GuStringBuf GuStringBuf;
 
-GuString*
-gu_string_format_v(GuPool* pool, const char* fmt, va_list args);
+GuStringBuf*
+gu_string_buf(GuPool* pool);
 
-inline int
-gu_string_length(const GuString* s);
+GuWriter*
+gu_string_buf_writer(GuStringBuf* sb, GuPool* pool);
 
-inline char*
-gu_string_data(GuString* s);
+GuString
+gu_string_buf_freeze(GuStringBuf* sb, GuPool* pool);
 
-inline const char*
-gu_string_cdata(const GuString* s);
+GuString
+gu_format_string_v(const char* fmt, va_list args, GuPool* pool);
 
+GuString
+gu_format_string(GuPool* pool, const char* fmt, ...);
 
-
-
-
-#define GU_STRING_FMT "%.*s"
-#define GU_STRING_FMT_ARGS(s)			\
-	gu_string_length(s), gu_string_cdata(s)
-
-
-
-
-
-
-// internal
-
-#include <limits.h>
-
-
-#define GuStringShortN_(len_)				\
-	struct {					\
-		unsigned char len;			\
-		char data[len_];		\
-	}
-#define GuStringLongN_(len_)				\
-	struct {					\
-		int true_len;				\
-		GuStringShortN_(len_) ss;		\
-	}
-
-typedef GuStringLongN_(1) GuStringEmpty_;
-
-extern const GuStringEmpty_ gu_string_empty_;
-
-#define gu_string_empty ((const GuString*)&gu_string_empty_.ss)
-
-#define GU_STRING_SHORTN_INIT_(cstr_,len_) {			\
-		.len = (unsigned char)len_,			\
-		.data = cstr_,				\
-}
-
-#define gu_string_short_(qual_,cstr_,len_)			\
-       (&(qual_ GuStringShortN_(len_)) 	\
-       GU_STRING_SHORTN_INIT_(cstr_,len_)	\
-	)
-
-#define GU_STRING_LONGN_INIT_(cstr_,len_) {			\
-		.true_len = len_,				\
-		.ss = GU_STRING_SHORTN_INIT_(cstr_,0),	\
-}
-
-#define gu_string_long_(qual_,cstr_,len_)			\
-       (&(qual_ GuStringLongN_(len_))	\
-	       GU_STRING_LONGN_INIT_(cstr_,len_)	\
-		)
-
-#define GU_DEFINE_ATOM_(name_, cstr_, len_)		\
-	const GuStringShortN_(len_)			\
-	gu_atom_##name_##_ = GU_STRING_SHORTN_INIT_(cstr_, len_)
-
-#define GU_DEFINE_ATOM(name_, cstr_) \
-	GU_DEFINE_ATOM_(name_, cstr_, sizeof(cstr_)-1)
-
-#define gu_atom(name_)				\
-	((const GuString*)&gu_atom_##name_##_)
-
-#define gu_string__(qual_,cstr_,len_)					\
-	(len_ == 0							\
-	 ? (qual_ GuString*) &gu_string_empty_				\
-	 : len_ <= UCHAR_MAX						\
-	 ? (qual_ GuString*) gu_string_short_(qual_,cstr_,len_)		\
-	 : (qual_ GuString*) &gu_string_long_(qual_,cstr_,len_)->ss)
-
-#define gu_string_(qual_,cstr_) \
-	gu_string__(qual_,cstr_,(sizeof(cstr_)-1))
-
-#define gu_string(cstr_)				\
-	gu_string_(,cstr_)
-
-#define gu_cstring(cstr_)				\
-	gu_string_(const,cstr_)
-
-
-inline int
-gu_string_length(const GuString* s) {
-	int len = ((const unsigned char*) s)[0];
-	if (len > 0) {
-		return len;
-	} else {
-		return ((const int*) s)[-1];
-	}
-}
-
-inline const char*
-gu_string_cdata(const GuString* s) {
-	return &((const char*) s)[1];
-}
-
-inline char*
-gu_string_data(GuString* s) {
-	return (char*) gu_string_cdata(s);
-}
-
-extern GuHashFn gu_string_hash;
-
-extern GuEqFn gu_string_eq;
-
-#include <gu/type.h>
-extern GU_DECLARE_TYPE(GuString, abstract);
-extern GU_DECLARE_TYPE(GuStringP, pointer);
-
-
+GuString
+gu_str_string(const char* str, GuPool* pool);
 
 #endif // GU_STRING_H_
+
+#if defined(GU_HASH_H_) && !defined(GU_STRING_H_HASH_)
+#define GU_STRING_H_HASH_
+
+uintptr_t
+gu_string_hash(GuString s);
+
+extern GuHasher gu_string_hasher[1];
+
+bool
+gu_string_eq(GuString s1, GuString s2);
+#endif
+
+#ifdef GU_TYPE_H_
+# ifndef GU_STRING_H_TYPE_
+#  define GU_STRING_H_TYPE_
+
+extern GU_DECLARE_TYPE(GuString, GuOpaque);
+# endif
+
+# if defined(GU_SEQ_H_) && !defined(GU_STRING_H_SEQ_TYPE_)
+#  define GU_STRING_H_SEQ_TYPE_
+extern GU_DECLARE_TYPE(GuStrings, GuSeq);
+# endif
+
+# if defined(GU_MAP_H_TYPE_) && !defined(GU_STRING_H_MAP_TYPE_)
+#  define GU_STRING_H_MAP_TYPE_
+
+extern GU_DECLARE_KIND(GuStringMap);
+typedef GuType_GuMap GuType_GuStringMap;
+
+#define GU_TYPE_INIT_GuStringMap(KIND, MAP_T, VAL_T, DEFAULT)	\
+	GU_TYPE_INIT_GuMap(KIND, MAP_T,				\
+			   gu_type(GuString), gu_string_hasher,	\
+			   VAL_T, DEFAULT)
+
+# endif
+#endif
+
+
+#if defined(GU_SEQ_H_) && !defined(GU_STRING_H_SEQ_)
+#define GU_STRING_H_SEQ_
+
+typedef GuSeq GuStrings;
+// typedef GuBuf GuStringBuf;
+
+#endif
+
+
+#if defined(GU_MAP_H_) && !defined(GU_STRING_H_MAP_)
+#define GU_STRING_H_MAP_
+
+typedef GuMap GuStringMap;
+
+#define gu_new_string_map(VAL_T, DEFAULT, POOL)				\
+	gu_new_map(GuString, gu_string_hasher, (VAL_T), (DEFAULT), (POOL))
+
+#endif
+

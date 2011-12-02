@@ -57,7 +57,7 @@ gu_list_length(const void* list)
 	(gu_list_elems(lst)[i])
 
 typedef GuList(void*) GuPointers; 
-typedef GuList(uint8_t) GuBytes;
+//typedef GuList(uint8_t) GuBytes;
 
 typedef GuList(int) GuInts;		      
 
@@ -129,8 +129,8 @@ gu_list_type_index(GuListType* ltype, void* list, int i);
 
 #include <gu/str.h>
 
+
 typedef GuList(GuStr) GuStrs;
-typedef GuList(GuCStr) GuCStrs;
 typedef GuStrs* GuStrsP;
 		       
 extern GU_DECLARE_TYPE(GuStrs, GuList);

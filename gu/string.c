@@ -1,152 +1,257 @@
-#include <string.h>
-#include <limits.h>
+#include <gu/type.h>
+#include <gu/seq.h>
+#include <gu/map.h>
+#include <gu/string.h>
+#include <gu/utf8.h>
+#include "config.h"
 
-#include "string.h"
-#include "list.h"
+// TODO: use SCSU instead of UTF-8
 
+const GuString gu_empty_string = { 1 };
 
-const GuStringEmpty_
-gu_string_empty_ = {
-	.true_len = 0,
-	.ss = {
-		.len = 0,
-		.data = "\0",
-	},
+struct GuStringBuf {
+	GuByteBuf* bbuf;
 };
 
-// the second element is just for neatness, it's nice that
-// gu_string_data always returns a pointer to something sensible
-
-GuString* 
-gu_string_new(GuPool* pool, int len)
+GuStringBuf*
+gu_string_buf(GuPool* pool)
 {
-	if (len == 0) {
-		return (GuString*)gu_string_empty;
-	} else if (len > 0 && len <= UCHAR_MAX) {
-		unsigned char* up = gu_malloc_aligned(pool, 1 + len, 1);
-		up[0] = len;
-		return (GuString*) up;
+	return gu_new_s(pool, GuStringBuf,
+			.bbuf = gu_new_buf(uint8_t, pool));
+}
+
+GuWriter*
+gu_string_buf_writer(GuStringBuf* sb, GuPool* pool)
+{
+	GuOut* out = gu_buf_out(sb->bbuf, pool);
+	return gu_utf8_writer(out, pool);
+}
+
+static GuString
+gu_utf8_string(const uint8_t* buf, size_t sz, GuPool* pool)
+{
+	if (sz < GU_MIN(sizeof(GuWord), 128)) {
+		GuWord w = 0;
+		for (size_t n = 0; n < sz; n++) {
+			w = w << 8 | buf[n];
+		}
+		w = w << 8 | (sz << 1) | 1;
+		return (GuString) { w };
+	}
+	uint8_t* p = NULL;
+	if (sz < 256) {
+		p = gu_malloc_aligned(pool, 1 + sz, 2);
+		p[0] = (uint8_t) sz;
 	} else {
-		int* ip = gu_malloc_aligned(pool, sizeof(int) + 1 + len,
-					    gu_alignof(int));
-		ip[0] = len;
-		unsigned char* up = (unsigned char*) &ip[1];
-		up[0] = 0;
-		return (GuString*) up;
+		uint8_t* p =
+			gu_malloc_prefixed(pool, gu_alignof(size_t),
+					   sizeof(size_t), 1, 1 + sizeof(sz));
+		((size_t*) p)[-1] = sz;
+		p[0] = 0;
 	}
+	memcpy(&p[1], buf, sz);
+	return (GuString) { (GuWord) (void*) p };
 }
 
 
 
-extern inline char*
-gu_string_data(GuString* str);
-
-extern inline const char*
-gu_string_cdata(const GuString* str);
-
-extern inline int
-gu_string_length(const GuString* str);
-
-GuString* 
-gu_string_new_c(GuPool* pool, const char* cstr)
+GuString
+gu_string_buf_freeze(GuStringBuf* sb, GuPool* pool)
 {
-	int len = strlen(cstr);
-	GuString* s = gu_string_new(pool, len);
-	char* data = gu_string_data(s);
-	memcpy(data, cstr, len);
-	return s;
+	uint8_t* data = gu_buf_data(sb->bbuf);
+	size_t len = gu_buf_length(sb->bbuf);
+	return gu_utf8_string(data, len, pool);
 }
 
-GuString* 
-gu_string_copy(GuPool* pool, const GuString* from)
+GuReader*
+gu_string_reader(GuString s, GuPool* pool)
 {
-	int len = gu_string_length(from);
-	GuString* to = gu_string_new(pool, len);
-	const char* from_data = gu_string_cdata(from);
-	char* to_data = gu_string_data(to);
-	memcpy(to_data, from_data, len);
-	return to;
-}
-
-static unsigned
-gu_string_hash_fn(GuHashFn* self, const void* p)
-{
-	(void) self;
-	const GuString* s = p;
-	int n = gu_string_length(s);
-	const char* cp = gu_string_cdata(s);
-	unsigned h = 0;
-
-	for (int i = 0; i < n; i++) {
-		h = 101 * h + (unsigned char) cp[i];
+	GuWord w = s.w_;
+	uint8_t* buf = NULL;
+	size_t len = 0;
+	if (w & 1) {
+		len = (w & 0xff) >> 1;
+		buf = gu_new_n(pool, uint8_t, len);
+		for (int i = len - 1; i >= 0; i--) {
+			w >>= 8;
+			buf[i] = w & 0xff;
+		}
+	} else {
+		uint8_t* p = (void*) w;
+		len = (p[0] == 0) ? ((size_t*) p)[-1] : p[0];
+		buf = &p[1];
 	}
-	return h;
-}
-
-GuHashFn gu_string_hash = { gu_string_hash_fn };
-
-bool
-gu_string_equal(const GuString* p1, const GuString* p2)
-{
-	const GuString* s1 = p1;
-	const GuString* s2 = p2;
-	int len1 = gu_string_length(s1);
-	int len2 = gu_string_length(s2);
-	
-	if (len1 != len2) {
-		return false;
-	}
-	const char* data1 = gu_string_cdata(s1);
-	const char* data2 = gu_string_cdata(s2);
-	int cmp = memcmp(data1, data2, len1);
-	return (cmp == 0);
+	GuIn* in = gu_buf_in(buf, len, pool);
+	GuReader* rdr = gu_utf8_reader(in, pool);
+	return rdr;
 }
 
 static bool
-gu_string_eq_fn(GuEqFn* self, const void* a, const void* b)
+gu_string_is_long(GuString s) 
 {
-	(void) self;
-	return gu_string_equal(a, b);
+	return !(s.w_ & 1);
 }
 
-GuEqFn gu_string_eq = { gu_string_eq_fn };
-
-#include <stdio.h>
-
-GuString*
-gu_string_format_v(GuPool* pool, const char* fmt, va_list args)
+bool
+gu_string_is_stable(GuString s)
 {
-	va_list args2;
-	va_copy(args2, args);
-	int len = vsnprintf(NULL, 0, fmt, args2);
-	va_end(args2);
-
-	// Alas, upon truncation vsnprintf insists on using the last
-	// character for '\0', so we are forced to use a temporary
-	// buffer just to accommodate that extra '\0'.
-	char buf[len + 1]; 
-	vsnprintf(buf, len + 1, fmt, args);
-
-	GuString* str = gu_string_new(pool, len);
-	char* data = gu_string_data(str);
-	memcpy(data, buf, len);
-
-	return str;
+	return !gu_string_is_long(s);
 }
 
-GuString*
-gu_string_format(GuPool* pool, const char* fmt, ...)
+static size_t
+gu_string_long_length(GuString s)
+{
+	gu_assert(gu_string_is_long(s));
+	uint8_t* p = (void*) s.w_;
+	uint8_t len = p[0];
+	if (len > 0) {
+		return len;
+	}
+	return ((size_t*) p)[-1];
+}
+
+size_t
+gu_string_length(GuString s)
+{
+	if (gu_string_is_long(s)) {
+		return gu_string_long_length(s);
+	}
+	return (s.w_ & 0xff) >> 1;
+}
+
+static uint8_t*
+gu_string_long_data(GuString s)
+{
+	gu_require(gu_string_is_long(s));
+	uint8_t* p = (void*) s.w_;
+	return &p[1];
+}
+
+GuString
+gu_string_copy(GuString string, GuPool* pool)
+{
+	if (gu_string_is_long(string)) {
+		uint8_t* data = gu_string_long_data(string);
+		size_t len = gu_string_long_length(string);
+		return gu_utf8_string(data, len, pool);
+	} else {
+		return string;
+	}
+}
+
+
+void
+gu_string_write(GuString s, GuWriter* wtr, GuError* err)
+{
+	GuPool* pool = gu_pool_new();
+	GuReader* rdr = gu_string_reader(s, pool);
+	GuUCS ubuf[256];
+	while (gu_ok(err)) {
+		size_t got = gu_read(rdr, ubuf, 256, err);
+		if (got == 0) {
+			break;
+		}
+		gu_error_block(err);
+		gu_write(wtr, ubuf, got, err);
+		gu_error_unblock(err);
+	}
+	gu_pool_free(pool);
+}
+
+GuString
+gu_format_string_v(const char* fmt, va_list args, GuPool* pool)
+{
+	GuPool* tmp_pool = gu_pool_new();
+	GuStringBuf* sb = gu_string_buf(tmp_pool);
+	GuWriter* wtr = gu_string_buf_writer(sb, tmp_pool);
+	gu_vprintf(fmt, args, wtr, NULL);
+	GuString s = gu_string_buf_freeze(sb, pool);
+	gu_pool_free(tmp_pool);
+	return s;
+}
+
+GuString
+gu_format_string(GuPool* pool, const char* fmt, ...)
 {
 	va_list args;
 	va_start(args, fmt);
-	GuString* s = gu_string_format_v(pool, fmt, args);
+	GuString s = gu_format_string_v(fmt, args, pool);
 	va_end(args);
 	return s;
 }
 
+GuString
+gu_str_string(const char* str, GuPool* pool)
+{
+#ifdef CHAR_IS_ASCII
+	return gu_utf8_string((const uint8_t*) str, strlen(str), pool);
+#else
+	GuPool* tmp_pool = gu_pool_new();
+	GuStringBuf* sb = gu_string_buf(tmp_pool);
+	GuWriter* wtr = gu_string_buf_writer(sb, tmp_pool);
+	gu_puts(str, wtr, NULL);
+	GuString s = gu_string_buf_freeze(sb, pool);
+	gu_pool_free(tmp_pool);
+	return s;
+#endif
+}
 
-// type
+GuWord
+gu_string_hash(GuString s)
+{
+	if (s.w_ & 1) {
+		return s.w_;
+	}
+	size_t len = gu_string_length(s);
+	uint8_t* data = gu_string_long_data(s);
+	return gu_hash_bytes(0, data, len);
+}
 
-GU_DEFINE_TYPE(GuString, abstract, _);
-GU_DEFINE_TYPE(GuStringP, pointer, gu_type(GuString));
+bool
+gu_string_eq(GuString s1, GuString s2)
+{
+	if (s1.w_ == s2.w_) {
+		return true;
+	} else if (gu_string_is_long(s1) && gu_string_is_long(s2)) {
+		size_t len1 = gu_string_long_length(s1);
+		size_t len2 = gu_string_long_length(s2);
+		if (len1 != len2) {
+			return false;
+		}
+		uint8_t* data1 = gu_string_long_data(s1);
+		uint8_t* data2 = gu_string_long_data(s2);
+		return (memcmp(data1, data2, len1) == 0);
+	}
+	return false;
 
+}
+
+
+static GuHash
+gu_string_hasher_hash(GuHasher* self, const void* p)
+{
+	(void) self;
+	const GuString* sp = p;
+	return gu_string_hash(*sp);
+}
+
+static bool
+gu_string_eq_fn(GuEquality* self, const void* p1, const void* p2)
+{
+	(void) self;
+	const GuString* sp1 = p1;
+	const GuString* sp2 = p2;
+	return gu_string_eq(*sp1, *sp2);
+}
+
+GuHasher gu_string_hasher[1] = {
+	{
+		.eq = { gu_string_eq_fn },
+		.hash = gu_string_hasher_hash
+	}
+};
+
+
+GU_DEFINE_TYPE(GuString, GuOpaque, _);
+GU_DEFINE_TYPE(GuStrings, GuSeq, gu_type(GuString));
+GU_DEFINE_KIND(GuStringMap, GuMap);

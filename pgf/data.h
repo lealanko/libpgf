@@ -22,13 +22,15 @@
 
 #include <gu/list.h>
 #include <gu/variant.h>
-#include <gu/str.h>
 #include <gu/map.h>
+#include <gu/string.h>
 #include <gu/type.h>
 #include <gu/seq.h>
 #include <pgf/pgf.h>
 
-typedef GuCStr PgfCId;
+typedef GuString PgfCId;
+
+extern GU_DECLARE_TYPE(PgfCId, typedef);
 
 typedef struct PgfCCat PgfCCat;
 typedef PgfCCat* PgfCCatId;
@@ -36,7 +38,7 @@ extern GU_DECLARE_TYPE(PgfCCat, struct);
 extern GU_DECLARE_TYPE(PgfCCatId, shared);
 typedef GuList(PgfCCatId) PgfCCatIds;
 extern GU_DECLARE_TYPE(PgfCCatIds, GuList);
-GU_SEQ_DEFINE(PgfCCatSeq, pgf_ccat_seq, PgfCCatId);
+typedef GuSeq PgfCCatSeq;
 extern GU_DECLARE_TYPE(PgfCCatSeq, GuSeq);
 
 typedef struct PgfAbstr PgfAbstr;
@@ -54,7 +56,8 @@ typedef GuList(PgfCncFun*) PgfCncFuns;
 extern GU_DECLARE_TYPE(PgfCncFuns, GuList);
 typedef GuList(PgfFunId) PgfFunIds; 
 extern GU_DECLARE_TYPE(PgfFunIds, GuList);
-typedef GuStrMap PgfCIdMap; // PgfCId -> ?
+// typedef GuStringMap PgfCIdMap; // PgfCId -> ?
+#define PgfCIdMap GuStringMap			 
 typedef PgfCIdMap PgfFlags; // PgfCId -> PgfLiteral
 extern GU_DECLARE_TYPE(PgfFlags, GuMap);
 typedef GuVariant PgfExpr;
@@ -64,17 +67,21 @@ extern GU_DECLARE_TYPE(PgfType, struct);
 typedef GuVariant PgfProduction;
 typedef GuList(PgfProduction) PgfProductions;
 extern GU_DECLARE_TYPE(PgfProductions, GuList);
-GU_SEQ_DEFINE(PgfProductionSeq, pgf_production_seq, PgfProduction);
+typedef GuSeq PgfProductionSeq;			      
 extern GU_DECLARE_TYPE(PgfProductionSeq, GuSeq);
 
 typedef struct PgfCatFun PgfCatFun;
 typedef struct PgfCncCat PgfCncCat;
 extern GU_DECLARE_TYPE(PgfCncCat, struct);
 typedef GuVariant PgfPatt;
-typedef GuCStr PgfToken;			      
-typedef GuCStrs PgfTokens;
+typedef GuString PgfToken;			      
+typedef GuList(GuString) GuStringL;
+#define PgfTokens GuStringL						       
+// typedef GuStringL PgfTokens;
+extern GU_DECLARE_TYPE(GuStringL, GuList);
 
-bool pgf_tokens_equal(PgfTokens* t1, PgfTokens* t2);
+bool
+pgf_tokens_equal(PgfTokens* t1, PgfTokens* t2);
 
 
 typedef enum {
@@ -174,7 +181,7 @@ struct PgfCncCat {
 	PgfFunIds* lindefs;
 	int n_lins;
 
-	GuStrs* labels;
+	GuStringL* labels;
 	/**< Labels for tuples. All nested tuples, records and tables
 	 * in the GF linearization types are flattened into a single
 	 * tuple in the corresponding PGF concrete category. This
@@ -193,7 +200,7 @@ struct PgfAlternative {
 	PgfTokens* form;
 	/**< The form of this variant as a list of tokens. */
 
-	GuStrs* prefixes;
+	GuStringL* prefixes;
 	/**< The prefixes of the following symbol that trigger this
 	 * form. */
 };
@@ -206,8 +213,8 @@ struct PgfCCat {
 
 extern PgfCCat pgf_ccat_string, pgf_ccat_int, pgf_ccat_float, pgf_ccat_var;
 
-typedef GuStrMap PgfPrintNames;
-extern GU_DECLARE_TYPE(PgfPrintNames, GuStrMap);
+typedef PgfCIdMap PgfPrintNames;
+extern GU_DECLARE_TYPE(PgfPrintNames, GuStringMap);
 
 struct PgfConcr {
 	PgfFlags* cflags;
@@ -293,7 +300,7 @@ typedef struct PgfProductionCoerce
 typedef struct {
 	PgfExpr expr; // XXX
 	int n_toks;
-	GuStr toks[]; // XXX
+	GuString toks[]; // XXX
 } PgfProductionConst;
 
 

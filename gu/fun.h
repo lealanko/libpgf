@@ -56,20 +56,10 @@ struct GuClo3 {
 	void *env3;
 };
 
-typedef const struct GuEqFn GuEqFn;
+typedef const struct GuEquality GuEquality;
 
-struct GuEqFn {
-	bool (*fn)(GuEqFn* self, const void* a, const void* b);
+struct GuEquality {
+	bool (*is_equal)(GuEquality* self, const void* a, const void* b);
 };
-
-typedef const struct GuHashFn GuHashFn;
-
-struct GuHashFn {
-	unsigned (*fn)(GuHashFn* self, const void* p);
-};
-
-extern GuEqFn gu_int_eq;
-extern GuHashFn gu_int_hash;
-
 
 #endif // GU_FUN_H_

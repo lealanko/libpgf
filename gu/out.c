@@ -1,3 +1,4 @@
+#include <gu/seq.h>
 #include <gu/out.h>
 
 
@@ -11,9 +12,11 @@ gu_out_bytes(GuOut* out, const uint8_t* buf, size_t len, GuError* err)
 }
 
 void
-gu_out_u8(GuOut* out, uint8_t u, GuError* err)
+gu_out_flush(GuOut* out, GuError* err)
 {
-	gu_out_bytes(out, &u, 1, err);
+	if (out->flush) {
+		out->flush(out, err);
+	}
 }
 
 
@@ -25,26 +28,26 @@ gu_out_s8(GuOut* out, int8_t i, GuError* err)
 }
 
 
-typedef struct GuByteSeqOut GuByteSeqOut;
-struct GuByteSeqOut
+typedef struct GuBytesOut GuBytesOut;
+struct GuBytesOut
 {
 	GuOut out;
-	GuByteSeq byteq;
+	GuByteBuf* bbuf;
 };
 
 static size_t
-gu_byte_seq_output(GuOut* out, const uint8_t* buf, size_t len, GuError* err)
+gu_bytes_output(GuOut* out, const uint8_t* buf, size_t len, GuError* err)
 {
 	(void) err;
-	GuByteSeqOut* bout = (GuByteSeqOut*) out;
-	gu_byte_seq_push_n(bout->byteq, buf, len);
+	GuBytesOut* bout = (GuBytesOut*) out;
+	gu_buf_push_n(bout->bbuf, buf, len);
 	return len;
 }
 
 GuOut*
-gu_byte_seq_out(GuByteSeq byteq, GuPool* pool)
+gu_buf_out(GuByteBuf* bbuf, GuPool* pool)
 {
-	return (GuOut*) gu_new_s(pool, GuByteSeqOut,
-				 .out = { .output = gu_byte_seq_output },
-				 .byteq = byteq);
+	return (GuOut*) gu_new_s(pool, GuBytesOut,
+				 .out = { .output = gu_bytes_output },
+				 .bbuf = bbuf);
 }

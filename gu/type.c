@@ -1,15 +1,16 @@
 
 #include <gu/type.h>
 #include <gu/assert.h>
+#include <gu/map.h>
 
-
-GuKind GU_TYPE_IDENT(type) = { .super = NULL };
+GuKind GU_TYPE_IDENT(type)[1] = {{ .super = NULL }};
 
 GU_DEFINE_KIND(alias, type);
 GU_DEFINE_KIND(typedef, alias);
 GU_DEFINE_KIND(referenced, alias);
 
 GU_DEFINE_KIND(repr, type);
+GU_DEFINE_KIND(GuOpaque, repr);
 
 GU_DEFINE_KIND(abstract, type);
 
@@ -33,7 +34,7 @@ GU_DEFINE_TYPE(float, primitive, _);
 GU_DEFINE_TYPE(double, primitive, _);
 
 // sizeof(void) is illegal, so do this manually
-GuPrimType GU_TYPE_IDENT(void) = {
+GuPrimType GU_TYPE_IDENT(void)[1] = {{
 	.repr_base = {
 		.type_base = {
 			.kind_base = {
@@ -44,7 +45,7 @@ GuPrimType GU_TYPE_IDENT(void) = {
 		.align = 1,
 	},
 	.name = "void",
-};
+}};
 
 GU_DEFINE_KIND(enum, repr);
 
@@ -61,6 +62,10 @@ bool gu_type_has_kind(GuType* type, GuKind* kind)
 }
 
 
+struct GuTypeMap {
+	GuMap* map;
+};
+
 static void
 gu_type_map_init(GuTypeMap* tmap, GuTypeTable* table) 
 {
@@ -69,14 +74,16 @@ gu_type_map_init(GuTypeMap* tmap, GuTypeTable* table)
 	}
 	for (int i = 0; i < table->entries.len; i++) {
 		GuTypeTableEntry* e = &table->entries.elems[i];
-		gu_map_set(tmap, e->kind, e->val);
+		gu_map_put(tmap->map, e->kind, void*, e->val);
 	}
 }
 
 GuTypeMap*
 gu_type_map_new(GuPool* pool, GuTypeTable* table)
 {
-	GuTypeMap* tmap = gu_map_new(pool, NULL, NULL);
+	GuTypeMap* tmap =
+		gu_new_i(pool, GuTypeMap,
+			 .map = gu_new_map(GuKind, NULL, void*, &gu_null, pool));
 	gu_type_map_init(tmap, table);
 	return tmap;
 }
@@ -97,7 +104,7 @@ gu_type_map_get(GuTypeMap* tmap, GuType* type)
 {
 	GuKind* kind = (GuKind*)type;
 	while (kind != NULL) {
-		void* val = gu_map_get(tmap, kind);
+		void* val = gu_map_get(tmap->map, kind, void*);
 		if (val != NULL) {
 			return val;
 		}

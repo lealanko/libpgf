@@ -3,129 +3,170 @@
 #include <gu/assert.h>
 #include <string.h>
 
-
-typedef struct GuDynSeq GuDynSeq;
-
-struct GuDynSeq {
+struct GuBuf {
 	uint8_t* buf;
-	int head_idx;
-	size_t buf_size;
+	size_t elem_size;
+	size_t buf_len;
 	GuFinalizer fin;
 };
 
-static GuDynSeq*
-gu_seq_dyn(GuSeq seq)
+GuBuf*
+gu_seq_buf(GuSeq seq)
 {
-	gu_assert(gu_word_tag(seq.w_) == 0);
-	return (void*) seq.w_;
-}
-
-static int
-gu_dyn_seq_size(GuDynSeq* dyn)
-{
-	return (int)(((GuWord*)(void*)dyn)[-1] >> 1);
-}
-
-static void
-gu_dyn_seq_set_size(GuDynSeq* dyn, int new_size)
-{
-	((GuWord*)(void*)dyn)[-1] = ((GuWord) new_size) << 1 | 0x1;
-}
-
-static void
-gu_seq_free_fn(GuFinalizer* fin)
-{
-	GuDynSeq* dyn = gu_container(fin, GuDynSeq, fin);
-	gu_mem_buf_free(dyn->buf);
+	gu_require(gu_tagged_tag(seq.w_) == 0);
+	return gu_word_ptr(seq.w_);
 }
 
 GuSeq
-gu_seq_new(GuPool* pool)
+gu_buf_seq(GuBuf* buf)
 {
-	GuDynSeq* dyn = gu_new_prefixed(pool, unsigned, GuDynSeq);
-	gu_dyn_seq_set_size(dyn, 0);
-	dyn->buf = NULL;
-	dyn->buf_size = 0;
-	dyn->head_idx = 0;
-	dyn->fin.fn = gu_seq_free_fn;
-	gu_pool_finally(pool, &dyn->fin);
-	gu_dyn_seq_set_size(dyn, 0);
-	return (GuSeq) { gu_word(dyn, 0) };
+	return (GuSeq) { .w_ = gu_ptr_word(buf) };
+}
+
+size_t
+gu_buf_length(GuBuf* dyn)
+{
+	return (size_t)(((GuWord*)(void*)dyn)[-1] >> 1);
+}
+
+static void
+gu_buf_set_length(GuBuf* dyn, size_t new_len)
+{
+	((GuWord*)(void*)dyn)[-1] = ((GuWord) new_len) << 1 | 0x1;
+}
+
+static void
+gu_buf_fini(GuFinalizer* fin)
+{
+	GuBuf* buf = gu_container(fin, GuBuf, fin);
+	gu_mem_buf_free(buf->buf);
+}
+
+GuBuf*
+gu_make_buf(size_t elem_size, GuPool* pool)
+{
+	GuBuf* buf = gu_new_prefixed(pool, unsigned, GuBuf);
+	gu_buf_set_length(buf, 0);
+	buf->elem_size = elem_size;
+	buf->buf = NULL;
+	buf->buf_len = 0;
+	buf->fin.fn = gu_buf_fini;
+	gu_pool_finally(pool, &buf->fin);
+	gu_buf_set_length(buf, 0);
+	return buf;
 }
 
 GuSeq
-gu_seq_new_sized(size_t align, size_t size, GuPool* pool)
+gu_make_seq(size_t elem_size, size_t length, GuPool* pool)
 {
-	if (0 < size && size <= (size_t) gu_word_max_tag()) {
-		void* buf = gu_malloc_aligned(pool, size, align);
-		return (GuSeq) { gu_word(buf, (int) size) };
+	size_t size = elem_size * length;
+	if (0 < length && length <= GU_TAG_MAX) {
+		void* buf = gu_malloc(pool, size);
+		return (GuSeq) { gu_tagged(buf, length) };
 	} else {
 		void* buf = gu_malloc_prefixed(pool,
 					       gu_alignof(GuWord), 
 					       sizeof(GuWord),
-					       align, size);
-		((GuWord*) buf)[-1] = ((GuWord) size) << 1;
-		return (GuSeq) { gu_word(buf, 0) };
+					       0, size);
+		((GuWord*) buf)[-1] = ((GuWord) length) << 1;
+		return (GuSeq) { gu_tagged(buf, 0) };
 	}
 }
 
 static void
-gu_dyn_seq_resize_tail(GuDynSeq* dyn, int change)
+gu_buf_require(GuBuf* buf, size_t req_len)
 {
-	int size = gu_dyn_seq_size(dyn);
-	gu_require(size + change >= 0);
-	int new_size = size + change;
-	if ((size_t) new_size > dyn->buf_size) {
-		dyn->buf = gu_mem_buf_realloc(dyn->buf, new_size,
-					      &dyn->buf_size);
+	if (req_len <= buf->buf_len) {
+		return;
 	}
-	gu_dyn_seq_set_size(dyn, new_size);
-	gu_ensure((size_t) size <= dyn->buf_size);
+	size_t req_size = buf->elem_size * req_len;
+	size_t real_size;
+	buf->buf = gu_mem_buf_realloc(buf->buf, req_size,
+				      &real_size);
+	buf->buf_len = real_size / buf->elem_size;
 }
 
-static void
-gu_dyn_seq_push(GuDynSeq* dyn, const void* data, size_t size)
+void*
+gu_buf_data(GuBuf* buf)
 {
-	int old_size = gu_dyn_seq_size(dyn);
-	gu_dyn_seq_resize_tail(dyn, (int) size);
-	memcpy(&dyn->buf[old_size], data, size);
+	return buf->buf;
 }
 
-
-static void
-gu_dyn_seq_pop(GuDynSeq* dyn, size_t size, void* data_out)
+void*
+gu_buf_extend_n(GuBuf* buf, size_t n_elems)
 {
-	int old_size = gu_dyn_seq_size(dyn);
-	gu_require((int) size <= old_size);
-	memcpy(data_out, &dyn->buf[old_size - (int) size], size);
-	gu_dyn_seq_resize_tail(dyn, -(int) size);
+	size_t len = gu_buf_length(buf);
+	size_t new_len = len + n_elems;
+	gu_buf_require(buf, new_len);
+	gu_buf_set_length(buf, new_len);
+	return &buf->buf[buf->elem_size * len];
+}
+
+void*
+gu_buf_extend(GuBuf* buf)
+{
+	return gu_buf_extend_n(buf, 1);
 }
 
 void
-gu_seq_pop(GuSeq seq, size_t size, void* data_out)
+gu_buf_push_n(GuBuf* buf, const void* data, size_t n_elems)
 {
-	gu_dyn_seq_pop(gu_seq_dyn(seq), size, data_out);
+	
+	void* p = gu_buf_extend_n(buf, n_elems);
+	memcpy(p, data, buf->elem_size * n_elems);
+}
+
+const void*
+gu_buf_trim_n(GuBuf* buf, size_t n_elems)
+{
+	gu_require(n_elems <= gu_buf_length(buf));
+	size_t new_len = gu_buf_length(buf) - n_elems;
+	gu_buf_set_length(buf, new_len);
+	return &buf->buf[buf->elem_size * new_len];
+}
+
+const void*
+gu_buf_trim(GuBuf* buf)
+{
+	return gu_buf_trim_n(buf, 1);
 }
 
 void
-gu_seq_push(GuSeq seq, const void* data, size_t size)
+gu_buf_pop_n(GuBuf* buf, size_t n_elems, void* data_out)
 {
-	gu_dyn_seq_push(gu_seq_dyn(seq), data, size);
+	const void* p = gu_buf_trim_n(buf, n_elems);
+	memcpy(data_out, p, buf->elem_size * n_elems);
 }
+
+GuSeq
+gu_buf_freeze(GuBuf* buf, GuPool* pool)
+{
+	size_t len = gu_buf_length(buf);
+	GuSeq seq = gu_make_seq(buf->elem_size, len, pool);
+	void* bufdata = gu_buf_data(buf);
+	void* seqdata = gu_seq_data(seq);
+	memcpy(seqdata, bufdata, buf->elem_size * len);
+	return seq;
+}
+
+const GuSeq
+gu_null_seq = GU_NULL_SEQ;
+
 
 #include <gu/type.h>
 
-GU_DEFINE_KIND(GuSeq, abstract);
+GU_DEFINE_KIND(GuSeq, GuOpaque);
+GU_DEFINE_KIND(GuBuf, abstract);
 
-GU_DEFINE_TYPE(GuCharSeq, GuSeq, gu_type(char));
-GU_DEFINE_TYPE(GuByteSeq, GuSeq, gu_type(uint8_t));
+GU_DEFINE_TYPE(GuChars, GuSeq, gu_type(char));
+GU_DEFINE_TYPE(GuBytes, GuSeq, gu_type(uint8_t));
 
 char*
-gu_char_seq_to_str(GuCharSeq charq, GuPool* pool)
+gu_chars_str(GuChars chars, GuPool* pool)
 {
-	int size = gu_char_seq_size(charq);
-	char* data = gu_char_seq_data(charq);
-	char* str = gu_str_new(size, pool);
-	memcpy(str, data, size);
+	size_t len = gu_seq_length(chars);
+	char* data = gu_seq_data(chars);
+	char* str = gu_new_str(len, pool);
+	memcpy(str, data, len);
 	return str;
 }

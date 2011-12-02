@@ -4,58 +4,105 @@
 #include <gu/mem.h>
 #include <gu/type.h>
 
-typedef const struct GuErrorFrame GuErrorFrame;
-
-struct GuErrorFrame {
-	GuType* type;
-	void* data;
-	const char* filename;
-	int lineno;
-	const char* func;
-	GuErrorFrame* cause;
-};
-
 typedef struct GuError GuError;
 
+typedef enum {
+	GU_ERROR_RAISED,
+	GU_ERROR_OK,
+	GU_ERROR_BLOCKED
+} GuErrorState;
+
+struct GuError {
+	GuError* parent;
+	GuKind* catch;
+	GuPool* pool;
+	GuErrorState state;
+	GuType* caught;
+	const void* data;
+};
+
+
+
+#define gu_error(parent_, catch_, pool_) &(GuError){	\
+	.parent = parent_,	\
+	.catch = gu_kind(catch_),	\
+	.pool = pool_,		\
+	.state = GU_ERROR_OK,	\
+	.caught = NULL,	\
+	.data = NULL \
+}
+
 GuError*
-gu_error_new(GuPool* pool);
+gu_new_error(GuError* parent, GuKind* catch_kind, GuPool* pool);
+
+static inline bool
+gu_error_is_raised(GuError* err) {
+	return err && (err->state == GU_ERROR_RAISED);
+}
+
+static inline void
+gu_error_clear(GuError* err) {
+	err->caught = NULL;
+	err->state = GU_ERROR_OK;
+}
 
 bool
-gu_error_raised(GuError* err);
+gu_error_is_raised(GuError* err);
 
 GuPool*
-gu_error_pool(GuError* err);
+gu_error_pool(GuError* err, GuType* raise_type);
 
 GuType*
-gu_error_type(GuError* err);
+gu_error_caught(GuError* err);
 
-void*
-gu_error_data(GuError* err);
-
-GuErrorFrame*
-gu_error_frame(GuError* err);
+const void*
+gu_error_caught_data(GuError* err);
 
 void
-gu_error_raise(GuError* err, GuType* type, const void* data,
-	       const char* filename, const char* func, int lineno);
+gu_error_block(GuError* err);
 
-#define gu_raise_ptr(error_, t_, val_)		\
-	gu_error_raise(error_, gu_type(t_), val_,	\
-		       __FILE__, __func__, __LINE__)
-#define gu_raise(error_, t_, ...) \
-	gu_raise_ptr(error_, t_, (&(t_) { __VA_ARGS__ }))
+void
+gu_error_unblock(GuError* err);
 
-#define gu_raise_null(error_, t_) \
-	gu_raise_ptr(error_, t_, NULL)
+GuError*
+gu_error_raise_(GuError* err, GuType* type);
+
+GuError*
+gu_error_raise_debug_(GuError* err, GuType* type,
+		      const char* filename, const char* func, int lineno);
+
+#ifdef NDEBUG
+#define gu_error_raise(err_, type_)	\
+	gu_error_raise_(err_, type_)
+#else
+#define gu_error_raise(err_, type_)	\
+	gu_error_raise_debug_(err_, type_, \
+			      __FILE__, __func__, __LINE__)
+#endif
+
+#define gu_raise(error_, t_)		\
+	gu_error_raise(error_, gu_type(t_))
+
+#define gu_raise_new(error_, t_, pool_, expr_)				\
+	GU_BEGIN							\
+	GuError* gu_raise_err_ = gu_raise(error_, t_);			\
+	if (gu_raise_err_) {							\
+		GuPool* pool_ = gu_raise_err_->pool;			\
+		gu_raise_err_->data = expr_;				\
+	}								\
+	GU_END
+
+#define gu_raise_i(error_, t_, ...) \
+	gu_raise_new(error_, t_, gu_raise_pool_, gu_new_i(gu_raise_pool_, t_, __VA_ARGS__))
 
 static inline bool
 gu_ok(GuError* err) {
-	return !gu_error_raised(err);
+	return !gu_error_is_raised(err);
 }
 
 #define gu_return_on_error(err_, retval_)		\
 	GU_BEGIN					\
-	if (gu_error_raised(err_)) return retval_;	\
+	if (gu_error_is_raised(err_)) return retval_;	\
 	GU_END
 
 
@@ -66,7 +113,7 @@ typedef int GuErrno;
 extern GU_DECLARE_TYPE(GuErrno, int);
 
 #define gu_raise_errno(error_) \
-	gu_raise(error_, GuErrno, errno)
+	gu_raise_i(error_, GuErrno, errno)
 
 #include <stdio.h>
 

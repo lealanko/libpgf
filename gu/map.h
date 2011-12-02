@@ -1,105 +1,85 @@
 #ifndef GU_MAP_H_
 #define GU_MAP_H_
 
-#include <gu/fun.h>
+#include <gu/hash.h>
 #include <gu/mem.h>
+#include <gu/error.h>
 
-typedef const struct GuMapIterFn GuMapIterFn;
+typedef const struct GuMapItor GuMapItor;
 
-struct GuMapIterFn {
-	void (*fn)(GuMapIterFn* self, const void* key, void* value);
+struct GuMapItor {
+	void (*fn)(GuMapItor* self, const void* key, void* value,
+		   GuError *err);
 };
 
 typedef struct GuMap GuMap;
 
 GuMap*
-gu_map_new_full(GuPool* pool, GuHashFn* hash_fn, GuEqFn* eq_fn, 
-		size_t key_size, size_t value_size, const void* empty_value);
+gu_make_map(size_t key_size, GuHasher* hasher,
+	    size_t value_size, const void* default_value,
+	    GuPool* pool);
 
-static inline GuMap*
-gu_map_new(GuPool* pool, GuHashFn* hash_fn, GuEqFn* eq_fn) {
-	return gu_map_new_full(pool, hash_fn, eq_fn, 0, 0, NULL);
-}
+#define gu_new_map(K, HASHER, V, DV, POOL)			\
+	(gu_make_map(sizeof(K), (HASHER), sizeof(V), (DV), (POOL)))
+
+#define gu_new_set(K, HASHER, POOL)			\
+	(gu_make_map(sizeof(K), (HASHER), 0, NULL, (POOL)))
+
+#define gu_new_addr_map(K, V, DV, POOL)				\
+	(gu_make_map(0, gu_null_hasher, sizeof(V), (DV), (POOL)))
+
+size_t
+gu_map_count(GuMap* map);
 
 void*
-gu_map_get(GuMap* ht, const void* key);
+gu_map_find_full(GuMap* ht, void* key_inout);
+
+const void*
+gu_map_find_default(GuMap* ht, const void* key);
+
+#define gu_map_get(MAP, KEYP, V)		\
+	(*(V*)gu_map_find_default((MAP), (KEYP)))
+
+void*
+gu_map_find(GuMap* ht, const void* key);
+
+#define gu_map_set(MAP, KEYP, V, VAL)				\
+	GU_BEGIN						\
+	V* gu_map_set_p_ = gu_map_find((MAP), (KEYP));		\
+	*gu_map_set_p_ = (VAL);					\
+	GU_END
+
+const void*
+gu_map_find_key(GuMap* ht, const void* key);
+
+static inline bool
+gu_map_has(GuMap* ht, const void* key)
+{
+	return gu_map_find_key(ht, key) != NULL;
+}
+
+
+void*
+gu_map_insert(GuMap* ht, const void* key);
+
+#define gu_map_put(MAP, KEYP, V, VAL)				\
+	GU_BEGIN						\
+	V* gu_map_put_p_ = gu_map_insert((MAP), (KEYP));	\
+	*gu_map_put_p_ = (VAL);					\
+	GU_END
 
 void
-gu_map_set(GuMap* ht, const void* key, void* value);
-
-void
-gu_map_iter(GuMap* ht, GuMapIterFn* fn);
-
-#define GU_MAP__SIZE_R(t_) (0)
-#define GU_MAP__SIZE_V(t_) (sizeof(t_))
-
-#define GU_MAP__KEYTYPE_R(t_) const t_*
-#define GU_MAP__VALTYPE_R(t_) t_*
-#define GU_MAP__KEYTYPE_V(t_) t_
-#define GU_MAP__VALTYPE_V(t_) t_
-
-#define GU_MAP__PASS_R(x_) (x_)
-#define GU_MAP__PASS_V(x_) (&(x_))
-
-#define GU_MAP__RET_R(t_, x_) (x_)
-#define GU_MAP__RET_V(t_, x_) (*(t_*)(x_))
-
-#define GU_MAP__EMPTY_R(t_, x_) (x_)
-#define GU_MAP__EMPTY_V(t_, x_) (&(t_){x_})
-
-#define GU_MAP_DEFINE(t_, pfx, KM, k_, VM, v_, empty_v_, hash_, eq_) \
-									\
-typedef struct t_ t_;							\
-									\
-static inline t_* pfx##_new(GuPool* pool)				\
-{									\
-	GuMap* map = gu_map_new_full(pool, hash_, eq_,			\
-				     GU_MAP__SIZE_##KM(k_),		\
-				     GU_MAP__SIZE_##VM(v_),		\
-				     GU_MAP__EMPTY_##VM(v_, empty_v_));	\
-	return (t_*) map;						\
-}									\
-									\
-static inline void							\
-pfx##_set(t_* map,							\
-	  GU_MAP__KEYTYPE_##KM(k_) key, GU_MAP__VALTYPE_##VM(v_) val)	\
-{									\
-	gu_map_set((GuMap*) map,					\
-		   GU_MAP__PASS_##KM(key), GU_MAP__PASS_##VM(val));	\
-}									\
-									\
-static inline GU_MAP__VALTYPE_##VM(v_)					\
-pfx##_get(t_* map, GU_MAP__KEYTYPE_##KM(k_) key)			\
-{									\
-	void* val = gu_map_get((GuMap*) map, GU_MAP__PASS_##KM(key));	\
-	return GU_MAP__RET_##VM(v_, val);				\
-}									\
-GU_DECLARE_DUMMY
-
-#define GU_PTRMAP_DEFINE(t_, pfx, k_, VM, v_, empty_v_) \
-	GU_MAP_DEFINE(t_, pfx, R, k_, VM, v_, empty_v_, NULL, NULL)
-
-GU_PTRMAP_DEFINE(GuPtrMap, gu_ptrmap, void, R, void, NULL);
-				    
-#include <gu/str.h>
-
-#define GU_STRMAP_DEFINE(t_, pfx, VM, v_, empty_v_) \
-	GU_MAP_DEFINE(t_, pfx, V, GuCStr, VM, v_, empty_v_, \
-		      &gu_str_hash, &gu_str_eq)
-
-GU_STRMAP_DEFINE(GuStrMap, gu_strmap, R, void, NULL);
-
-#define GU_INTMAP_DEFINE(t_, pfx, VM, v_, empty_v_) \
-	GU_MAP_DEFINE(t_, pfx, V, int, VM, v_, empty_v_, \
-		      &gu_int_hash, &gu_int_eq)
-
-#define GU_INTPTRMAP_DEFINE(t_, pfx, v_) \
-	GU_INTMAP_DEFINE(t_, pfx, R, v_, NULL)
-
-GU_INTPTRMAP_DEFINE(GuIntMap, gu_intmap, void);
+gu_map_iter(GuMap* ht, GuMapItor* itor, GuError* err);
 
 
-#include <gu/type.h>
+typedef GuMap GuIntMap;
+
+#define gu_new_int_map(VAL_T, DEFAULT, POOL)		\
+	gu_new_map(int, gu_int_hasher, VAL_T, DEFAULT, POOL)
+
+
+#if defined(GU_TYPE_H_) && !defined(GU_MAP_H_TYPE_)
+#define GU_MAP_H_TYPE_
 
 extern GU_DECLARE_KIND(GuMap);
 
@@ -107,55 +87,35 @@ typedef const struct GuMapType GuMapType, GuType_GuMap;
 
 struct GuMapType {
 	GuType_abstract abstract_base;
-	GuHashFn* hash_fn;
-	GuEqFn* eq_fn;
-	bool direct_key;
-	bool direct_value;
+	GuHasher* hasher;
 	GuType* key_type;
 	GuType* value_type;
-	const void* empty_value;
+	const void* default_value;
 };
 
 GuMap*
-gu_map_new_from_type(GuMapType* mtype, GuPool* pool);
+gu_map_type_make(GuMapType* mtype, GuPool* pool);
 
-#define GU_TYPE_INIT_GuMap(k_, t_, h_, eq_, dk_, kt_, dv_, vt_, ev_) {	\
-	.abstract_base = GU_TYPE_INIT_abstract(k_, t_, _),		\
-	.hash_fn = h_,					\
-	.eq_fn = eq_,					\
-	.direct_key = dk_,			\
-	.direct_value = dv_,			\
-	.key_type = kt_,			\
-	.value_type = vt_,		\
-	.empty_value = ev_ \
-}
+#define gu_map_type_new(MAP_T, POOL)			\
+	gu_map_type_make(gu_type_cast(gu_type(MAP_T), GuMap), (POOL))
 
-// #define GuPtrMap GuMap
-extern GU_DECLARE_KIND(GuPtrMap);
-typedef GuType_GuMap GuType_GuPtrMap;
-#define GU_TYPE_INIT_GuPtrMap(k_, t_, h_, eq_, kt_, vt_)	\
-	GU_TYPE_INIT_GuMap(k_, t_, h_, eq_, false, kt_, false, vt_, NULL)
+#define GU_TYPE_INIT_GuMap(k_, t_, kt_, h_, vt_, dv_)			\
+	{								\
+		.abstract_base = GU_TYPE_INIT_abstract(k_, t_, _),	\
+		.hasher = h_,						\
+		.key_type = kt_,					\
+		.value_type = vt_,					\
+		.default_value = dv_					\
+	}
 
-extern GU_DECLARE_KIND(GuIntMap);
+#define gu_type__GuIntMap gu_type__GuMap
+
 typedef GuType_GuMap GuType_GuIntMap;
-#define GU_TYPE_INIT_GuIntMap(k_, t_, dv_, vt_, ev_)		\
-	GU_TYPE_INIT_GuMap(k_, t_, &gu_int_hash, &gu_int_eq,	\
-			   true, gu_type(int), dv_, vt_, ev_)
 
-#define GuIntPtrMap GuIntMap
-#define GU_TYPE_INIT_GuIntPtrMap(k_, t_, vt_)	\
-	GU_TYPE_INIT_GuIntMap(k_, t_, false, vt_, NULL)
+#define GU_TYPE_INIT_GuIntMap(KIND, MAP_T, VAL_T, DEFAULT)	\
+	GU_TYPE_INIT_GuMap(KIND, MAP_T, gu_type(int), gu_int_hasher,	\
+			   VAL_T, DEFAULT)
 
-extern GU_DECLARE_KIND(GuStrMap);
-typedef GuType_GuMap GuType_GuStrMap;
-#define GU_TYPE_INIT_GuStrMap(k_, t_, dv_, vt_, ev_)			\
-	GU_TYPE_INIT_GuMap(k_, t_, &gu_str_hash, &gu_str_eq,	\
-			   true, gu_type(GuStr), dv_, vt_, ev_)
-
-#define GuStrPtrMap GuStrMap
-#define GU_TYPE_INIT_GuStrPtrMap(k_, t_, vt_)	\
-	GU_TYPE_INIT_GuStrMap(k_, t_, false, vt_, NULL)
-
-
+#endif
 
 #endif // GU_MAP_H_

@@ -3,8 +3,6 @@
 
 #include <gu/in.h>
 #include <gu/out.h>
-#include <gu/write.h>
-#include <gu/read.h>
 #include <stdio.h>
 
 typedef const struct GuFile GuFile;
@@ -12,8 +10,6 @@ typedef const struct GuFile GuFile;
 struct GuFile
 {
 	FILE* file;
-	GuWriter wtr;
-	GuReader rdr;
 	GuIn in;
 	GuOut out;
 };

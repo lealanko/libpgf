@@ -17,15 +17,15 @@ struct GuKind {
 // Use GU_PASTE here so k_ can be preprocessor-expanded
 #define GU_TYPE_IDENT(k_) GU_PASTE(gu_type__,k_)
 
-#define gu_kind(k_) ((GuKind*)&GU_TYPE_IDENT(k_))
+#define gu_kind(k_) ((GuKind*)GU_TYPE_IDENT(k_))
 
 #define GU_DECLARE_KIND(k_) \
-	GuKind GU_TYPE_IDENT(k_)
+	GuKind GU_TYPE_IDENT(k_)[1]
 
 extern GU_DECLARE_KIND(kind);
 
 #define GU_DEFINE_KIND(k_, super_k_) \
-	GuKind GU_TYPE_IDENT(k_) = { .super = gu_kind(super_k_) }
+	GuKind GU_TYPE_IDENT(k_)[1] = {{ .super = gu_kind(super_k_) }}
 
 //
 // type
@@ -59,12 +59,16 @@ extern GU_DECLARE_KIND(type);
 	((GuType*)&(GU_KIND_TYPE(k_)) GU_TYPE_INIT_##k_(k_, __VA_ARGS__))
 
 #define GU_DECLARE_TYPE(t_, k_)	\
-	GU_KIND_TYPE(k_) GU_TYPE_IDENT(t_)
+	GU_KIND_TYPE(k_) GU_TYPE_IDENT(t_)[1]
 
 //#define GU_DEFINE_TYPE(t_, k_, ...)					
 //	GuType_##k_ GU_TYPE_IDENT(t_) = GU_TYPE_INIT(k_, t_, __VA_ARGS__)
 #define GU_DEFINE_TYPE(t_, k_, ...)					\
-	GU_KIND_TYPE(k_) GU_TYPE_IDENT(t_) = GU_TYPE_INIT_##k_(k_, t_, __VA_ARGS__)
+	GU_KIND_TYPE(k_) GU_TYPE_IDENT(t_)[1] =				\
+	{ GU_TYPE_INIT_##k_(k_, t_, __VA_ARGS__) }
+
+#define GU_DEFINE_TYPE_ALIAS(t1_, t2_)		\
+	static GuType* const GU_TYPE_IDENT(t1_) = gu_type(t2_)
 
 
 //
@@ -99,6 +103,17 @@ struct GuTypeRepr {
 
 extern GU_DECLARE_KIND(repr);
 
+
+
+//
+// GuOpaque
+//
+
+typedef GuType_repr GuType_GuOpaque;
+
+#define GU_TYPE_INIT_GuOpaque GU_TYPE_INIT_repr
+
+extern GU_DECLARE_KIND(GuOpaque);
 
 //
 // pointer
@@ -147,10 +162,6 @@ struct GuTypeAlias {
 }
 
 extern GU_DECLARE_KIND(alias);
-
-
-
-
 
 //
 // typedef
@@ -383,11 +394,7 @@ struct GuTypeTable {
 			    __VA_ARGS__) \
  }
 
-
-
-#include <gu/map.h>
-
-typedef GuMap GuTypeMap;
+typedef struct GuTypeMap GuTypeMap;
 
 GuTypeMap*
 gu_type_map_new(GuPool* pool, GuTypeTable* table);
@@ -410,7 +417,7 @@ gu_type_dyn_cast(GuType* t, GuKind* k);
 #define gu_type_try_cast(type_, k_) \
 	((GU_KIND_TYPE(k_)*)gu_type_dyn_cast(type_, gu_kind(k_)))
 
-#ifdef GU_DEBUG
+#ifndef NDEBUG
 #define gu_type_cast(type_, k_) \
 	((GU_KIND_TYPE(k_)*)gu_type_check_cast(type_, gu_kind(k_)))
 #else

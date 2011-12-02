@@ -40,7 +40,10 @@ struct GuFinalizer {
 typedef struct GuPool GuPool;
 /**< A memory pool. */
 
-GuPool* gu_pool_new(void);
+
+GU_ONLY GuPool*
+gu_pool_new(void);
+
 /**< Create a new memory pool.
  *
  */
@@ -52,7 +55,8 @@ void gu_pool_finally(GuPool* pool, GuFinalizer* finalize);
  * @relates GuPool */
 
 
-void gu_pool_free(GuPool* pool);
+void
+gu_pool_free(GU_ONLY GuPool* pool);
 /**< Free a memory pool.
  *
  * @relates GuPool */
@@ -126,20 +130,21 @@ gu_malloc_init(GuPool* pool, size_t size, const void* init)
 
 
 #ifdef GU_HAVE_STATEMENT_EXPRESSIONS
-#define gu_new_s(pool, type, ...)			\
-	({						\
-		type *p_ = gu_new(pool, type);		\
-		memcpy((void*) p_, &(type){ __VA_ARGS__ }, sizeof(type)); \
-		p_;					\
+#define gu_new_i(pool, type, ...)					\
+	({								\
+		type *gu_new_p_ = gu_new(pool, type);			\
+		memcpy((void*) gu_new_p_, &(type){ __VA_ARGS__ },	\
+		       sizeof(type));					\
+		gu_new_p_;						\
 	})
 #else // GU_HAVE_STATEMENT_EXPRESSIONS
-#define gu_new_s(pool, type, ...)					\
+#define gu_new_i(pool, type, ...)					\
 	((type*)gu_malloc_init_aligned((pool), sizeof(type),		\
 				       gu_alignof(type),		\
 				       &(type){ __VA_ARGS__ }))
 #endif // GU_HAVE_STATEMENT_EXPRESSIONS
 
-
+#define gu_new_s gu_new_i
 
 
 // Alas, there's no portable way to get the alignment of flex structs.
@@ -161,14 +166,18 @@ size_t gu_mem_alignment(size_t size);
 GuPool* 
 gu_pool_init(void* p, size_t len, bool in_stack);
 
-void*
+GU_ONLY void*
 gu_mem_buf_alloc(size_t min_size, size_t* real_size_out);
 
-void*
-gu_mem_buf_realloc(void* buf, size_t min_size, size_t* real_size_out);
+GU_ONLY void*
+gu_mem_buf_realloc(
+	GU_NULL GU_ONLY GU_RETURNED
+	void* buf,
+	size_t min_size,
+	size_t* real_size_out);
 
 void
-gu_mem_buf_free(void* buf);
+gu_mem_buf_free(GU_ONLY void* buf);
 
 
 

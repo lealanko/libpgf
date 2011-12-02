@@ -5,10 +5,10 @@
 #include <gu/assert.h>
 
 
-PgfCCat pgf_ccat_string = { NULL, { GU_SEQ_NULL }, -1 };
-PgfCCat pgf_ccat_int = { NULL, { GU_SEQ_NULL }, -2 };
-PgfCCat pgf_ccat_float = { NULL, { GU_SEQ_NULL }, -3 };
-PgfCCat pgf_ccat_var = { NULL, { GU_SEQ_NULL }, -4 };
+PgfCCat pgf_ccat_string = { NULL, GU_NULL_SEQ, -1 };
+PgfCCat pgf_ccat_int = { NULL, GU_NULL_SEQ, -2 };
+PgfCCat pgf_ccat_float = { NULL, GU_NULL_SEQ, -3 };
+PgfCCat pgf_ccat_var = { NULL, GU_NULL_SEQ, -4 };
 
 PgfCCatId
 pgf_literal_cat(PgfLiteral lit)
@@ -34,8 +34,8 @@ pgf_tokens_equal(PgfTokens* t1, PgfTokens* t2)
 		return false;
 	}
 	for (int i = 0; i < len; i++) {
-		if (strcmp(gu_list_index(t1, i), 
-			   gu_list_index(t2, i)) != 0) {
+		if (gu_string_eq(gu_list_index(t1, i), 
+				 gu_list_index(t2, i))) {
 			return false;
 		}
 	}
@@ -45,10 +45,18 @@ pgf_tokens_equal(PgfTokens* t1, PgfTokens* t2)
 
 
 
+GU_DEFINE_TYPE(PgfCId, typedef, gu_type(GuString));
+
+GU_DEFINE_TYPE(GuStringL, GuList, gu_type(GuString));
+
+
+#define gu_type__PgfCIdMap gu_type__GuStringMap
+typedef GuType_GuStringMap GuType_PgfCIdMap;
+#define GU_TYPE_INIT_PgfCIdMap GU_TYPE_INIT_GuStringMap
 
 GU_DEFINE_TYPE(PgfLiteral, GuVariant,
 	       GU_CONSTRUCTOR_S(PGF_LITERAL_STR, PgfLiteralStr,
-				GU_MEMBER(PgfLiteralStr, val, GuStr)),
+				GU_MEMBER(PgfLiteralStr, val, GuString)),
 	       GU_CONSTRUCTOR_S(PGF_LITERAL_INT, PgfLiteralInt,
 				GU_MEMBER(PgfLiteralInt, val, int)),
 	       GU_CONSTRUCTOR_S(PGF_LITERAL_FLT, PgfLiteralFlt,
@@ -62,14 +70,14 @@ GU_DECLARE_TYPE(PgfType, struct);
 
 GU_DEFINE_TYPE(PgfHypo, struct,
 	       GU_MEMBER(PgfHypo, bindtype, PgfBindType),
-	       GU_MEMBER(PgfHypo, cid, GuStr),
+	       GU_MEMBER(PgfHypo, cid, PgfCId),
 	       GU_MEMBER_P(PgfHypo, type, PgfType));
 
 GU_DEFINE_TYPE(PgfHypos, GuList, gu_type(PgfHypo));
 
 GU_DEFINE_TYPE(PgfType, struct,
 	       GU_MEMBER_P(PgfType, hypos, PgfHypos),
-	       GU_MEMBER(PgfType, cid, GuStr),
+	       GU_MEMBER(PgfType, cid, PgfCId),
 	       GU_MEMBER(PgfType, n_exprs, GuLength),
 	       GU_FLEX_MEMBER(PgfType, exprs, PgfExpr));
 
@@ -84,8 +92,8 @@ GU_DEFINE_TYPE(PgfCCatIds, GuList, gu_type(PgfCCatId));
 GU_DEFINE_TYPE(PgfCCatSeq, GuSeq, gu_type(PgfCCatId));
 
 GU_DEFINE_TYPE(PgfAlternative, struct,
-	       GU_MEMBER_P(PgfAlternative, form, GuStrs),
-	       GU_MEMBER_P(PgfAlternative, prefixes, GuStrs));
+	       GU_MEMBER_P(PgfAlternative, form, GuStringL),
+	       GU_MEMBER_P(PgfAlternative, prefixes, GuStringL));
 
 
 GU_DEFINE_TYPE(
@@ -104,24 +112,23 @@ GU_DEFINE_TYPE(
 		GU_MEMBER(PgfSymbolVar, r, int)),
 	GU_CONSTRUCTOR_S(
 		PGF_SYMBOL_KS, PgfSymbolKS,
-		GU_MEMBER_P(PgfSymbolKS, tokens, GuStrs)),
+		GU_MEMBER_P(PgfSymbolKS, tokens, PgfTokens)),
 	GU_CONSTRUCTOR_S(
 		PGF_SYMBOL_KP, PgfSymbolKP,
-		GU_MEMBER(PgfSymbolKP, default_form, GuStrsP),
+		GU_MEMBER_P(PgfSymbolKP, default_form, PgfTokens),
 		GU_MEMBER(PgfSymbolKP, n_forms, GuLength),
 		GU_FLEX_MEMBER(PgfSymbolKP, forms, PgfAlternative)));
 
 GU_DEFINE_TYPE(
 	PgfCncCat, struct,
-	GU_MEMBER(PgfCncCat, cid, GuStr),
+	GU_MEMBER(PgfCncCat, cid, PgfCId),
 	GU_MEMBER_P(PgfCncCat, cats, PgfCCatIds),
-	GU_MEMBER_P(PgfCncCat, labels, GuStrs));
+	GU_MEMBER_P(PgfCncCat, labels, GuStringL));
 
 // GU_DEFINE_TYPE(PgfSequence, GuList, gu_ptr_type(PgfSymbol));
 GU_DEFINE_TYPE(PgfSequence, GuList, gu_type(PgfSymbol));
 
-GU_DEFINE_TYPE(PgfFlags, GuStrMap,
-	       true, gu_type(PgfLiteral), &gu_variant_null);
+GU_DEFINE_TYPE(PgfFlags, GuStringMap, gu_type(PgfLiteral), &gu_null_variant);
 
 typedef PgfFlags* PgfFlagsP;
 
@@ -134,7 +141,7 @@ GU_DEFINE_TYPE(PgfSeqId, shared, gu_type(PgfSequence));
 
 GU_DEFINE_TYPE(
 	PgfCncFun, struct,
-	GU_MEMBER(PgfCncFun, fun, GuStr),
+	GU_MEMBER(PgfCncFun, fun, PgfCId),
 	GU_MEMBER(PgfCncFun, n_lins, GuLength),
 	GU_FLEX_MEMBER(PgfCncFun, lins, PgfSeqId));
 
@@ -165,7 +172,7 @@ GU_DEFINE_TYPE(
 		PGF_PRODUCTION_CONST, PgfProductionConst,
 		GU_MEMBER(PgfProductionConst, expr, PgfExpr),
 		GU_MEMBER(PgfProductionConst, n_toks, GuLength),
-		GU_MEMBER(PgfProductionConst, toks, GuStr)));
+		GU_FLEX_MEMBER(PgfProductionConst, toks, GuString)));
 
 GU_DEFINE_TYPE(PgfProductions, GuList, gu_type(PgfProduction));
 GU_DEFINE_TYPE(PgfProductionSeq, GuSeq, gu_type(PgfProduction));
@@ -174,7 +181,7 @@ GU_DEFINE_TYPE(
 	PgfPatt, GuVariant, 
 	GU_CONSTRUCTOR_S(
 		PGF_PATT_APP, PgfPattApp,
-		GU_MEMBER(PgfPattApp, ctor, GuStr),
+		GU_MEMBER(PgfPattApp, ctor, PgfCId),
 		GU_MEMBER(PgfPattApp, n_args, GuLength),
 		GU_MEMBER(PgfPattApp, args, PgfPatt)),
 	GU_CONSTRUCTOR_S(
@@ -182,10 +189,10 @@ GU_DEFINE_TYPE(
 		GU_MEMBER(PgfPattLit, lit, PgfLiteral)),
 	GU_CONSTRUCTOR_S(
 		PGF_PATT_VAR, PgfPattVar,
-		GU_MEMBER(PgfPattVar, var, GuStr)),
+		GU_MEMBER(PgfPattVar, var, PgfCId)),
 	GU_CONSTRUCTOR_S(
 		PGF_PATT_AS, PgfPattAs,
-		GU_MEMBER(PgfPattAs, var, GuStr),
+		GU_MEMBER(PgfPattAs, var, PgfCId),
 		GU_MEMBER(PgfPattAs, patt, PgfPatt)),
 	GU_CONSTRUCTOR(
 		PGF_PATT_WILD, void),
@@ -217,7 +224,7 @@ GU_DEFINE_TYPE(
 GU_DEFINE_TYPE(
 	PgfCatFun, struct,
 	GU_MEMBER(PgfCatFun, prob, double),
-	GU_MEMBER(PgfCatFun, fun, GuStr));
+	GU_MEMBER(PgfCatFun, fun, PgfCId));
 
 GU_DEFINE_TYPE(
 	PgfCat, struct, 
@@ -230,35 +237,39 @@ GU_DEFINE_TYPE(
 	PgfAbstr, struct, 
 	GU_MEMBER(PgfAbstr, aflags, PgfFlagsP),
 	GU_MEMBER_V(PgfAbstr, funs,
-		    GU_TYPE_LIT(pointer, GuStrMap*,
-				GU_TYPE_LIT(GuStrPtrMap, _,
-					    gu_type(PgfFunDecl)))),
+		    GU_TYPE_LIT(pointer, PgfCIdMap*,
+				GU_TYPE_LIT(PgfCIdMap, _,
+					    gu_ptr_type(PgfFunDecl),
+					    &gu_null_struct))),
 	GU_MEMBER_V(PgfAbstr, cats,
-		    GU_TYPE_LIT(pointer, GuStrMap*,
-				GU_TYPE_LIT(GuStrPtrMap, _,
-					    gu_type(PgfCat)))));
+		    GU_TYPE_LIT(pointer, PgfCIdMap*,
+				GU_TYPE_LIT(PgfCIdMap, _,
+					    gu_ptr_type(PgfCat),
+					    &gu_null_struct))));
 
 GU_DEFINE_TYPE(
-	PgfPrintNames, GuStrMap, true, gu_type(GuStr), &(GuStr){NULL});
+	PgfPrintNames, PgfCIdMap, gu_type(GuString), NULL);
 
 GU_DEFINE_TYPE(
 	PgfConcr, struct, 
 	GU_MEMBER(PgfConcr, cflags, PgfFlagsP),
 	GU_MEMBER_P(PgfConcr, printnames, PgfPrintNames),
 	GU_MEMBER_V(PgfConcr, cnccats,
-		    GU_TYPE_LIT(pointer, GuStrMap*,
-				GU_TYPE_LIT(GuStrPtrMap, _, 
-					    gu_type(PgfCncCat)))));
+		    GU_TYPE_LIT(pointer, PgfCIdMap*,
+				GU_TYPE_LIT(PgfCIdMap, _, 
+					    gu_ptr_type(PgfCncCat),
+					    &gu_null_struct))));
 
 GU_DEFINE_TYPE(
 	PgfPGF, struct, 
 	GU_MEMBER(PgfPGF, major_version, uint16_t),
 	GU_MEMBER(PgfPGF, minor_version, uint16_t),
 	GU_MEMBER(PgfPGF, gflags, PgfFlagsP),
-	GU_MEMBER(PgfPGF, absname, GuStr),
+	GU_MEMBER(PgfPGF, absname, PgfCId),
 	GU_MEMBER(PgfPGF, abstract, PgfAbstr),
 	GU_MEMBER_V(PgfPGF, concretes,
-		    GU_TYPE_LIT(pointer, GuStrMap*,
-				GU_TYPE_LIT(GuStrPtrMap, _,
-					    gu_type(PgfConcr)))));
+		    GU_TYPE_LIT(pointer, PgfCIdMap*,
+				GU_TYPE_LIT(PgfCIdMap, _,
+					    gu_ptr_type(PgfConcr),
+					    &gu_null_struct))));
 

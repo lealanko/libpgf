@@ -3,25 +3,23 @@
 
 #include <gu/mem.h>
 #include <gu/bits.h>
-#include <gu/type.h>
 
 
-typedef GuTagged() GuSeq;
+typedef struct GuBuf GuBuf;
 
-GuSeq
-gu_seq_new(GuPool* pool);
+typedef GuOpaque() GuSeq;
 
 GuSeq
-gu_seq_new_sized(size_t align, size_t size, GuPool* pool);
+gu_make_seq(size_t elem_size, size_t len, GuPool* pool);
 
-static inline int
-gu_seq_size(GuSeq seq)
+static inline size_t
+gu_seq_length(GuSeq seq)
 {
 	GuWord w = seq.w_;
-	int tag = gu_word_tag(w);
+	size_t tag = gu_tagged_tag(w);
 	if (tag == 0) {
-		GuWord* p = gu_word_ptr(w);
-		return (int) (p[-1] >> 1);
+		GuWord* p = gu_tagged_ptr(w);
+		return (size_t) (p[-1] >> 1);
 	}
 	return tag;
 }
@@ -30,8 +28,8 @@ static inline void*
 gu_seq_data(GuSeq seq)
 {
 	GuWord w = seq.w_;
-	int tag = gu_word_tag(w);
-	void* ptr = gu_word_ptr(w);
+	int tag = gu_tagged_tag(w);
+	void* ptr = gu_tagged_ptr(w);
 	if (tag == 0) {
 		GuWord* p = ptr;
 		if (p[-1] & 0x1) {
@@ -44,38 +42,116 @@ gu_seq_data(GuSeq seq)
 static inline bool
 gu_seq_is_null(GuSeq seq)
 {
-	return (gu_word_ptr(seq.w_)) == NULL;
+	return (gu_tagged_ptr(seq.w_)) == NULL;
 }
 
-static inline void*
-gu_seq_index(GuSeq seq, int i)
-{
-	gu_require(i < gu_seq_size(seq));
-	uint8_t* data = gu_seq_data(seq);
-	return &data[i];
-}
+
+#define gu_seq_index(SEQ, T, I)			\
+	(&((T*)gu_seq_data(SEQ))[I])
+
+#define gu_seq_get(SEQ, T, I)			\
+	(*gu_seq_index(SEQ, T, I))
+
+#define gu_seq_set(SEQ, T, I)			\
+	GU_BEGIN				\
+	(*gu_seq_index(SEQ, T, I) = (V));	\
+	GU_END
+
+
+
+
+GuBuf*
+gu_seq_buf(GuSeq seq);
+
+GuSeq
+gu_buf_seq(GuBuf* buf);
+
+GuBuf*
+gu_make_buf(size_t elem_size, GuPool* pool);
+
+#define gu_new_buf(T, POOL)			\
+	gu_make_buf(sizeof(T), (POOL))
+
+size_t
+gu_buf_length(GuBuf* buf);
+
+void*
+gu_buf_data(GuBuf* buf);
+
+#define gu_buf_index(BUF, T, I)			\
+	(&((T*)gu_buf_data(BUF))[I])
+
+#define gu_buf_get(BUF, T, I)			\
+	(*gu_buf_index(BUF, T, I))
+
+#define gu_buf_set(BUF, T, I)			\
+	GU_BEGIN				\
+	(*gu_buf_index(BUF, T, I) = (V));	\
+	GU_END
 
 void
-gu_seq_resize_tail(GuSeq seq, int change);
+gu_buf_push_n(GuBuf* buf, const void* elems, size_t n_elems);
+
+void*
+gu_buf_extend_n(GuBuf* buf, size_t n_elems);
+
+void*
+gu_buf_extend(GuBuf* buf);
+
+#define gu_buf_push(BUF, T, VAL)				\
+	GU_BEGIN						\
+	((*(T*)gu_buf_extend(BUF)) = (VAL));	\
+	GU_END
 
 void
-gu_seq_push(GuSeq seq, const void* data, size_t size);
+gu_buf_pop_n(GuBuf* buf, size_t n_elems, void* data_out);
+
+const void*
+gu_buf_trim_n(GuBuf* buf, size_t n_elems);
+
+const void*
+gu_buf_trim(GuBuf* buf);
+
+#define gu_buf_pop(BUF, T)			\
+	(*(T*)gu_buf_trim(BUF))
 
 void
-gu_seq_pop(GuSeq seq, size_t size, void* data_out);
+gu_seq_resize_tail(GuSeq seq, ptrdiff_t change);
+
+#if 0
+void
+gu_buf_resize_head(GuBuf* buf, ptrdiff_t change);
 
 void
-gu_seq_resize_head(GuSeq seq, int change);
+gu_buf_unshift(GuBuf* buf, const void* data, size_t size);
 
 void
-gu_seq_unshift(GuSeq seq, const void* data, size_t size);
+gu_buf_shift(GuBuf* buf, size_t size, void* data_out);
+#endif
 
-void
-gu_seq_shift(GuSeq seq, size_t size, void* data_out);
+GuSeq
+gu_buf_freeze(GuBuf* buf, GuPool* pool);
 
-#define GU_SEQ_NULL { .w_ = (uintptr_t) NULL }
+extern const GuSeq gu_null_seq;
 
-GU_DECLARE_KIND(GuSeq);
+#define GU_NULL_SEQ { .w_ = (GuWord)(void*)NULL }
+
+typedef GuSeq GuChars;
+typedef GuSeq GuBytes;
+typedef GuBuf GuCharBuf;
+typedef GuBuf GuByteBuf;
+
+char*
+gu_chars_str(GuChars chars, GuPool* pool);
+
+#endif // GU_SEQ_H_
+
+
+#if defined(GU_TYPE_H_) && !defined(GU_SEQ_H_TYPE_)
+#define GU_SEQ_H_TYPE_
+
+extern GU_DECLARE_KIND(GuSeq);
+extern GU_DECLARE_KIND(GuBuf);
 
 struct GuSeqType {
 	GuType_abstract abstract_base;
@@ -89,112 +165,13 @@ typedef const struct GuSeqType GuSeqType, GuType_GuSeq;
 	.elem_type = elem_type_,		   	\
 }
 
+typedef GuSeqType GuType_GuBuf;
 
+#define GU_TYPE_INIT_GuBuf(KIND, BUF_T, ELEM_T) \
+	GU_TYPE_INIT_GuSeq(KIND, BUF_T, ELEM_T)
 
-#define GU_SEQ_DEFINE(t_, pfx_, elem_t_)				\
-									\
-	typedef struct { GuSeq seq_; } t_;				\
-									\
-	static inline t_						\
-	pfx_##_new(GuPool* pool)					\
-	{								\
-		return (t_) { gu_seq_new(pool) };			\
-	}								\
-									\
-	static inline t_						\
-	pfx_##_new_sized(int size, GuPool* pool)			\
-	{								\
-		return (t_) { gu_seq_new_sized(gu_alignof(t_),		\
-					       size * sizeof(elem_t_),	\
-					       pool) };			\
-	}								\
-									\
-	static inline int						\
-	pfx_##_size(t_ s)						\
-	{								\
-		return gu_seq_size(s.seq_) / sizeof(elem_t_);		\
-	}								\
-									\
-	static inline elem_t_*						\
-	pfx_##_data(t_ s)						\
-	{								\
-		return gu_seq_data(s.seq_);				\
-	}								\
-									\
-	static inline bool						\
-	pfx_##_is_null(t_ s)						\
-	{								\
-		return gu_seq_is_null(s.seq_);				\
-	}								\
-									\
-	static inline elem_t_*						\
-	pfx_##_index(t_ s, int idx)					\
-	{								\
-		return &pfx_##_data(s)[idx];				\
-	}								\
-									\
-	static inline elem_t_						\
-	pfx_##_get(t_ s, int idx)					\
-	{								\
-		return *pfx_##_index(s, idx);				\
-	}								\
-									\
-	static inline void						\
-	pfx_##_set(t_ s, int idx, elem_t_ v)				\
-	{								\
-		*pfx_##_index(s, idx) = v;				\
-	}								\
-									\
-	static inline void						\
-	pfx_##_push_n(t_ s, elem_t_ const* elems, size_t n)		\
-	{								\
-		gu_seq_push(s.seq_, elems, n * sizeof(elem_t_));	\
-	}								\
-									\
-	static inline void						\
-	pfx_##_push(t_ s, elem_t_ elem)					\
-	{								\
-		pfx_##_push_n(s, &elem, 1);				\
-	}								\
-									\
-	static inline elem_t_						\
-	pfx_##_pop(t_ s)						\
-	{								\
-		elem_t_ ret;						\
-		gu_seq_pop(s.seq_, sizeof(elem_t_), &ret);		\
-		return ret;						\
-	}								\
-									\
-	static inline void						\
-	pfx_##_unshift(t_ s, elem_t_ elem)				\
-	{								\
-		gu_seq_unshift(s.seq_, &elem, sizeof(elem_t_));		\
-	}								\
-									\
-	static inline elem_t_						\
-	pfx_##_shift(t_ s)						\
-	{								\
-		elem_t_ ret;						\
-		gu_seq_shift(s.seq_, sizeof(elem_t_), &ret);		\
-		return ret;						\
-	}								\
-									\
-	GU_DECLARE_DUMMY
+extern GU_DECLARE_TYPE(GuChars, GuSeq);
+extern GU_DECLARE_TYPE(GuBytes, GuSeq);
 
-GU_SEQ_DEFINE(GuCharSeq, gu_char_seq, char);
-GU_DECLARE_TYPE(GuCharSeq, GuSeq);
-GU_SEQ_DEFINE(GuByteSeq, gu_byte_seq, uint8_t);
-GU_DECLARE_TYPE(GuByteSeq, GuSeq);
-GU_SEQ_DEFINE(GuWcSeq, gu_wc_seq, wchar_t);
-GU_DECLARE_TYPE(GuWcSeq, GuSeq);
+#endif 
 
-char*
-gu_char_seq_to_str(GuCharSeq charq, GuPool* pool);
-
-#include <wchar.h>
-
-wchar_t*
-gu_wc_seq_wcs(GuWcSeq* wcq, GuPool* pool);
-
-
-#endif // GU_SEQ_H_

@@ -1,39 +1,59 @@
 #ifndef GU_WRITE_H_
 #define GU_WRITE_H_
 
-#include <wchar.h>
 #include <gu/error.h>
+#include <gu/ucs.h>
 
 typedef const struct GuWriter GuWriter;
 
 struct GuWriter {
-	void (*write)(GuWriter* self, const wchar_t* wcs, size_t size, GuError* err);
+	size_t (*write)(GuWriter* self, const GuUCS* buf, size_t size, GuError* err);
+	void (*flush)(GuWriter* self, GuError* err);
 };
 
-void
-gu_write(GuWriter* wtr, const wchar_t* wcs, size_t size, GuError* err);
+size_t
+gu_write(GuWriter* wtr, const GuUCS* buf, size_t size, GuError* err);
 
 void
-gu_putc(GuWriter* wtr, wchar_t wc, GuError* err);
+gu_writer_flush(GuWriter* wtr, GuError* err);
+
+static inline void
+gu_ucs_write(GuUCS ucs, GuWriter* wtr, GuError* err)
+{
+	gu_write(wtr, &ucs, 1, err);
+}
 
 void
-gu_puts(GuWriter* wtr, const wchar_t* wcs, GuError* err);
+gu_putc(char c, GuWriter* wtr, GuError* err);
 
 void
-gu_vwprintf(GuWriter* wtr, const wchar_t* fmt, va_list args, GuError* err);
+gu_puts(const char* str, GuWriter* wtr, GuError* err);
 
 void
-gu_wprintf(GuWriter* wtr, GuError* err, const wchar_t* fmt, ...);
-
-void
-gu_vprintf(GuWriter* wtr, const char* fmt, va_list args, GuError* err);
+gu_vprintf(const char* fmt, va_list args, GuWriter* wtr, GuError* err);
 
 void
 gu_printf(GuWriter* wtr, GuError* err, const char* fmt, ...);
 
-#include <gu/seq.h>
+GuWriter*
+gu_buffered_writer(GuWriter* wtr, size_t buf_size, GuPool* pool);
+
+#include <gu/out.h>
+
+typedef struct GuOutWriter GuOutWriter;
+
+struct GuOutWriter {
+	GuWriter wtr;
+	GuOut* out;
+};
+
+void
+gu_out_writer_flush(GuWriter* self, GuError* err);
 
 GuWriter*
-gu_wc_seq_writer(GuWcSeq* wcq, GuPool* pool);
+gu_char_writer(GuOut* out, GuPool* pool);
+
+GuWriter*
+gu_locale_writer(GuOut* out, GuPool* pool);
 
 #endif // GU_WRITE_H_

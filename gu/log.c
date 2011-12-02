@@ -20,7 +20,7 @@ gu_log_match(const char* pat, size_t patlen, const char* str)
 }
 
 static bool
-gu_log_enabled(const char* id)
+gu_log_enabled(const char* func, const char* file)
 {
 	const char* cfg = getenv("GU_LOG");
 	if (cfg == NULL) {
@@ -29,7 +29,10 @@ gu_log_enabled(const char* id)
 	const char* p = cfg;
 	while (true) {
 		size_t len = strcspn(p, ",");
-		if (gu_log_match(p, len, id)) {
+		if (gu_log_match(p, len, func)) {
+			return true;
+		}
+		if (gu_log_match(p, len, file)) {
 			return true;
 		}
 		if (p[len] == '\0') {
@@ -46,7 +49,7 @@ gu_log_full_v(GuLogKind kind, const char* func, const char* file, int line,
 	      const char* fmt, va_list args)
 {
 	(void) (kind && line);
-	if (!gu_log_enabled(func) && !gu_log_enabled(file)) {
+	if (!gu_log_enabled(func, file)) {
 		return;
 	}
 	if (kind == GU_LOG_KIND_EXIT) {

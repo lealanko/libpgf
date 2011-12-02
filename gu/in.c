@@ -2,8 +2,7 @@
 #include <gu/bits.h>
 #include <math.h>
 
-GU_DEFINE_TYPE(GuReadError, abstract, _);
-GU_DEFINE_TYPE(GuBadValue, abstract, _);
+GU_DEFINE_TYPE(GuEOF, abstract, _);
 
 size_t
 gu_in_some(GuIn* in, uint8_t* buf, size_t len, GuError* err)
@@ -14,10 +13,14 @@ gu_in_some(GuIn* in, uint8_t* buf, size_t len, GuError* err)
 void
 gu_in_bytes(GuIn* in, uint8_t* buf, size_t len, GuError* err)
 {
-	size_t got = 0;
-	while (got < len) {
-		gu_return_on_error(err,);
-		got += gu_in_some(in, &buf[got], len - got, err);
+	size_t have = 0;
+	while (have < len && gu_ok(err)) {
+		size_t got = gu_in_some(in, &buf[have], len - have, err);
+		if (got == 0) {
+			gu_raise(err, GuEOF);
+			return;
+		}
+		have += got;
 	}
 }
 
@@ -146,4 +149,33 @@ gu_in_f64be(GuIn* in, GuError* err)
 	return gu_decode_double(gu_in_u64le(in, err));
 }
 
+
+typedef struct GuBufIn GuBufIn;
+
+struct GuBufIn {
+	GuIn in;
+	const uint8_t* buf;
+	size_t len;
+};
+
+static size_t
+gu_buf_input(GuIn* in, uint8_t* buf, size_t max_len, GuError* err)
+{
+	(void) err;
+	GuBufIn* bin = (GuBufIn*) in;
+	size_t len = GU_MIN(max_len, bin->len);
+	memcpy(buf, bin->buf, len);
+	bin->buf += len;
+	bin->len -= len;
+	return len;
+}
+
+GuIn*
+gu_buf_in(const uint8_t* buf, size_t len, GuPool* pool)
+{
+	return (GuIn*) gu_new_s(pool, GuBufIn,
+				.in = { gu_buf_input },
+				.buf = buf,
+				.len = len);
+}
 

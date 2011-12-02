@@ -6,9 +6,9 @@
 #include <gu/type.h>
 #include <gu/map.h>
 
-typedef struct GuDumpCtx GuDumpCtx;
+typedef struct GuDump GuDump;
 
-struct GuDumpCtx {
+struct GuDump {
 	GuPool* pool;
 	GuYaml* yaml;
 	GuMap* data;
@@ -16,16 +16,16 @@ struct GuDumpCtx {
 	bool print_address;
 };
 
-typedef void (*GuDumpFn)(GuFn* self, GuType* type, const void* value, GuDumpCtx* ctx);
+typedef void (*GuDumpFn)(GuFn* self, GuType* type, const void* value, GuDump* ctx);
 
-GuDumpCtx*
-gu_dump_ctx_new(GuPool* pool, GuWriter* wtr, GuTypeTable* dumpers);
-
-void
-gu_dump(GuType* type, const void* value, GuDumpCtx* ctx);
+GuDump*
+gu_new_dump(GuWriter* wtr, GuTypeTable* dumpers, GuError* err, GuPool* pool);
 
 void
-gu_dump_stderr(GuType* type, const void* value);
+gu_dump(GuType* type, const void* value, GuDump* ctx);
+
+void
+gu_dump_stderr(GuType* type, const void* value, GuError* err);
 
 extern GuTypeTable
 gu_dump_table;

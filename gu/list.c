@@ -40,8 +40,8 @@ void* gu_list_alloc(GuPool* pool, size_t base_size, size_t elem_size,
 
 GU_DEFINE_KIND(GuList, abstract);
 
-GU_DEFINE_TYPE(GuStrs, GuList, gu_type(GuStr));
-GU_DEFINE_TYPE(GuStrsP, pointer, gu_type(GuStrs));
+// GU_DEFINE_TYPE(GuStrs, GuList, gu_type(GuStr));
+// GU_DEFINE_TYPE(GuStrsP, pointer, gu_type(GuStrs));
 
 void*
 gu_list_type_alloc(GuListType* ltype, int n_elems, GuPool* pool)

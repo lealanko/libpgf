@@ -12,18 +12,31 @@ gu_assert_mode_descs[] = {
 };
 
 void
-gu_abort_(GuAssertMode mode, const char* msg, 
-	  const char* file, const char* func, int line)
+gu_abort_v_(GuAssertMode mode,
+	    const char* file, const char* func, int line,
+	    const char* msg_fmt, va_list args)
 {
 	const char* desc = gu_assert_mode_descs[mode];
 	(void) fprintf(stderr, "%s (%s:%d): %s\n", func, file, line, desc);
-	if (msg != NULL) {
-		(void) fprintf(stderr, "\t%s\n", msg);
+	if (msg_fmt != NULL) {
+		(void) fputc('\t', stderr);
+		(void) vfprintf(stderr, msg_fmt, args);
+		(void) fputc('\n', stderr);
 	}
 	abort();
 }
 
-
+void
+gu_abort_(GuAssertMode mode,
+	  const char* file, const char* func, int line,
+	  const char* msg_fmt, ...)
+{
+	va_list args;
+	va_start(args, msg_fmt);
+	gu_abort_v_(mode, file, func, line, msg_fmt, args);
+	va_end(args);
+}
+	
 
 void 
 gu_fatal(const char* fmt, ...)

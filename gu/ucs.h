@@ -1,42 +1,40 @@
 #ifndef GU_UCS_H_
 #define GU_UCS_H_
 
-#include <gu/str.h>
-#include <gu/in.h>
-#include <gu/out.h>
-#include <gu/write.h>
-#include <gu/read.h>
+#include <gu/defs.h>
+#include <gu/error.h>
 
-#define GU_UCS_EOF ((GuUcs) INT32_C(-1))
+#if defined(__STDC_ISO_10646__) && WCHAR_MAX >= 0x10FFFF
+#include <wchar.h>
+#define GU_UCS_WCHAR
+typedef wchar_t GuUCS;
+#else
+typedef int32_t GuUCS;
+#endif
 
-typedef int32_t GuUcs;
-typedef uint8_t* GuUtf8;
-typedef const uint8_t* GuCUtf8;
+#define GU_UCS_MAX ((GuUCS)(0x10FFFF))
 
-GuUcs
-gu_in_utf8(GuIn* in, GuError* err);
+bool
+gu_char_is_valid(char c);
 
-//GuUcs
-//gu_read_ucs(GuReader* rdr, GuError* err);
+static inline bool
+gu_ucs_valid(GuUCS ucs)
+{
+	return ucs >= 0 && ucs <= GU_UCS_MAX;
+}
 
-void
-gu_out_utf8(GuOut* out, GuUcs ucs, GuError* err);
+GuUCS
+gu_char_ucs(char c);
 
-void
-gu_write_ucs(GuWriter* wtr, GuUcs ucs, GuError* err);
+char
+gu_ucs_char(GuUCS uc, GuError* err);
 
-GuUcs
-gu_in_utf8(GuIn* in, GuError* err);
+size_t
+gu_str_to_ucs(const char* cbuf, size_t len, GuUCS* ubuf, GuError* err);
 
-GuUcs
-gu_read_ucs(GuReader* rdr, GuError* err);
+size_t
+gu_ucs_to_str(const GuUCS* ubuf, size_t len, char* cbuf, GuError* err);
 
-GuUtf8
-gu_wcs_utf8(wchar_t* wcs, GuPool* pool);
-
-wchar_t*
-gu_utf8_wcs(GuCUtf8 utf8, GuPool* pool);
-
-extern GU_DECLARE_TYPE(GuEncodingError, abstract);
+extern GU_DECLARE_TYPE(GuUCSError, abstract);
 
 #endif // GU_ISO10646_H_

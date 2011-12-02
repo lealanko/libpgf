@@ -107,16 +107,29 @@ GU_DEFINE_TYPE(
 typedef struct PgfExprParser PgfExprParser;
 
 struct PgfExprParser {
-	FILE* input;
+	GuReader* rdr;
 	GuIntern* intern;
+	GuError* err;
 	GuPool* expr_pool;
 	const char* lookahead;
+	int next_char;
 };
 
 
 static const char pgf_expr_lpar[] = "(";
 static const char pgf_expr_rpar[] = ")";
 static const char pgf_expr_semic[] = ";";
+
+static char
+pgf_expr_parser_next(PgfExprParser* parser)
+{
+	if (parser->next_char >= 0) {
+		char ret = (char) parser->next_char;
+		parser->next_char = -1;
+		return ret;
+	}
+	return gu_getc(parser->rdr, parser->err);
+}
 
 static const char*
 pgf_expr_parser_lookahead(PgfExprParser* parser)
@@ -125,9 +138,12 @@ pgf_expr_parser_lookahead(PgfExprParser* parser)
 		return parser->lookahead;
 	}
 	const char* str = NULL;
-	int c;
+	char c;
 	do {
-		c = fgetc(parser->input);
+		c = pgf_expr_parser_next(parser);
+		if (!gu_ok(parser->err)) {
+			return NULL;
+		}
 	} while (isspace(c));
 	switch (c) {
 	case '(':
@@ -142,15 +158,17 @@ pgf_expr_parser_lookahead(PgfExprParser* parser)
 	default:
 		if (isalpha(c)) {
 			GuPool* tmp_pool = gu_pool_new();
-			GuCharSeq charq = gu_char_seq_new(tmp_pool);
+			GuCharBuf* chars = gu_new_buf(char, tmp_pool);
 			while (isalnum(c) || c == '_') {
-				gu_char_seq_push(charq, c);
-				c = fgetc(parser->input);
+				gu_buf_push(chars, char, c);
+				c = pgf_expr_parser_next(parser);
+				if (!gu_ok(parser->err)) {
+					return NULL;
+				}
 			}
-			if (c != EOF) {
-				ungetc(c, parser->input);
-			}
-			char* tmp_str = gu_char_seq_to_str(charq, tmp_pool);
+			parser->next_char = (unsigned char) c;
+			char* tmp_str = gu_chars_str(gu_buf_seq(chars),
+						     tmp_pool);
 			str = gu_intern_str(parser->intern, tmp_str);
 			gu_pool_free(tmp_pool);
 		}
@@ -194,12 +212,13 @@ pgf_expr_parser_term(PgfExprParser* parser)
 		}
 	} else if (pgf_expr_parser_token_is_id(la)) {
 		pgf_expr_parser_consume(parser);
+		GuString s = gu_str_string(la, parser->expr_pool);
 		return gu_variant_new_i(parser->expr_pool,
 					PGF_EXPR_FUN,
 					PgfExprFun,
-					la);
+					s);
 	}
-	return gu_variant_null;
+	return gu_null_variant;
 }
 
 static PgfExpr
@@ -225,45 +244,48 @@ pgf_expr_parser_expr(PgfExprParser* parser)
 
 
 PgfExpr
-pgf_expr_parse(FILE* input, GuPool* pool)
+pgf_read_expr(GuReader* rdr, GuPool* pool, GuError* err)
 {
 	GuPool* tmp_pool = gu_pool_new();
 	PgfExprParser* parser = gu_new(tmp_pool, PgfExprParser);
-	parser->input = input;
+	parser->rdr = rdr;
 	parser->intern = gu_intern_new(tmp_pool, pool);
 	parser->expr_pool = pool;
+	parser->err = err;
 	parser->lookahead = NULL;
+	parser->next_char = -1;
 	PgfExpr expr = pgf_expr_parser_expr(parser);
 	const char* la = pgf_expr_parser_lookahead(parser);
 	if (la == pgf_expr_semic) {
 		pgf_expr_parser_consume(parser);
 	} else {
-		expr = gu_variant_null;
+		expr = gu_null_variant;
 	}
 	gu_pool_free(tmp_pool);
 	return expr;
 }
 
 static void
-pgf_expr_print_with_paren(PgfExpr expr, bool need_paren, FILE* out)
+pgf_expr_print_with_paren(PgfExpr expr, bool need_paren,
+			  GuWriter* wtr, GuError* err)
 {
 	GuVariantInfo ei = gu_variant_open(expr);
 	switch (ei.tag) {
 	case PGF_EXPR_FUN: {
 		PgfExprFun* fun = ei.data;
-		fputs(fun->fun, out);
+		gu_string_write(fun->fun, wtr, err);
 		break;
 	}
 	case PGF_EXPR_APP: {
 		PgfExprApp* app = ei.data;
 		if (need_paren) {
-			fprintf(out, "(");
+			gu_puts("(", wtr, err);
 		}
-		pgf_expr_print_with_paren(app->fun, false, out);
-		fprintf(out, " ");
-		pgf_expr_print_with_paren(app->arg, true, out);
+		pgf_expr_print_with_paren(app->fun, false, wtr, err);
+		gu_puts(" ", wtr, err);
+		pgf_expr_print_with_paren(app->arg, true, wtr, err);
 		if (need_paren) {
-			fprintf(out, ")");
+			gu_puts(")", wtr, err);
 		}
 		break;
 	}
@@ -281,6 +303,6 @@ pgf_expr_print_with_paren(PgfExpr expr, bool need_paren, FILE* out)
 }
 
 void
-pgf_expr_print(PgfExpr expr, FILE* out) {
-	pgf_expr_print_with_paren(expr, false, out);
+pgf_expr_print(PgfExpr expr, GuWriter* wtr, GuError* err) {
+	pgf_expr_print_with_paren(expr, false, wtr, err);
 }

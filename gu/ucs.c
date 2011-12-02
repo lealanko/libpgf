@@ -1,172 +1,142 @@
 #include <gu/ucs.h>
+#include <gu/assert.h>
+#include "config.h"
 
-#define GU_UCS_MAX INT32_C(0x10FFFF)
+GU_DEFINE_TYPE(GuUCSError, abstract, _);
 
-// TODO: check for wchar_t encoding in autoconf, or at least a
-// separate config header
+#ifdef CHAR_ASCII
 
-#if defined(__STDC_ISO_10646__)
-#define WCHAR_IS_UTF32
-#elif defined(_WIN32) || defined(_WIN64)
-#define WCHAR_IS_UTF16
-#endif
-
-
-GU_DEFINE_TYPE(GuEncodingError, abstract, _);
-
-static bool
-gu_ucs_valid(GuUcs ucs)
+bool
+gu_char_is_valid(char c)
 {
-	return ucs >= 0 && ucs <= GU_UCS_MAX;
+	if (c < 0) {
+		return false;
+	} else if (c < 64) {
+		return UINT64_C(0xffffffef00003f81) & (UINT64_C(1) << c);
+	}
+#if CHAR_MAX > 127 // Let's avoid spurious warnings
+	else if (c > 127) {
+		return false;
+	}
+#endif	
+	return UINT64_C(0x7ffffffefffffffe) & (UINT64_C(1) << (c - 64));
 }
 
-GuUcs
-gu_in_utf8(GuIn* in, GuError* err)
+GuUCS
+gu_char_ucs(char c)
 {
-	gu_return_on_error(err, 0);
-	uint8_t c = gu_in_u8(in, err);
-	gu_return_on_error(err, 0);
+	gu_require(gu_char_is_valid(c));
+	return (GuUCS) c;
+}
 
-	int len = (c < 0x80 ? 0 : 
-		   c < 0xc2 ? -1 :
-		   c < 0xe0 ? 1 :
-		   c < 0xf0 ? 2 :
-		   c < 0xf5 ? 3 :
-		   -1);
-	if (len < 0) {
-		goto fail;
-	}
-
-	static const uint8_t mask[4] = { 0x7f, 0x1f, 0x0f, 0x07 };
-	GuUcs ucs = c & mask[len];
-
-	for (int i = 0; i < len; i++) {
-		c = gu_in_u8(in, err);
-		gu_return_on_error(err, 0);
-		if ((c & 0xc0) != 0x80) {
-			gu_raise_null(err, GuEncodingError);
-			return 0;
+char
+gu_ucs_char(GuUCS uc, GuError* err)
+{
+	if (0 <= uc && uc <= 127) {
+		char c = (char) uc;
+		if (gu_char_is_valid(c)) {
+			return c;
 		}
-		ucs = ucs << 6 | (c & 0x3f);
 	}
-	if (!gu_ucs_valid(ucs)) {
-		goto fail;
-	}
-	return ucs;
-
-fail:
-	gu_raise_null(err, GuEncodingError);
+	gu_raise(err, GuUCSError);
 	return 0;
 }
 
-void
-gu_out_utf8(GuOut* out, GuUcs ucs, GuError* err)
+#else
+
+static const char gu_ucs_ascii[128] =
+	"\0\0\0\0\0\0\0\a\b\t\n\v\f\r\0\0"
+	"\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0"
+	" !\"#\0%&'()*+,-./0123456789:;<=>?"
+	"\0ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_"
+	"\0abcdefghijklmnopqrstuvwxyz{|}~\0";
+
+static const uint8_t gu_ucs_ascii_reverse[CHAR_MAX] = {
+	['\0'] = 0x00, ['\a'] = 0x07, ['\b'] = 0x08, ['\t'] = 0x09,
+	['\n'] = 0x0a, ['\v'] = 0x0b, ['\f'] = 0x0c, ['\r'] = 0x0d,
+	[' '] = 0x20, ['!'] = 0x21, ['"'] = 0x22, ['#'] = 0x23, ['%'] = 0x25,
+	['&'] = 0x26, ['\''] = 0x27, ['('] = 0x28, [')'] = 0x29, ['*'] = 0x2a,
+	['+'] = 0x2b, [','] = 0x2c, ['-'] = 0x2d, ['.'] = 0x2e, ['/'] = 0x2f,
+	['0'] = 0x30, ['1'] = 0x31, ['2'] = 0x32, ['3'] = 0x33, ['4'] = 0x34,
+	['5'] = 0x35, ['6'] = 0x36, ['7'] = 0x37, ['8'] = 0x38, ['9'] = 0x39,
+	[':'] = 0x3a, [';'] = 0x3b, ['<'] = 0x3c, ['='] = 0x3d, ['>'] = 0x3e,
+	['?'] = 0x3f, ['A'] = 0x41, ['B'] = 0x42, ['C'] = 0x43, ['D'] = 0x44,
+	['E'] = 0x45, ['F'] = 0x46, ['G'] = 0x47, ['H'] = 0x48, ['I'] = 0x49,
+	['J'] = 0x4a, ['K'] = 0x4b, ['L'] = 0x4c, ['M'] = 0x4d, ['N'] = 0x4e,
+	['O'] = 0x4f, ['P'] = 0x50, ['Q'] = 0x51, ['R'] = 0x52, ['S'] = 0x53,
+	['T'] = 0x54, ['U'] = 0x55, ['V'] = 0x56, ['W'] = 0x57, ['X'] = 0x58,
+	['Y'] = 0x59, ['Z'] = 0x5a, ['['] = 0x5b, ['\\'] = 0x5c, [']'] = 0x5d,
+	['^'] = 0x5e, ['_'] = 0x5f, ['a'] = 0x61, ['b'] = 0x62, ['c'] = 0x63,
+	['d'] = 0x64, ['e'] = 0x65, ['f'] = 0x66, ['g'] = 0x67, ['h'] = 0x68,
+	['i'] = 0x69, ['j'] = 0x6a, ['k'] = 0x6b, ['l'] = 0x6c, ['m'] = 0x6d,
+	['n'] = 0x6e, ['o'] = 0x6f, ['p'] = 0x70, ['q'] = 0x71, ['r'] = 0x72,
+	['s'] = 0x73, ['t'] = 0x74, ['u'] = 0x75, ['v'] = 0x76, ['w'] = 0x77,
+	['x'] = 0x78, ['y'] = 0x79, ['z'] = 0x7a, ['{'] = 0x7b, ['|'] = 0x7c,
+	['}'] = 0x7d, ['~'] = 0x7e
+};
+
+
+bool
+gu_char_is_valid(char c)
 {
-	gu_require(gu_ucs_valid(ucs));
-	if (ucs < 0x80) {
-		gu_out_u8(out, ucs, err);
-		return;
+	if (c > 0) {
+		return (gu_ucs_ascii_reverse_table[c] > 0);
 	}
-	
-	int len = (ucs < 0x800 ? 1 :
-		   ucs < 0x10000L ? 2 :
-		   3);
-	uint8_t buf[4];
-	for (int i = len; i > 0; i--) {
-		buf[i] = 0x80 | (ucs & 0x3f);
-		ucs >>= 6;
-	}
-	buf[0] = (uint8_t) (0xf80 >> len) | ucs;
-	
-	int idx = 4;
-	while (ucs) {
-		buf[--idx] = 
-		ucs >>= 6;
-	}
-	gu_out_bytes(out, buf, len + 1, err);
+	return (c == '\0');
 }
 
-#ifdef WCHAR_IS_UTF32
-
-void
-gu_write_ucs(GuWriter* wtr, GuUcs ucs, GuError* err)
+GuUCS
+gu_char_ucs(char c)
 {
-	gu_require(gu_ucs_valid(ucs));
-	gu_putc(wtr, (wchar_t) ucs, err);
+	gu_require(gu_char_is_valid(c)));
+	return gu_ucs_ascii_reverse[(int) c];
 }
 
-GuUcs
-gu_read_ucs(GuReader* rdr, GuError* err)
+char
+gu_ucs_char(GuUCS uc, GuError* err)
 {
-	wint_t wc = gu_getc(rdr, err);
-	if (wc == WEOF) {
-		return GU_UCS_EOF;
+	if (uc == 0) {
+		return '\0';
+	} else if (0 < uc && uc <= 127) {
+		char c = gu_ucs_ascii[uc];
+		if (c != '\0') {
+			return (unsigned char) c;
+		}
 	}
-	return (GuUcs) (wchar_t) wc;
-}
-
-#elif defined WCHAR_IS_UTF16
-
-void
-gu_write_ucs(GuWriter* wtr, GuUcs ucs, GuError* err)
-{
-	gu_require(gu_ucs_valid(ucs));
-	if (ucs < 0x10000L) {
-		gu_putc(wtr, (wchar_t) ucs, err);
-	} else {
-		uint32_t u = ucs - 0x10000L;
-		wchar_t wcs[2] = { 0xd800 | (u >> 10), 
-				   0xdc00 | (u & 0x03ff) };
-		gu_write(wtr, wcs, 2, err);
-	}
-}
-
-GuUcs
-gu_read_ucs(GuReader* rdr, GuError* err)
-{
-	wint_t wc = gu_getc(rdr, err);
-	if (wc == WEOF) {
-		return GU_UCS_EOF;
-	} else if (wc < 0xd800 || wc >= 0xe000) {
-		return (GuUcs) wc;
-	} else if (wc >= 0xdc00) {
-		gu_raise_null(err, GuEncodingError);
-		return GU_UCS_EOF;
-	}
-	wint_t wc2 = gu_getc(rdr, err);
-	if (wc2 == WEOF) {
-		return GU_UCS_EOF;
-	}
-	if (wc2 < 0xdc00 || wc >= 0xe000) {
-		gu_raise_null(err, GuEncodingError);
-	}
-	int32_t i1 = wc;
-	int32_t i2 = wc2;
-	return ((i1 & 0x03ff) << 10 | (i2 & 0x3ff));
+	gu_raise(err, GuUCSError);
+	return 0;
 }
 
 #endif
 
-
-#if 0
-GuUtf8
-gu_wcs_utf8(wchar_t* wcs, GuPool* pool)
+size_t
+gu_str_to_ucs(const char* cbuf, size_t len, GuUCS* ubuf, GuError* err)
 {
-	GuPool* tmp_pool = gu_pool_new();
-	GuByteSeq byteq = gu_byte_seq_new(tmp_pool);
-	GuOut* out = gu_byte_seq_out(byteq, tmp_pool);
-	GuError* err = gu_error_new(tmp_pool);
-	
+	size_t n = 0;
+	while (n < len) {
+		char c = cbuf[n];
+		if (!gu_char_is_valid(c)) {
+			gu_raise(err, GuUCSError);
+			return n;
+		}
+		ubuf[n] = gu_char_ucs(c);
+		n++;
+	}
+	return n;
 }
 
-wchar_t*
-gu_utf8_wcs(GuCUtf8 utf8, GuPool* pool)
+size_t
+gu_ucs_to_str(const GuUCS* ubuf, size_t len, char* cbuf, GuError* err)
 {
-	GuPool* tmp_pool = gu_pool_new();
-	GuByteSeq byteq = gu_byte_seq_new(tmp_pool);
-	GuOut* out = gu_byte_seq_out(byteq, tmp_pool);
-	GuError* err = gu_error_new(tmp_pool);
-	
+	size_t n = 0;
+	while (n < len) {
+		char c = gu_ucs_char(ubuf[n], err);
+		if (!gu_ok(err)) {
+			break;
+		}
+		cbuf[n] = c;
+		n++;
+	}
+	return n;
 }
 
-#endif

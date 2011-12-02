@@ -8,7 +8,7 @@ AC_CONFIG_MACRO_DIR([m4])
 AM_INIT_AUTOMAKE([1.7.9])
 m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES])
 
-AC_CONFIG_HEADERS([config.h guconfig.h])
+AC_CONFIG_HEADERS([config.h])
 
 #AC_GNU_SOURCE
 #AC_CANONICAL_HOST
@@ -31,16 +31,7 @@ AC_CHECK_FUNCS([strstr select strerror])
 AC_C_ALIGNOF
 AC_C_FAM_IN_MEM
 AC_C_STATEMENT_EXPRESSIONS
-
-if test $ac_cv_c_alignof != no; then
-  AC_DEFINE_UNQUOTED([gu_alignof], [$ac_cv_c_alignof], [foo])
-fi
-if test $ac_cv_c_fam_in_mem != no; then
-  AC_DEFINE([GU_CAN_HAVE_FAM_IN_MEMBER], 1, [foo])
-fi
-if test $ac_cv_c_statement_expressions != no; then
-  AC_DEFINE([GU_HAVE_STATEMENT_EXPRESSIONS], 1, [foo])
-fi
+AC_C_ASCII
 
 
 AC_CHECK_LIB(m, sin)
@@ -58,12 +49,6 @@ DX_ARG_ABLE(dev, [include internal development documentation],
 	    [DX_ENV_APPEND(DEVDOC, NO)
 	     DX_ENV_APPEND(INPUT, \$(include_HEADERS))])
 DX_INIT_DOXYGEN(libpgf)
-
-DX_ENV_APPEND(INCLUDE_PATH,
-	      `$PKG_CONFIG --cflags-only-I glib-2.0 | sed -e 's/-I//g'`)
-
-
-
 
 
 AC_CONFIG_FILES([Makefile

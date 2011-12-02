@@ -25,6 +25,13 @@
 #include <string.h>
 #include <stdlib.h>
 
+#ifdef USE_VALGRIND
+#include <valgrind.h>
+#define VG(X) X
+#else
+#define VG(X) GU_NOP
+#endif
+
 static const size_t
 // Maximum request size for a chunk. The actual maximum chunk size
 // may be somewhat larger.
@@ -48,7 +55,9 @@ gu_mem_chunk_max_size = 1024 * sizeof(void*),
 
 
 
-
+#ifdef HAVE_MAX_ALIGN_T
+typedef max_align_t GuMaxAlign;
+#else
 typedef union {
 	char c;
 	short s;
@@ -62,7 +71,7 @@ typedef union {
 	void* p;
 	void (*fp)();
 } GuMaxAlign;
-
+#endif
 
 static void*
 gu_mem_realloc(void* p, size_t size)
@@ -175,6 +184,7 @@ gu_pool_new(void)
 	pool->finalizers = NULL;
 	pool->left_edge = offsetof(GuPool, init_buf);
 	pool->right_edge = sz;
+	VG(VALGRIND_CREATE_MEMPOOL(pool, 0, false));
 	return pool;
 }
 
@@ -210,7 +220,6 @@ static void*
 gu_pool_malloc_aligned(GuPool* pool, size_t pre_align, size_t pre_size,
 		       size_t align, size_t size) 
 {
-	gu_require(pre_align > 0 && align > 0);
 	gu_require(size <= gu_mem_max_shared_alloc);
 	size_t pos = gu_mem_advance(pool->left_edge, pre_align, pre_size,
 				    align, size);
@@ -219,10 +228,12 @@ gu_pool_malloc_aligned(GuPool* pool, size_t pre_align, size_t pre_size,
 				     pre_align, pre_size, align, size);
 		gu_pool_expand(pool, pos);
 		gu_assert(pos <= pool->right_edge);
-	} 
+	}
+	size_t left = pool->left_edge;
 	pool->left_edge = pos;
-	return &pool->curr_buf[pos - size];
-
+	void* addr = &pool->curr_buf[pos - size];
+	VG(VALGRIND_MEMPOOL_ALLOC(pool, addr, pos - left));
+	return addr;
 }
 
 static size_t
@@ -239,21 +250,31 @@ gu_pool_malloc_unaligned(GuPool* pool, size_t size)
 		gu_assert(size <= gu_pool_avail(pool));
 	}
 	pool->right_edge -= size;
-	return &pool->curr_buf[pool->right_edge];
+	void* addr = &pool->curr_buf[pool->right_edge];
+	VG(VALGRIND_MEMPOOL_ALLOC(pool, addr, size));
+	return addr;
 }
 
 void*
 gu_malloc_prefixed(GuPool* pool, size_t pre_align, size_t pre_size,
 		   size_t align, size_t size)
 {
+	if (pre_align == 0) {
+		pre_align = gu_alignof(GuMaxAlign);
+	}
+	if (align == 0) {
+		align = gu_alignof(GuMaxAlign);
+	}
 	size_t full_size = gu_mem_advance(offsetof(GuMemChunk, data),
 					  pre_align, pre_size, align, size);
 	if (full_size > gu_mem_max_shared_alloc) {
 		GuMemChunk* chunk = gu_mem_alloc(full_size);
 		chunk->next = pool->chunks;
 		pool->chunks = chunk;
-		return &chunk->data[full_size - size
-				    - offsetof(GuMemChunk, data)];
+		void* addr = &chunk->data[full_size - size
+					  - offsetof(GuMemChunk, data)];
+		VG(VALGRIND_MEMPOOL_ALLOC(pool, addr, full_size));
+		return addr;
 	} else if (pre_align == 1 && align == 1) {
 		uint8_t* buf = gu_pool_malloc_unaligned(pool, pre_size + size);
 		return &buf[pre_size];
@@ -300,6 +321,7 @@ gu_pool_free(GuPool* pool)
 		gu_mem_buf_free(chunk);
 		chunk = next;
 	}
+	VG(VALGRIND_DESTROY_MEMPOOL(pool));
 	gu_mem_buf_free(pool);
 }
 

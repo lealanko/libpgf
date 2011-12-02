@@ -26,7 +26,7 @@ gu_choice_advance(GuChoice* ch);
 // private
 
 struct GuChoiceMark {
-	int path_idx;
+	size_t path_idx;
 };
 
 

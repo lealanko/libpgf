@@ -2,49 +2,75 @@
 
 
 size_t
-gu_read(GuReader* rdr, wchar_t* buf, size_t len, GuError* err)
+gu_read(GuReader* rdr, GuUCS* buf, size_t max_len, GuError* err)
 {
-	return rdr->read(rdr, buf, len, err);
+	return rdr->read(rdr, buf, max_len, err);
 }
 
-wint_t
+size_t
+gu_read_all(GuReader* rdr, GuUCS* buf, size_t len, GuError* err)
+{
+	size_t have = 0;
+	while (have < len && gu_ok(err)) {
+		size_t got = gu_read(rdr, &buf[have], len - have, err);
+		if (got == 0) {
+			break;
+		}
+		have += got;
+	}
+	return have;
+}
+
+
+GuUCS
+gu_read_ucs(GuReader* rdr, GuError* err)
+{
+	GuUCS ucs = 0;
+	size_t got = gu_read_all(rdr, &ucs, 1, err);
+	if (got < 1) {
+		gu_raise(err, GuEOF);
+		return 0;
+	}
+	return ucs;
+}
+
+char
 gu_getc(GuReader* rdr, GuError* err)
 {
-	wchar_t wc = L'\0';
-	size_t got = gu_read(rdr, &wc, 1, err);
-	if (got < 1) {
-		return WEOF;
-	}
-	return wc;
+	return gu_ucs_char(gu_read_ucs(rdr, err), err);
 }
 
-typedef struct GuWcsReader GuWcsReader;
+typedef struct GuCharReader GuCharReader;
 
-struct GuWcsReader {
+struct GuCharReader {
 	GuReader rdr;
-	const wchar_t* wcs;
-	size_t size;
-	size_t idx;
+	GuIn* in;
 };
 
 static size_t
-gu_wcs_reader_read(GuReader* rdr, wchar_t* buf, size_t len, GuError* err)
+gu_char_reader_read(GuReader* rdr, GuUCS* buf, size_t max_len, GuError* err)
 {
-	(void) err;
-	GuWcsReader* wr = (GuWcsReader*) rdr;
-	len = GU_MIN(len, wr->size - wr->idx);
-	wmemcpy(buf, &wr->wcs[wr->idx], len);
-	wr->idx += len;
-	return len;
+	GuCharReader* crdr = (GuCharReader*) rdr;
+	size_t have = 0;
+	while (have < max_len && gu_ok(err)) {
+		uint8_t cbuf[256];
+		size_t req = GU_MIN(256, max_len - have);
+		size_t got = gu_in_some(crdr->in, cbuf, req, err);
+		gu_error_block(err);
+		size_t n = gu_str_to_ucs((char*) cbuf, got, &buf[have], err);
+		gu_error_unblock(err);
+		have += n;
+		if (n < req) {
+			break;
+		}
+	}
+	return have;
 }
 
 GuReader*
-gu_wcs_reader(const wchar_t* wcs, size_t len, GuPool* pool)
+gu_char_reader(GuIn* in, GuPool* pool)
 {
-	return (GuReader*) 
-		gu_new_s(pool, GuWcsReader, 
-			 .rdr = { .read = gu_wcs_reader_read },
-			 .wcs = wcs,
-			 .size = len,
-			 .idx = 0);
+	return (GuReader*) gu_new_s(pool, GuCharReader,
+				    .rdr = { gu_char_reader_read },
+				    .in = in);
 }

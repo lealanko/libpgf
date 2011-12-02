@@ -26,7 +26,7 @@ int main(int argc, char* argv[]) {
 		status = EXIT_FAILURE;
 		goto fail;
 	}
-	GuError* err = gu_error_new(pool);
+	GuError* err = gu_new_error(NULL, gu_kind(GuEOF), pool);
 	GuFile* inf = gu_file(infile, pool);
 	PgfPGF* pgf = pgf_read(&inf->in, pool, err);
 	if (!gu_ok(err)) {
@@ -34,12 +34,13 @@ int main(int argc, char* argv[]) {
 		status = EXIT_FAILURE;
 		goto fail;
 	}
-
-	PgfConcr* concr = gu_strmap_get(pgf->concretes, lang);
+	GuString lang_s = gu_str_string(lang, pool);
+	PgfConcr* concr = gu_map_get(pgf->concretes, &lang_s, PgfConcr*);
 	PgfLzr* lzr = pgf_lzr_new(pool, pgf, concr);
 
 	GuFile* outf = gu_file(stdout, pool);
-	GuDumpCtx* ctx = gu_dump_ctx_new(pool, &outf->wtr, NULL);
+	GuWriter* wtr = gu_locale_writer(&outf->out, pool);
+	GuDump* ctx = gu_new_dump(wtr, NULL, err, pool);
 	ctx->print_address = true;
 	// gu_dump(gu_type(PgfLinearizer), lzr, ctx);
 
@@ -56,10 +57,13 @@ int main(int argc, char* argv[]) {
 	// PgfExpr expr = VAR(Warm);
 	// PgfExpr expr = APPV(PQuestion, APPV(WherePerson, VAR(YouFamMale)));
 
+	GuFile* sin = gu_file(stdin, pool);
+	GuReader* rdr = gu_char_reader(&sin->in, pool);
+	
 	while (true) {
-		fprintf(stdout, "> ");
-		fflush(stdout);
-		PgfExpr expr = pgf_expr_parse(stdin, pool);
+		gu_puts("> ", wtr, err);
+		gu_writer_flush(wtr, err);
+		PgfExpr expr = pgf_read_expr(rdr, pool, err);
 		
 		if (gu_variant_is_null(expr)) {
 			break;
@@ -74,11 +78,13 @@ int main(int argc, char* argv[]) {
 			}
 			int n = pgf_lin_form_n_fields(form);
 			for (int i = 0; i < n; i++) {
-				pgf_lzr_linearize_to_file(lzr, form, i, stdout);
-				fputc('\n', stdout);
+				pgf_lzr_linearize_simple(lzr, form, i,
+							 wtr, err);
+				gu_putc('\n', wtr, err);
+				gu_writer_flush(wtr, err);
 			}
-			fputs(".\n", stdout);
-			fflush(stdout);
+			gu_puts(".\n", wtr, err);
+			gu_writer_flush(wtr, err);
 		}
 	}
 fail:

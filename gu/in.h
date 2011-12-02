@@ -11,7 +11,7 @@ struct GuIn {
 };
 
 size_t
-gu_in_some(GuIn* in, uint8_t* buf, size_t len, GuError* err);
+gu_in_some(GuIn* in, uint8_t* buf, size_t max_len, GuError* err);
 
 void
 gu_in_bytes(GuIn* in, uint8_t* buf, size_t len, GuError* err);
@@ -64,8 +64,10 @@ gu_in_f64le(GuIn* in, GuError* err);
 double
 gu_in_f64be(GuIn* in, GuError* err);
 
-GuIn* gu_in_buf(const uint8_t* buf, size_t size, GuPool* pool);
-GuIn* gu_in_str(const char* str, GuPool* pool);
+GuIn*
+gu_buf_in(const uint8_t* buf, size_t size, GuPool* pool);
+
+extern GU_DECLARE_TYPE(GuEOF, abstract);
 
 #include <gu/type.h>
 

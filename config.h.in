@@ -4,11 +4,8 @@
    of another struct. */
 #undef CAN_HAVE_FAM_IN_MEMBER
 
-/* foo */
-#undef GU_CAN_HAVE_FAM_IN_MEMBER
-
-/* foo */
-#undef GU_HAVE_STATEMENT_EXPRESSIONS
+/* Define to 1 if the encoding of the basic character set is ASCII. */
+#undef CHAR_ASCII
 
 /* Define to 1 if you have the `alarm' function. */
 #undef HAVE_ALARM
@@ -106,6 +103,3 @@
 
 /* Define to the name of the alignof operator. */
 #undef alignof
-
-/* foo */
-#undef gu_alignof

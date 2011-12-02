@@ -113,3 +113,42 @@ gu_is_prime(int i)
 		return gu_is_wheel_prime(i);
 	}
 }
+
+bool
+gu_is_twin_prime(int i)
+{
+	return gu_is_prime(i) && gu_is_prime(i - 2);
+}
+
+int
+gu_twin_prime_inf(int i)
+{
+	while (true) {
+		i = gu_prime_inf(i);
+		if (i == 0) {
+			return 0;
+		} else if (gu_is_prime(i - 2)) {
+			return i;
+		}
+		i = i - 4;
+	}
+	return i;
+}
+
+int
+gu_twin_prime_sup(int i)
+{
+	if (i <= 5) {
+		return 5;
+	}
+	i = i - 2;
+	while (true) {
+		i = gu_prime_sup(i);
+		if (gu_is_prime(i + 2)) {
+			return i + 2;
+		}
+		i = i + 4;
+	}
+	return i;
+}
+

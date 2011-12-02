@@ -108,7 +108,7 @@ gu_variant_from_ptr(const void* p)
 	return v;
 }
 
-extern const GuVariant gu_variant_null;
+extern const GuVariant gu_null_variant;
 
 static inline bool
 gu_variant_is_null(GuVariant v) {

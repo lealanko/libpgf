@@ -4,11 +4,8 @@
 #include <gu/defs.h>
 #include <gu/assert.h>
 
-typedef uintptr_t GuWord;
 
-enum {
-	GU_WORD_BITS = sizeof(GuWord) * CHAR_BIT
-};
+#define GU_WORD_BITS (sizeof(GuWord) * CHAR_BIT)
 
 
 /*
@@ -69,38 +66,44 @@ gu_bits_size(size_t n_bits) {
 	return gu_ceildiv(n_bits, GU_WORD_BITS) * sizeof(GuWord);
 }
 
-static inline int
-gu_word_max_tag(void)
-{
-	return sizeof(GuWord) - 1;
-}
-
-static inline int
-gu_word_tag(GuWord w) {
-	return (int) (w & (sizeof(GuWord) - 1));
-}
-
 static inline void*
-gu_word_ptr(GuWord w) {
-	return (void*) gu_align_backward(w, sizeof(GuWord));
+gu_word_ptr(GuWord w)
+{
+	return (void*) w;
 }
 
 static inline GuWord
-gu_word(void* ptr, int tag) {
-	gu_require(0 <= tag && tag < (int) sizeof(GuWord));
+gu_ptr_word(void* p)
+{
+	return (GuWord) p;
+}
+
+#define GuOpaque() struct { GuWord w_; }
+
+typedef GuWord GuTagged;
+
+#define GU_TAG_MAX (sizeof(GuWord) - 1)
+
+static inline size_t
+gu_tagged_tag(GuTagged t) {
+	return (int) (t & (sizeof(GuWord) - 1));
+}
+
+static inline void*
+gu_tagged_ptr(GuTagged w) {
+	return (void*) gu_align_backward(w, sizeof(GuWord));
+}
+
+static inline GuTagged
+gu_tagged(void* ptr, size_t tag) {
+	gu_require(tag < sizeof(GuWord));
 	uintptr_t u = (uintptr_t) ptr;
 	gu_require(gu_align_backward(u, sizeof(GuWord)) == u);
 	return (GuWord) { u | tag };
 }
 
-#define GuTagged() struct { GuWord w_; }
-
-typedef GuTagged() GuTagged_;
-
 #include <gu/error.h>
 #include <gu/type.h>
-
-typedef struct { int dummy_; } GuIntDecodeError;
 
 extern GU_DECLARE_TYPE(GuIntDecodeError, abstract);
 
@@ -109,7 +112,7 @@ extern GU_DECLARE_TYPE(GuIntDecodeError, abstract);
 	 ? (t_) (u_)						\
 	 : (tmin_) + ((t_) ((umax_) - (u_))) < 0		\
 	 ? -1 - ((t_) ((umax_) - (u_)))				\
-	 : (gu_raise(err_, GuIntDecodeError, 0), -1))
+	 : (gu_raise(err_, GuIntDecodeError), -1))
 
 
 static inline int8_t

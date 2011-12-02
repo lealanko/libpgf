@@ -1,5 +1,6 @@
 #include <gu/dump.h>
 #include <gu/type.h>
+#include <gu/str.h>
 #include <gu/variant.h>
 #include <gu/map.h>
 
@@ -19,10 +20,11 @@ GU_DEFINE_TYPE(
 	GU_MEMBER_V(Baz, bar, gu_type(GuStr)),
 	GU_MEMBER_V(Baz, fooh, gu_ptr_type(Ints)));
 
-typedef GuIntMap Dict;
+typedef GuMap Dict;
 
 // todo: sharing
-GU_DEFINE_TYPE(Dict, GuIntMap, true, gu_type(GuStr), &(GuStr){NULL});
+GU_DEFINE_TYPE(Dict, GuMap, gu_type(GuStr), gu_str_hasher, gu_type(GuStr),
+	       &gu_null_str);
 
 typedef struct {
 	GuStr koo;
@@ -79,15 +81,15 @@ int main(void)
 	elems[0] = 7;
 	elems[1] = 99;
 	elems[2] = 623;
-	GuDumpCtx* ctx = gu_dump_ctx_new(pool, stdout, NULL);
+	GuDump* ctx = gu_new_dump(pool, stdout, NULL);
 	gu_dump(gu_type(Baz), &b, ctx);
 	
-	Dict* dict = gu_intmap_new(pool);
+	Dict* dict = gu_new_map(GuStr, gu_str_hasher, GuStr, NULL, pool);
 	GuStr fnord = "fnord";
-	gu_intmap_set(dict, 42, "fnord");
-	gu_intmap_set(dict, 7, "blurh");
-	gu_intmap_set(dict, 11, fnord);
-	gu_intmap_set(dict, 15, fnord);
+	gu_map_put(dict, &(int){42}, GuStr, "fnord");
+	gu_map_put(dict, &(int){7}, GuStr, "blurh");
+	gu_map_put(dict, &(int){11}, GuStr, fnord);
+	gu_map_put(dict, &(int){15}, GuStr, fnord);
 	gu_dump(gu_type(Dict), dict, ctx);
 
 

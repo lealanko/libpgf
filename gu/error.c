@@ -1,73 +1,68 @@
 #include <gu/error.h>
 #include <gu/assert.h>
 
-struct GuError {
-	GuPool* pool;
-	GuErrorFrame* frame;
-};
 
 GuError*
-gu_error_new(GuPool* pool)
+gu_new_error(GuError* parent, GuKind* catch, GuPool* pool)
 {
-	GuError* err = gu_new(pool, GuError);
-	err->pool = pool;
-	err->frame = NULL;
-	return err;
-}
-
-bool
-gu_error_raised(GuError* err)
-{
-	return (err->frame != NULL);
-}
-
-GuErrorFrame*
-gu_error_frame(GuError* err)
-{
-	return err->frame;
-}
-
-GuType*
-gu_error_type(GuError* err)
-{
-	return err->frame ? err->frame->type : NULL;
-}
-
-void*
-gu_error_data(GuError* err)
-{
-	return err->frame ? err->frame->data : NULL;
-}
-
-GuPool*
-gu_error_pool(GuError* err)
-{
-	return err->pool;
+	return gu_new_s(pool, GuError,
+			.parent = parent,
+			.catch = catch,
+			.pool = pool,
+			.state = GU_ERROR_OK,
+			.caught = NULL,
+			.data = NULL);
 }
 
 void
-gu_error_raise(GuError* err, 
-	       GuType* type, const void* data,
-	       const char* filename, const char* func, int lineno)
+gu_error_block(GuError* err)
 {
-	gu_assert(type);
-	
-	void* err_data = NULL;
-
-	if (data) {
-		GuTypeRepr* repr = gu_type_repr(type);
-		gu_assert(repr);
-		err_data = gu_malloc_init_aligned(err->pool, 
-						  repr->size, repr->align,
-						  data);
+	if (err && err->state == GU_ERROR_RAISED) {
+		err->state = GU_ERROR_BLOCKED;
 	}
-	err->frame = gu_new_s(err->pool, GuErrorFrame,
-			      .type = type,
-			      .data = err_data,
-			      .filename = filename,
-			      .func = func,
-			      .lineno = lineno,
-			      .cause = err->frame);
+}
+
+void
+gu_error_unblock(GuError* err)
+{
+	if (err && err->state == GU_ERROR_BLOCKED) {
+		err->state = GU_ERROR_RAISED;
+	}
+}
+
+GuError*
+gu_error_raise_debug_(GuError* base, GuType* type, 
+		      const char* filename, const char* func, int lineno)
+{
+	gu_require(type);
+
+	// TODO: log the error, once there's a system for dumping
+	// error objects.
+
+	GuError* err = base;
+	
+	while (err && !(err->catch && gu_type_has_kind(type, err->catch))) {
+		err->state = GU_ERROR_RAISED;
+		err = err->parent;
+	}
+	if (!err) {
+		gu_abort_(GU_ASSERT_ASSERTION, filename, func, lineno,
+			  "Unexpected error raised");
+	}
+
+	if (err->state == GU_ERROR_OK) {
+		err->caught = type;
+		err->state = GU_ERROR_RAISED;
+		return err;
+	} 
+	err->state = GU_ERROR_RAISED;
+	return NULL;
+}
+
+GuError*
+gu_error_raise_(GuError* base, GuType* type)
+{
+	return gu_error_raise_debug_(base, type, NULL, NULL, -1);
 }
 
 

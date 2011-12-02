@@ -25,12 +25,13 @@
 #ifndef GU_DEFS_H_
 #define GU_DEFS_H_
 
-#include <guconfig.h>
 #include <stddef.h>
 #include <inttypes.h>
 #include <stdbool.h>
 #include <assert.h>
 #include <limits.h>
+#include <stdarg.h>
+#include <gu/sysdeps.h>
 
 #define gu_container(mem_p, container_type, member) \
 	((container_type*)(((uint8_t*) (mem_p)) - offsetof(container_type, member)))
@@ -53,14 +54,15 @@
 #define gu_member(t_, struct_p_, offset_) \
 	(*(t_*)gu_member_p(struct_p_, offset_))
 
-#ifndef gu_alignof
-#define gu_alignof(t_) \
-	((size_t)(offsetof(struct { char c_; t_ e_; }, e_)))
-#ifdef GU_CAN_HAVE_FAM_IN_MEMBER
-#define GU_ALIGNOF_WORKS_ON_FAM_STRUCTS
-#endif
+#ifdef GU_ALIGNOF
+# define gu_alignof GU_ALIGNOF
+# define GU_ALIGNOF_WORKS_ON_FAM_STRUCTS
 #else
-#define GU_ALIGNOF_WORKS_ON_FAM_STRUCTS
+# define gu_alignof(t_) \
+	((size_t)(offsetof(struct { char c_; t_ e_; }, e_)))
+# ifdef GU_CAN_HAVE_FAM_IN_MEMBER
+#  define GU_ALIGNOF_WORKS_ON_FAM_STRUCTS
+# endif
 #endif
 
 #define GU_PLIT(type, expr) \
@@ -131,24 +133,36 @@ gu_flex_size(size_t ssize, size_t offset, int n_elems, size_t e_size)
 	} GU_PASTE(GuStaticAssert_, __LINE__)
 
 
-#define GU_DECLARE_DUMMY \
+#define GU_ENSURE_TYPE(T, EXPR)			\
+	((void)(sizeof(*(T*)NULL=(EXPR))),(EXPR))
+
+#define GU_END_DECLS \
 	extern void gu_dummy_(void)
 
-static inline unsigned
-gu_hash_mix(unsigned h, unsigned v)
-{
-	/* XXX TODO: This is the Paul Larson hash for _characters_,
-	 * not full words! Switch to e.g. MurMur2 or Meiyan. */
-	return h * 101 + v;
-}
-
-static inline unsigned
-gu_hash_ptr(void* ptr)
-{
-	return (unsigned) (uintptr_t) ptr;
-}
+extern void* const gu_null;
 
 // Dummy struct used for generic struct pointers
 typedef struct GuStruct GuStruct;
+
+extern GuStruct* const gu_null_struct;
+
+typedef uintptr_t GuWord;
+
+#define GU_WORD_MAX UINTPTR_MAX
+
+
+// Splint annotations
+#define GU_ONLY GU_SPLINT(only)
+#define GU_NULL GU_SPLINT(null)
+#define GU_NOTNULL GU_SPLINT(notnull) 
+#define GU_RETURNED GU_SPLINT(returned)
+#define GU_ABSTRACT GU_SPLINT(abstract)
+#define GU_IMMUTABLE GU_SPLINT(immutable)
+#define GU_NOTREACHED GU_SPLINT(notreached)
+#define GU_UNUSED GU_SPLINT(unused) GU_GNUC_ATTR(unused)
+#define GU_OUT GU_SPLINT(out)
+#define GU_IN GU_SPLINT(in)
+#define GU_NORETURN GU_SPLINT(noreturn) GU_GNUC_ATTR(noreturn)
+#define GU_MODIFIES(x) GU_SPLINT(modifies x)
 
 #endif // GU_DEFS_H_

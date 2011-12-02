@@ -2,6 +2,8 @@
 #define EXPR_H_
 
 #include <pgf/data.h>
+#include <gu/read.h>
+#include <gu/write.h>
 
 GU_DECLARE_TYPE(PgfExpr, GuVariant);
 
@@ -78,9 +80,9 @@ pgf_expr_unapply(PgfExpr expr, GuPool* pool);
 
 
 PgfExpr
-pgf_expr_parse(FILE* input, GuPool* pool);
+pgf_read_expr(GuReader* rdr, GuPool* pool, GuError* err);
 
 void
-pgf_expr_print(PgfExpr expr, FILE* out);
+pgf_expr_print(PgfExpr expr, GuWriter* wtr, GuError* err);
 
 #endif /* EXPR_H_ */
