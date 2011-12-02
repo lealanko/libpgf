@@ -110,7 +110,7 @@ gu_ok(GuError* err) {
 
 typedef int GuErrno;
 
-extern GU_DECLARE_TYPE(GuErrno, int);
+extern GU_DECLARE_TYPE(GuErrno, signed);
 
 #define gu_raise_errno(error_) \
 	gu_raise_i(error_, GuErrno, errno)

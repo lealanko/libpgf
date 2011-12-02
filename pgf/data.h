@@ -49,7 +49,10 @@ typedef int PgfLength;
 typedef struct GuVariant PgfSymbol;
 typedef struct PgfAlternative PgfAlternative;
 typedef struct PgfCncFun PgfCncFun;
-typedef GuList(PgfSymbol) PgfSequence;
+
+
+typedef GuSeq PgfSequence; // -> PgfSymbol
+
 typedef PgfCncFun* PgfFunId; // key to PgfCncFuns
 extern GU_DECLARE_TYPE(PgfFunId, shared);
 typedef GuList(PgfCncFun*) PgfCncFuns; 
@@ -126,11 +129,11 @@ typedef GuList(PgfCId) PgfCIds;
 
 typedef struct PgfCat PgfCat;
 
-typedef PgfSequence* PgfSeqId;
+typedef PgfSequence PgfSeqId; // shared reference
 
-extern GU_DECLARE_TYPE(PgfSeqId, shared);
+extern GU_DECLARE_TYPE(PgfSeqId, typedef);
 
-typedef GuList(PgfSequence*) PgfSequences;
+typedef GuList(PgfSequence) PgfSequences;
 
 extern GU_DECLARE_TYPE(PgfSequences, GuList);
 
@@ -179,7 +182,7 @@ struct PgfCncCat {
 	PgfCId cid;
 	PgfCCatIds* cats;
 	PgfFunIds* lindefs;
-	int n_lins;
+	size_t n_lins;
 
 	GuStringL* labels;
 	/**< Labels for tuples. All nested tuples, records and tables

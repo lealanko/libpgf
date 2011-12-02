@@ -1,3 +1,4 @@
+#include <gu/assert.h>
 #include <gu/str.h>
 #include <string.h>
 #include <wchar.h>
@@ -8,7 +9,7 @@ const char gu_empty_str[] = "";
 const char* const gu_null_str = NULL;
 
 char* 
-gu_new_str(int size, GuPool* pool)
+gu_new_str(size_t size, GuPool* pool)
 {
 	char* str = gu_new_n(pool, char, size + 1);
 	memset(str, '\0', size + 1);
@@ -66,6 +67,7 @@ gu_vasprintf(const char* fmt, va_list args, GuPool* pool)
 	va_list args2;
 	va_copy(args2, args);
 	int len = vsnprintf(NULL, 0, fmt, args2);
+	gu_assert_msg(len >= 0, "Invalid format string: \"%s\"", fmt);
 	va_end(args2);
 	char* str = gu_new_str(len, pool);
 	vsnprintf(str, len + 1, fmt, args);

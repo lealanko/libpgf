@@ -66,4 +66,4 @@ gu_error_raise_(GuError* base, GuType* type)
 }
 
 
-GU_DEFINE_TYPE(GuErrno, int, _);
+GU_DEFINE_TYPE(GuErrno, signed, _);

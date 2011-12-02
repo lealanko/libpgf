@@ -307,29 +307,47 @@ struct GuPrimType {
 }	
 
 extern GU_DECLARE_KIND(primitive);
-
-
-typedef GuType_primitive GuType_integer;
-#define GU_TYPE_INIT_integer GU_TYPE_INIT_primitive
-extern GU_DECLARE_KIND(integer);
-
-typedef GuType_integer GuType_int;
-#define GU_TYPE_INIT_int GU_TYPE_INIT_integer
-extern GU_DECLARE_TYPE(int, primitive);
-
-typedef int GuLength;
-extern GU_DECLARE_TYPE(GuLength, int);
-
-extern GU_DECLARE_TYPE(char, integer);
-extern GU_DECLARE_TYPE(uint8_t, integer);
-extern GU_DECLARE_TYPE(uint16_t, integer);
-
-
-
-extern GU_DECLARE_TYPE(float, primitive);
-extern GU_DECLARE_TYPE(double, primitive);
-
 extern GU_DECLARE_TYPE(void, primitive);
+
+#define GU_TYPE_INIT_integer GU_TYPE_INIT_primitive
+typedef GuType_primitive GuType_integer;
+extern GU_DECLARE_KIND(integer);
+extern GU_DECLARE_TYPE(char, integer);
+
+#define GU_TYPE_INIT_signed GU_TYPE_INIT_integer
+typedef GuType_integer GuType_signed;
+extern GU_DECLARE_KIND(signed);
+extern GU_DECLARE_TYPE(int, signed);
+extern GU_DECLARE_TYPE(int8_t, signed);
+extern GU_DECLARE_TYPE(int16_t, signed);
+extern GU_DECLARE_TYPE(int32_t, signed);
+extern GU_DECLARE_TYPE(int64_t, signed);
+extern GU_DECLARE_TYPE(intptr_t, signed);
+extern GU_DECLARE_TYPE(intmax_t, signed);
+
+#define GU_TYPE_INIT_unsigned GU_TYPE_INIT_integer
+typedef GuType_integer GuType_unsigned;
+extern GU_DECLARE_KIND(unsigned);
+extern GU_DECLARE_TYPE(uint8_t, unsigned);
+extern GU_DECLARE_TYPE(uint16_t, unsigned);
+extern GU_DECLARE_TYPE(uint32_t, unsigned);
+extern GU_DECLARE_TYPE(uint64_t, unsigned);
+extern GU_DECLARE_TYPE(uintmax_t, unsigned);
+extern GU_DECLARE_TYPE(size_t, unsigned);
+
+typedef size_t GuLength;
+extern GU_DECLARE_TYPE(GuLength, unsigned); // TODO: get rid
+
+
+#define GU_TYPE_INIT_GuFloating GU_TYPE_INIT_primitive
+typedef GuType_primitive GuType_GuFloating;
+extern GU_DECLARE_KIND(GuFloating);
+extern GU_DECLARE_TYPE(float, GuFloating);
+extern GU_DECLARE_TYPE(double, GuFloating);
+typedef long double GuLongDouble;
+extern GU_DECLARE_TYPE(GuLongDouble, GuFloating);
+
+
 
 //
 // enum

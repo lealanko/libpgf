@@ -9,7 +9,7 @@ extern const char* const gu_null_str;
 
 typedef const char* GuStr;
 
-char* gu_new_str(int size, GuPool* pool);
+char* gu_new_str(size_t size, GuPool* pool);
 
 char* gu_strdup(const char* str, GuPool* pool);
 

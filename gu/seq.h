@@ -154,21 +154,28 @@ extern GU_DECLARE_KIND(GuSeq);
 extern GU_DECLARE_KIND(GuBuf);
 
 struct GuSeqType {
-	GuType_abstract abstract_base;
+	GuType_GuOpaque opaque_base;
 	GuType* elem_type;
 };
 
 typedef const struct GuSeqType GuSeqType, GuType_GuSeq;
 
 #define GU_TYPE_INIT_GuSeq(k_, t_, elem_type_) {	   \
-	.abstract_base = GU_TYPE_INIT_abstract(k_, t_, _), \
+	.opaque_base = GU_TYPE_INIT_GuOpaque(k_, t_, _), \
 	.elem_type = elem_type_,		   	\
 }
 
-typedef GuSeqType GuType_GuBuf;
+typedef struct GuBufType GuBufType, GuType_GuBuf;
 
-#define GU_TYPE_INIT_GuBuf(KIND, BUF_T, ELEM_T) \
-	GU_TYPE_INIT_GuSeq(KIND, BUF_T, ELEM_T)
+struct GuBufType {
+	GuType_abstract abstract_base;
+	GuType* elem_type;
+};
+
+#define GU_TYPE_INIT_GuBuf(KIND, BUF_T, ELEM_T) { \
+	.abstract_base = GU_TYPE_INIT_abstract(KIND, BUF_T, _), \
+	.elem_type = ELEM_T \
+}
 
 extern GU_DECLARE_TYPE(GuChars, GuSeq);
 extern GU_DECLARE_TYPE(GuBytes, GuSeq);

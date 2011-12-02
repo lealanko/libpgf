@@ -148,7 +148,7 @@ pgf_parsing_get_completed(PgfParsing* parsing, PgfItemBuf* conts)
 }
 
 static PgfSymbol
-pgf_item_base_symbol(PgfItemBase* ibase, int seq_idx, GuPool* pool)
+pgf_item_base_symbol(PgfItemBase* ibase, size_t seq_idx, GuPool* pool)
 {
 	GuVariantInfo i = gu_variant_open(ibase->prod);
 	switch (i.tag) {
@@ -156,12 +156,12 @@ pgf_item_base_symbol(PgfItemBase* ibase, int seq_idx, GuPool* pool)
 		PgfProductionApply* papp = i.data;
 		PgfCncFun* fun = papp->fun;
 		gu_assert(ibase->lin_idx < fun->n_lins);
-		PgfSequence* seq = fun->lins[ibase->lin_idx];
-		gu_assert(seq_idx <= gu_list_length(seq));
-		if (seq_idx == gu_list_length(seq)) {
+		PgfSequence seq = fun->lins[ibase->lin_idx];
+		gu_assert(seq_idx <= gu_seq_length(seq));
+		if (seq_idx == gu_seq_length(seq)) {
 			return gu_null_variant;
 		} else {
-			return gu_list_index(seq, seq_idx);
+			return gu_seq_get(seq, PgfSymbol, seq_idx);
 		}
 		break;
 	}
@@ -430,11 +430,12 @@ pgf_parsing_item(PgfParsing* parsing, PgfItem* item)
 	case PGF_PRODUCTION_APPLY: {
 		PgfProductionApply* papp = i.data;
 		PgfCncFun* fun = papp->fun;
-		PgfSequence* seq = fun->lins[item->base->lin_idx];
-		if (item->seq_idx == gu_list_length(seq)) {
+		PgfSequence seq = fun->lins[item->base->lin_idx];
+		if (item->seq_idx == gu_seq_length(seq)) {
 			pgf_parsing_complete(parsing, item);
 		} else  {
-			PgfSymbol sym = gu_list_index(seq, item->seq_idx);
+			PgfSymbol sym = 
+				gu_seq_get(seq, PgfSymbol, item->seq_idx);
 			pgf_parsing_symbol(parsing, item, sym);
 		}
 		break;

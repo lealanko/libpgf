@@ -30,6 +30,7 @@
 #include <pgf/expr.h>
 
 typedef GuStringMap PgfLinInfer;
+typedef GuSeq PgfProdSeq;
 
 static GU_DEFINE_TYPE(PgfProdSeq, GuSeq, gu_type(PgfProduction));
 
@@ -517,10 +518,10 @@ pgf_lzr_linearize(PgfLzr* lzr, PgfLinForm form, int lin_idx, PgfLinFuncs** fnsp)
 			fns->expr_apply(fnsp, fun->fun, fapp->n_args);
 		}
 		gu_require(lin_idx < fun->n_lins);
-		PgfSequence* seq = fun->lins[lin_idx];
-		int nsyms = gu_list_length(seq);
-		PgfSymbol* syms = gu_list_elems(seq);
-		for (int i = 0; i < nsyms; i++) {
+		PgfSequence seq = fun->lins[lin_idx];
+		size_t nsyms = gu_seq_length(seq);
+		PgfSymbol* syms = gu_seq_data(seq);
+		for (size_t i = 0; i < nsyms; i++) {
 			PgfSymbol sym = syms[i];
 			GuVariantInfo sym_i = gu_variant_open(sym);
 			switch (sym_i.tag) {

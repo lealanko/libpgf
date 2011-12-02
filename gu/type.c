@@ -21,17 +21,6 @@ GU_DEFINE_KIND(reference, pointer);
 GU_DEFINE_KIND(shared, pointer);
 
 GU_DEFINE_KIND(primitive, repr);
-GU_DEFINE_KIND(integer, primitive);
-
-GU_DEFINE_TYPE(int, integer, _);
-GU_DEFINE_TYPE(char, integer, _);
-GU_DEFINE_TYPE(uint8_t, integer, _);
-GU_DEFINE_TYPE(uint16_t, integer, _);
-
-GU_DEFINE_TYPE(GuLength, int, _);
-
-GU_DEFINE_TYPE(float, primitive, _);
-GU_DEFINE_TYPE(double, primitive, _);
 
 // sizeof(void) is illegal, so do this manually
 GuPrimType GU_TYPE_IDENT(void)[1] = {{
@@ -46,6 +35,34 @@ GuPrimType GU_TYPE_IDENT(void)[1] = {{
 	},
 	.name = "void",
 }};
+
+GU_DEFINE_KIND(integer, primitive);
+GU_DEFINE_TYPE(char, integer, _);
+
+GU_DEFINE_KIND(signed, integer);
+GU_DEFINE_TYPE(int, signed, _);
+GU_DEFINE_TYPE(int8_t, signed, _);
+GU_DEFINE_TYPE(int16_t, signed, _);
+GU_DEFINE_TYPE(int32_t, signed, _);
+GU_DEFINE_TYPE(int64_t, signed, _);
+GU_DEFINE_TYPE(intptr_t, signed, _);
+GU_DEFINE_TYPE(intmax_t, signed, _);
+
+GU_DEFINE_KIND(unsigned, integer);
+GU_DEFINE_TYPE(uint8_t, unsigned, _);
+GU_DEFINE_TYPE(uint16_t, unsigned, _);
+GU_DEFINE_TYPE(uint32_t, unsigned, _);
+GU_DEFINE_TYPE(uint64_t, unsigned, _);
+GU_DEFINE_TYPE(uintmax_t, unsigned, _);
+GU_DEFINE_TYPE(size_t, unsigned, _);
+
+GU_DEFINE_TYPE(GuLength, unsigned, _);
+
+GU_DEFINE_KIND(GuFloating, primitive);
+GU_DEFINE_TYPE(float, GuFloating, _);
+GU_DEFINE_TYPE(double, GuFloating, _);
+GU_DEFINE_TYPE(GuLongDouble, GuFloating, _);
+
 
 GU_DEFINE_KIND(enum, repr);
 

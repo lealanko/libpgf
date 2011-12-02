@@ -84,6 +84,15 @@ gu_dump_uint16(GuDumpFn* dumper, GuType* type, const void* p,
 	gu_dump_scalar(ctx, "%" PRIu16, *ip);
 }
 
+static void 
+gu_dump_size(GuDumpFn* dumper, GuType* type, const void* p, 
+	     GuDump* ctx)
+{
+	(void) (dumper && type);
+	const size_t* zp = p;
+	gu_dump_scalar(ctx, "%zu", *zp);
+}
+
 
 
 static void 
@@ -370,6 +379,7 @@ gu_dump_table = GU_TYPETABLE(
 	GU_SLIST_0,
 	{ gu_kind(int), gu_fn(gu_dump_int) },
 	{ gu_kind(uint16_t), gu_fn(gu_dump_uint16) },
+	{ gu_kind(size_t), gu_fn(gu_dump_size) },
 	{ gu_kind(GuStr), gu_fn(gu_dump_str) },
 	{ gu_kind(GuString), gu_fn(gu_dump_string) },
 	{ gu_kind(struct), gu_fn(gu_dump_struct) },
