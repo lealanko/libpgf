@@ -1,3 +1,4 @@
+#include <gu/out.h>
 #include <gu/seq.h>
 #include <gu/fun.h>
 #include <gu/assert.h>
@@ -5,9 +6,9 @@
 
 
 struct GuBuf {
-	uint8_t* buf;
+	uint8_t* data;
 	size_t elem_size;
-	size_t buf_len;
+	size_t avail_len;
 	GuFinalizer fin;
 };
 
@@ -30,6 +31,13 @@ gu_buf_length(GuBuf* dyn)
 	return (size_t)(((GuWord*)(void*)dyn)[-1] >> 1);
 }
 
+size_t
+gu_buf_avail(GuBuf* buf)
+{
+	return buf->avail_len;
+}
+
+
 static void
 gu_buf_set_length(GuBuf* dyn, size_t new_len)
 {
@@ -40,7 +48,7 @@ static void
 gu_buf_fini(GuFinalizer* fin)
 {
 	GuBuf* buf = gu_container(fin, GuBuf, fin);
-	gu_mem_buf_free(buf->buf);
+	gu_mem_buf_free(buf->data);
 }
 
 GuBuf*
@@ -49,8 +57,8 @@ gu_make_buf(size_t elem_size, GuPool* pool)
 	GuBuf* buf = gu_new_prefixed(pool, unsigned, GuBuf);
 	gu_buf_set_length(buf, 0);
 	buf->elem_size = elem_size;
-	buf->buf = NULL;
-	buf->buf_len = 0;
+	buf->data = NULL;
+	buf->avail_len = 0;
 	buf->fin.fn = gu_buf_fini;
 	gu_pool_finally(pool, &buf->fin);
 	gu_buf_set_length(buf, 0);
@@ -81,20 +89,20 @@ gu_make_seq(size_t elem_size, size_t length, GuPool* pool)
 static void
 gu_buf_require(GuBuf* buf, size_t req_len)
 {
-	if (req_len <= buf->buf_len) {
+	if (req_len <= buf->avail_len) {
 		return;
 	}
 	size_t req_size = buf->elem_size * req_len;
 	size_t real_size;
-	buf->buf = gu_mem_buf_realloc(buf->buf, req_size,
-				      &real_size);
-	buf->buf_len = real_size / buf->elem_size;
+	buf->data = gu_mem_buf_realloc(buf->data, req_size,
+				       &real_size);
+	buf->avail_len = real_size / buf->elem_size;
 }
 
 void*
 gu_buf_data(GuBuf* buf)
 {
-	return buf->buf;
+	return buf->data;
 }
 
 void*
@@ -104,7 +112,7 @@ gu_buf_extend_n(GuBuf* buf, size_t n_elems)
 	size_t new_len = len + n_elems;
 	gu_buf_require(buf, new_len);
 	gu_buf_set_length(buf, new_len);
-	return &buf->buf[buf->elem_size * len];
+	return &buf->data[buf->elem_size * len];
 }
 
 void*
@@ -127,7 +135,7 @@ gu_buf_trim_n(GuBuf* buf, size_t n_elems)
 	gu_require(n_elems <= gu_buf_length(buf));
 	size_t new_len = gu_buf_length(buf) - n_elems;
 	gu_buf_set_length(buf, new_len);
-	return &buf->buf[buf->elem_size * new_len];
+	return &buf->data[buf->elem_size * new_len];
 }
 
 const void*
@@ -152,6 +160,66 @@ gu_buf_freeze(GuBuf* buf, GuPool* pool)
 	void* seqdata = gu_seq_data(seq);
 	memcpy(seqdata, bufdata, buf->elem_size * len);
 	return seq;
+}
+
+typedef struct GuBufOut GuBufOut;
+struct GuBufOut
+{
+	GuOut out;
+	GuOutBuf buffer;
+	GuBuf* buf;
+};
+
+static size_t
+gu_buf_out_output(GuOut* out, const uint8_t* src, size_t sz, GuError* err)
+{
+	(void) err;
+	GuBufOut* bout = (GuBufOut*) out;
+	GuBuf* buf = bout->buf;
+	gu_assert(sz % buf->elem_size == 0);
+	size_t len = sz / buf->elem_size;
+	gu_buf_push_n(bout->buf, src, len);
+	return len;
+}
+
+static uint8_t*
+gu_buf_outbuf_begin(GuOutBuf* buffer, size_t* sz_out)
+{
+	GuBufOut* bout = gu_container(buffer, GuBufOut, buffer);
+	GuBuf* buf = bout->buf;
+	size_t len = gu_buf_length(buf);
+	size_t avail = buf->avail_len;
+	if (len == avail) {
+		gu_buf_require(buf, len + 1);
+		avail = buf->avail_len;
+	}
+	gu_assert(len < avail);
+	*sz_out = buf->elem_size * (avail - len);
+	return &buf->data[len * buf->elem_size];
+}
+
+static void
+gu_buf_outbuf_end(GuOutBuf* buffer, size_t sz, GuError* err)
+{
+	(void) err;
+	GuBufOut* bout = gu_container(buffer, GuBufOut, buffer);
+	GuBuf* buf = bout->buf;
+	size_t len = gu_buf_length(buf);
+	size_t elem_size = buf->elem_size;
+	gu_require(sz % elem_size == 0);
+	gu_require(sz < elem_size * (len - buf->avail_len));
+	gu_buf_set_length(buf, len + (sz / elem_size));
+}
+
+GuOut*
+gu_buf_out(GuBuf* buf, GuPool* pool)
+{
+	return (GuOut*) gu_new_s(
+		pool, GuBufOut,
+		.out.output = gu_buf_out_output,
+		.buffer.begin = gu_buf_outbuf_begin,
+		.buffer.end = gu_buf_outbuf_end,
+		.buf = buf);
 }
 
 const GuSeq

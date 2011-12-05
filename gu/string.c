@@ -1,4 +1,5 @@
 #include <gu/type.h>
+#include <gu/out.h>
 #include <gu/seq.h>
 #include <gu/map.h>
 #include <gu/string.h>

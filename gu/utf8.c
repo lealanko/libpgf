@@ -52,34 +52,59 @@ fail:
 }
 
 
-uint8_t*
+size_t
 gu_advance_utf8(GuUCS ucs, uint8_t* buf)
 {
 	if (ucs < 0x80) {
-		*buf++ = (uint8_t) ucs;
+		buf[0] = (uint8_t) ucs;
+		return 1;
 	} else if (ucs < 0x800) {
-		*buf++ = 0xc0 | (ucs >> 6);
-		*buf++ = 0x80 | (ucs & 0x3f);
+		buf[0] = 0xc0 | (ucs >> 6);
+		buf[1] = 0x80 | (ucs & 0x3f);
+		return 2;
 	} else if (ucs < 0x10000) {
-		*buf++ = 0xe0 | (ucs >> 12);
-		*buf++ = 0x80 | ((ucs >> 6) & 0x3f);
-		*buf++ = 0x80 | (ucs & 0x3f);
+		buf[0] = 0xe0 | (ucs >> 12);
+		buf[1] = 0x80 | ((ucs >> 6) & 0x3f);
+		buf[2] = 0x80 | (ucs & 0x3f);
+		return 3;
 	} else {
-		*buf++ = 0xf0 | (ucs >> 18);
-		*buf++ = 0x80 | ((ucs >> 12) & 0x3f);
-		*buf++ = 0x80 | ((ucs >> 6) & 0x3f);
-		*buf++ = 0x80 | (ucs & 0x3f);
+		buf[0] = 0xf0 | (ucs >> 18);
+		buf[1] = 0x80 | ((ucs >> 12) & 0x3f);
+		buf[2] = 0x80 | ((ucs >> 6) & 0x3f);
+		buf[3] = 0x80 | (ucs & 0x3f);
+		return 4;
 	}
-	return buf;
+}
+
+static void
+gu_out_utf8_long_(GuUCS ucs, GuOut* out, GuError* err)
+{
+	uint8_t buf[4];
+	size_t sz = gu_advance_utf8(ucs, buf);
+	switch (sz) {
+	case 2:
+		gu_out_bytes(out, buf, 2, err);
+		break;
+	case 3:
+		gu_out_bytes(out, buf, 3, err);
+		break;
+	case 4:
+		gu_out_bytes(out, buf, 4, err);
+		break;
+	default:
+		gu_impossible();
+	}
 }
 
 void
 gu_out_utf8(GuUCS ucs, GuOut* out, GuError* err)
 {
 	gu_require(gu_ucs_valid(ucs));
-	uint8_t buf[4];
-	uint8_t* p = gu_advance_utf8(ucs, buf);
-	gu_out_bytes(out, buf, p - buf, err);
+	if (GU_LIKELY(ucs < 0x80)) {
+		gu_out_u8(out, ucs, err);
+	} else {
+		gu_out_utf8_long_(ucs, out, err);
+	}
 }
 
 typedef struct GuUTF8Writer GuUTF8Writer;
@@ -107,7 +132,7 @@ gu_utf8_writer_write(GuWriter* wtr, const GuUCS* ubuf,
 			for (size_t i = 0; i < count; i++) {
 				GuUCS ucs = *src++;
 				gu_require(gu_ucs_valid(ucs));
-				p = gu_advance_utf8(ucs, p);
+				p += gu_advance_utf8(ucs, p);
 			}
 		} while (src < src_end && end - p > 3);
 		done += gu_out_bytes(uwtr->out, buf, p - buf, err);

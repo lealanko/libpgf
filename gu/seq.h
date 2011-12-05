@@ -78,6 +78,9 @@ gu_make_buf(size_t elem_size, GuPool* pool);
 size_t
 gu_buf_length(GuBuf* buf);
 
+size_t
+gu_buf_avail(GuBuf* buf);
+
 void*
 gu_buf_data(GuBuf* buf);
 
@@ -148,6 +151,14 @@ char*
 gu_chars_str(GuChars chars, GuPool* pool);
 
 #endif // GU_SEQ_H_
+
+#if defined(GU_OUT_H_) && !defined(GU_SEQ_H_OUT_)
+#define GU_SEQ_H_OUT_
+
+GuOut*
+gu_buf_out(GuBuf* buf, GuPool* pool);
+
+#endif
 
 
 #if defined(GU_TYPE_H_) && !defined(GU_SEQ_H_TYPE_)

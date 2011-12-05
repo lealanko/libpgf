@@ -5,7 +5,7 @@
 #include <gu/out.h>
 #include <stdio.h>
 
-typedef const struct GuFile GuFile;
+typedef struct GuFile GuFile;
 
 struct GuFile
 {

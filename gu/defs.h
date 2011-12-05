@@ -151,6 +151,20 @@ typedef uintptr_t GuWord;
 #define GU_WORD_MAX UINTPTR_MAX
 
 
+#ifdef GU_GNUC
+# define GU_LIKELY(EXPR) __builtin_expect(EXPR, 1)
+# define GU_UNLIKELY(EXPR) __builtin_expect(EXPR, 0)
+# define GU_IS_CONSTANT(EXPR) __builtin_constant_p(EXPR)
+#else
+# define GU_LIKELY(EXPR) (EXPR)
+# define GU_UNLIKELY(EXPR) (EXPR)
+# ifdef GU_OPTIMIZE_SIZE
+#  define GU_IS_CONSTANT(EXPR) false
+# else
+#  define GU_IS_CONSTANT(EXPR) true
+# endif
+#endif
+
 // Splint annotations
 #define GU_ONLY GU_SPLINT(only)
 #define GU_NULL GU_SPLINT(null)
