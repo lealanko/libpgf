@@ -44,6 +44,12 @@ typedef struct GuPool GuPool;
 GU_ONLY GuPool*
 gu_pool_new(void);
 
+//GuPool*
+//gu_make_pool(uint8_t* init_buf, size_t sz);
+
+//#define gu_pool_new()				\
+//	gu_make_pool((uint8_t[256]){}, 256)
+
 /**< Create a new memory pool.
  *
  */

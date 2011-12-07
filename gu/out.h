@@ -7,29 +7,44 @@
 
 typedef struct GuOut GuOut;
 
-typedef struct GuOutBuf GuOutBuf;
+typedef struct GuOutBuffer GuOutBuffer;
 
-struct GuOutBuf {
-	uint8_t* (*begin)(GuOutBuf* self, size_t* sz_out);
-	void (*end)(GuOutBuf* self, size_t size, GuError* err);
+struct GuOutBuffer {
+	uint8_t* (*begin)(GuOutBuffer* self, size_t* sz_out);
+	void (*end)(GuOutBuffer* self, size_t size, GuError* err);
 };
+
 
 struct GuOut {
 	uint8_t* restrict buf_end;
 	ptrdiff_t buf_curr;
 	uint8_t* buf_start;
-	GuOutBuf* buffer;
+	GuOutBuffer* buffer;
 	size_t (*output)(GuOut* self, const uint8_t* buf, size_t size,
 			 GuError* err);
 	void (*flush)(GuOut* self, GuError* err);
 };
 
+inline bool
+gu_out_is_buffered(GuOut* out)
+{
+	return (out->buffer != NULL);
+}
 
-GuOutBuf*
+uint8_t*
+gu_out_begin_span(GuOut* out, size_t* sz_inout);
+
+void
+gu_out_end_span(GuOut* out, size_t sz);
+
+GuOutBuffer*
 gu_out_make_buffer(GuOut* out, size_t sz, GuPool* pool);
 
 void
-gu_out_set_buffer(GuOut* out, GuOutBuf* buffer, GuError* err);
+gu_out_set_buffer(GuOut* out, GuOutBuffer* buffer, GuError* err);
+
+void
+gu_out_enable_buffering(GuOut* out, size_t buf_sz, GuPool* pool);
 
 size_t
 gu_out_bytes_(GuOut* restrict out, const uint8_t* restrict src, 
@@ -53,8 +68,7 @@ inline size_t
 gu_out_bytes(GuOut* restrict out, const uint8_t* restrict src, size_t len, 
 	     GuError* err)
 {
-	if (GU_IS_CONSTANT(len) && 
-	    GU_LIKELY(gu_out_try_buf_(out, src, len))) {
+	if (GU_LIKELY(gu_out_try_buf_(out, src, len))) {
 		return len;
 	}
 	return gu_out_bytes_(out, src, len, err);
@@ -64,33 +78,24 @@ void
 gu_out_flush(GuOut* out, GuError* err);
 
 inline bool
-gu_out_try_u8(GuOut* restrict out, uint8_t u)
+gu_out_try_u8_(GuOut* restrict out, uint8_t u)
 {
 	ptrdiff_t curr = out->buf_curr;
-	if (GU_UNLIKELY(curr == 0)) {
+	ptrdiff_t new_curr = curr + 1;
+	if (GU_UNLIKELY(new_curr > 0)) {
 		return false;
 	}
 	out->buf_end[curr] = u;
-	out->buf_curr = curr + 1;
+	out->buf_curr = new_curr;
 	return true;
 }
 
 inline void
 gu_out_u8(GuOut* restrict out, uint8_t u, GuError* err)
 {
-#if 1
-	if (GU_UNLIKELY(!gu_out_try_u8(out, u))) {
+	if (GU_UNLIKELY(!gu_out_try_u8_(out, u))) {
 		gu_out_bytes_(out, &u, 1, err);
 	}
-#else		
-	ptrdiff_t curr = out->buf_curr;
-	if (GU_UNLIKELY(curr == 0)) {
-		uint8_t u_ = u;
-		gu_out_bytes_(out, &u_, 1, err);
-	}
-	out->buf_end[curr] = u;
-	out->buf_curr = curr + 1;
-#endif
 }
 
 inline void

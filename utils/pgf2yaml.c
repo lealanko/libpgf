@@ -17,8 +17,9 @@ int main(void) {
 	}
 	GuFile* outf = gu_file(stdout, pool);
 	// GuWriter* wtr = gu_locale_writer(&outf->out, pool);
-	GuWriter* wtr = gu_utf8_writer(&outf->out, pool);
-	GuWriter* bwtr = wtr; // gu_buffered_writer(wtr, 1024, pool);
+	gu_out_enable_buffering(&outf->out, 4096, pool);
+	GuWriter* wtr = gu_make_utf8_writer(&outf->out, pool);
+	GuWriter* bwtr = wtr;
 	GuDump* ctx = gu_new_dump(bwtr, NULL, err, pool);
 	gu_dump(gu_type(PgfPGF), pgf, ctx);
 	gu_writer_flush(bwtr, err);

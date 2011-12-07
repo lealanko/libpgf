@@ -3,42 +3,54 @@
 
 #include <gu/error.h>
 #include <gu/ucs.h>
+#include <gu/out.h>
+#include <gu/utf8.h>
 
-typedef const struct GuWriter GuWriter;
+typedef struct GuWriter GuWriter;
 
 struct GuWriter {
-	size_t (*write)(GuWriter* self, const GuUCS* buf, size_t size, GuError* err);
-	void (*flush)(GuWriter* self, GuError* err);
+	GuOut out_;
 };
 
 size_t
-gu_write(GuWriter* wtr, const GuUCS* buf, size_t size, GuError* err);
+gu_utf32_write(const GuUCS* buf, size_t size, GuWriter* wtr, GuError* err);
 
-void
-gu_writer_flush(GuWriter* wtr, GuError* err);
-
-static inline void
-gu_ucs_write(GuUCS ucs, GuWriter* wtr, GuError* err)
+inline void
+gu_writer_flush(GuWriter* wtr, GuError* err)
 {
-	gu_write(wtr, &ucs, 1, err);
+	gu_out_flush(&wtr->out_, err);
 }
 
-void
-gu_putc(char c, GuWriter* wtr, GuError* err);
+inline void
+gu_ucs_write(GuUCS ucs, GuWriter* wtr, GuError* err)
+{
+	gu_out_utf8(ucs, &wtr->out_, err);
+}
 
-void
-gu_puts(const char* str, GuWriter* wtr, GuError* err);
+inline void
+gu_putc(char c, GuWriter* wtr, GuError* err)
+{
+	GuUCS ucs = gu_char_ucs(c);
+	gu_out_u8(&wtr->out_, (uint8_t) ucs, err);
+}
+
+inline void
+gu_puts(const char* str, GuWriter* wtr, GuError* err)
+{
+	gu_str_out_utf8(str, &wtr->out_, err);
+}
+
+inline size_t
+gu_utf8_write(const uint8_t* src, size_t sz, GuWriter* wtr, GuError* err)
+{
+	return gu_out_bytes(&wtr->out_, src, sz, err);
+}
 
 void
 gu_vprintf(const char* fmt, va_list args, GuWriter* wtr, GuError* err);
 
 void
 gu_printf(GuWriter* wtr, GuError* err, const char* fmt, ...);
-
-GuWriter*
-gu_buffered_writer(GuWriter* wtr, size_t buf_size, GuPool* pool);
-
-#include <gu/out.h>
 
 typedef struct GuOutWriter GuOutWriter;
 
@@ -47,13 +59,10 @@ struct GuOutWriter {
 	GuOut* out;
 };
 
-void
-gu_out_writer_flush(GuWriter* self, GuError* err);
+GuWriter*
+gu_make_utf8_writer(GuOut* utf8_out, GuPool* pool);
 
 GuWriter*
-gu_char_writer(GuOut* out, GuPool* pool);
-
-GuWriter*
-gu_locale_writer(GuOut* out, GuPool* pool);
+gu_make_locale_writer(GuOut* locale_out, GuPool* pool);
 
 #endif // GU_WRITE_H_

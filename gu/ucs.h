@@ -3,6 +3,8 @@
 
 #include <gu/defs.h>
 #include <gu/error.h>
+#include <gu/assert.h>
+
 
 #if defined(__STDC_ISO_10646__) && WCHAR_MAX >= 0x10FFFF
 #include <wchar.h>
@@ -17,14 +19,25 @@ typedef int32_t GuUCS;
 bool
 gu_char_is_valid(char c);
 
-static inline bool
+inline bool
 gu_ucs_valid(GuUCS ucs)
 {
 	return ucs >= 0 && ucs <= GU_UCS_MAX;
 }
 
-GuUCS
-gu_char_ucs(char c);
+inline GuUCS
+gu_char_ucs(char c)
+{
+	gu_require(gu_char_is_valid(c));
+#ifdef GU_CHAR_ASCII
+	GuUCS u = (GuUCS) c;
+#else
+	extern const uint8_t gu_ucs_ascii_reverse_[CHAR_MAX];
+	GuUCS u = gu_ucs_ascii_reverse_[(unsigned char) c];
+#endif
+	gu_ensure(u < 0x80);
+	return u;
+}
 
 char
 gu_ucs_char(GuUCS uc, GuError* err);

@@ -4,9 +4,8 @@
 #include <gu/map.h>
 #include <gu/string.h>
 #include <gu/utf8.h>
+#include <gu/assert.h>
 #include "config.h"
-
-// TODO: use SCSU instead of UTF-8
 
 const GuString gu_empty_string = { 1 };
 
@@ -25,7 +24,7 @@ GuWriter*
 gu_string_buf_writer(GuStringBuf* sb, GuPool* pool)
 {
 	GuOut* out = gu_buf_out(sb->bbuf, pool);
-	return gu_utf8_writer(out, pool);
+	return gu_make_utf8_writer(out, pool);
 }
 
 static GuString
@@ -144,19 +143,25 @@ gu_string_copy(GuString string, GuPool* pool)
 void
 gu_string_write(GuString s, GuWriter* wtr, GuError* err)
 {
-	GuPool* pool = gu_pool_new();
-	GuReader* rdr = gu_string_reader(s, pool);
-	GuUCS ubuf[256];
-	while (gu_ok(err)) {
-		size_t got = gu_read(rdr, ubuf, 256, err);
-		if (got == 0) {
-			break;
-		}
-		gu_error_block(err);
-		gu_write(wtr, ubuf, got, err);
-		gu_error_unblock(err);
+	GuWord w = s.w_;
+	uint8_t buf[sizeof(GuWord)];
+	uint8_t* src;
+	size_t sz;
+	if (w & 1) {
+		sz = (w & 0xff) >> 1;
+		gu_assert(sz <= sizeof(GuWord));
+		size_t i = sz - 1;
+		do {
+			w >>= 8;
+			buf[i--] = w & 0xff;
+		} while (i > 0);
+		src = buf;
+	} else {
+		uint8_t* p = (void*) w;
+		sz = (p[0] == 0) ? ((size_t*) p)[-1] : p[0];
+		src = &p[1];
 	}
-	gu_pool_free(pool);
+	gu_utf8_write(src, sz, wtr, err);
 }
 
 GuString

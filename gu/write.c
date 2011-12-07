@@ -2,48 +2,11 @@
 
 
 size_t
-gu_write(GuWriter* wtr, const GuUCS* buf, size_t size, GuError* err)
+gu_utf32_write(const GuUCS* src, size_t len, GuWriter* wtr, GuError* err)
 {
-	if (!gu_ok(err)) {
-		return 0;
-	}
-	return wtr->write(wtr, buf, size, err);
+	return gu_utf32_out_utf8(src, len, &wtr->out_, err);
 }
 
-void
-gu_writer_flush(GuWriter* wtr, GuError* err)
-{
-	if (wtr->flush) {
-		wtr->flush(wtr, err);
-	}
-}
-
-void
-gu_putc(char c, GuWriter* wtr, GuError* err)
-{
-	if (!gu_char_is_valid(c)) {
-		gu_raise(err, GuUCSError);
-		return;
-	}
-	GuUCS ucs = gu_char_ucs(c);
-	gu_write(wtr, &ucs, 1, err);
-}
-
-void
-gu_puts(const char* str, GuWriter* wtr, GuError* err)
-{
-	size_t done = 0;
-	size_t size = strlen(str);
-	while (done < size && gu_ok(err)) {
-		GuUCS buf[256];
-		size_t len = GU_MIN(256, size - done);
-		size_t n = gu_str_to_ucs(&str[done], len, buf, err);
-		gu_error_block(err);
-		gu_write(wtr, buf, n, err);
-		gu_error_unblock(err);
-		done += n;
-	}
-}
 
 void
 gu_vprintf(const char* fmt, va_list args, GuWriter* wtr, GuError* err)
@@ -64,121 +27,60 @@ gu_printf(GuWriter* wtr, GuError* err, const char* fmt, ...)
 }
 
 void
-gu_out_writer_flush(GuWriter* wtr, GuError* err)
+gu_out_writer_flush(GuOut* out, GuError* err)
 {
-	GuOutWriter* owtr = (GuOutWriter*) wtr;
+	GuOutWriter* owtr = gu_container(out, GuOutWriter, wtr.out_);
 	gu_out_flush(owtr->out, err);
 }
 
 
+typedef struct GuUTF8Writer GuUTF8Writer;
 
-typedef GuOutWriter GuCharWriter;
-
-size_t
-gu_char_writer_write(GuWriter* wtr, 
-		     const GuUCS* buf, size_t size, GuError* err)
-{
-	GuCharWriter* cwtr = (GuCharWriter*) wtr;
-	size_t done = 0;
-	while (done < size && gu_ok(err)) {
-		uint8_t cbuf[256];
-		size_t len = GU_MIN(256, size - done);
-		size_t n = gu_ucs_to_str(&buf[done], len, (char*) cbuf, err);
-		gu_error_block(err);
-		size_t wrote = gu_out_bytes(cwtr->out, cbuf, n, err);
-		done += wrote;
-		gu_error_unblock(err);
-	}
-	return done;
-}
-
-GuWriter*
-gu_char_writer(GuOut* out, GuPool* pool)
-{
-	return (GuWriter*) gu_new_s(
-		pool, GuCharWriter,
-		.wtr = { .write = gu_char_writer_write,
-			 .flush = gu_out_writer_flush },
-		.out = out);
-}
-
-typedef struct GuBufferedWriter GuBufferedWriter;
-
-struct GuBufferedWriter {
-	GuWriter wtr;
-	GuWriter* real_wtr;
-	GuUCS* buf;
-	size_t idx;
-	size_t size;
+struct GuUTF8Writer {
+	GuOutWriter owtr;
+	GuOutBuffer buffer;
 };
 
 size_t
-gu_buffered_writer_write(GuWriter* wtr, 
-			 const GuUCS* buf, size_t size, GuError* err)
+gu_utf8_writer_output(GuOut* out, const uint8_t* src, size_t sz, 
+		      GuError* err)
 {
-	GuBufferedWriter* bwtr = (GuBufferedWriter*) wtr;
-	size_t bsize = bwtr->size;
-	size_t bidx = bwtr->idx;
-	GuUCS* bbuf = bwtr->buf;
-	size_t done = 0;
+	GuUTF8Writer* uwtr = gu_container(out, GuUTF8Writer, owtr.wtr.out_);
+	return gu_out_bytes(uwtr->owtr.out, src, sz, err);
+}
 
-	if (size == 1) {
-		bbuf[bidx++] = buf[0];
-	} else if (size > bsize) {
-		if (bidx > 0) {
-			gu_write(bwtr->real_wtr, bbuf, bidx, err);
-		}
-		if (!gu_ok(err)) {
-			bwtr->idx = 0;
-			return 0;
-		}
-		return gu_write(bwtr->real_wtr, buf, size, err);
-	} else {
-		size_t copy = GU_MIN(size, bsize - bidx);
-		memcpy(&bbuf[bidx], buf, copy * sizeof(GuUCS));
-		bidx += copy;
-		done = copy;
-	}
-	if (bidx == bsize) {
-		size_t wrote = gu_write(bwtr->real_wtr, bbuf, bsize, err);
-		if (wrote < bsize) {
-			size_t ret = wrote > bwtr->idx ? wrote - bwtr->idx : 0;
-			bwtr->idx = 0;
-			return ret;
-		}
-		bidx = 0;
-		if (done < size) {
-			memcpy(bbuf, &buf[done],
-			       (size - done) * sizeof(GuUCS));
-			bidx += (size - done);
-		}
-	}
-	bwtr->idx = bidx;
-	return size;
+uint8_t*
+gu_utf8_writer_buf_begin(GuOutBuffer* buffer, size_t* sz_out)
+{
+	GuUTF8Writer* uwtr = gu_container(buffer, GuUTF8Writer, buffer);
+	return gu_out_begin_span(uwtr->owtr.out, sz_out);
 }
 
 void
-gu_buffered_writer_flush(GuWriter* wtr, GuError* err)
+gu_utf8_writer_buf_end(GuOutBuffer* buffer, size_t sz, GuError* err)
 {
-	GuBufferedWriter* bwtr = (GuBufferedWriter*) wtr;
-	gu_write(bwtr->real_wtr, bwtr->buf, bwtr->idx, err);
-	gu_writer_flush(bwtr->real_wtr, err);
-	bwtr->idx = 0;
+	(void) err;
+	GuUTF8Writer* uwtr = gu_container(buffer, GuUTF8Writer, buffer);
+	gu_out_end_span(uwtr->owtr.out, sz);
 }
+
 
 GuWriter*
-gu_buffered_writer(GuWriter* real_wtr, size_t buf_size, GuPool* pool)
+gu_make_utf8_writer(GuOut* utf8_out, GuPool* pool)
 {
-	return (GuWriter*) gu_new_i(
-		pool, GuBufferedWriter,
-		.wtr = { .write = gu_buffered_writer_write,
-			 .flush = gu_buffered_writer_flush },
-		.real_wtr = real_wtr,
-		.buf = gu_new_n(pool, GuUCS, buf_size),
-		.size = buf_size,
-		.idx = 0);
+	GuUTF8Writer* uwtr = gu_new_i(
+		pool, GuUTF8Writer,
+		.owtr.wtr.out_.output = gu_utf8_writer_output,
+		.owtr.wtr.out_.flush = gu_out_writer_flush,
+		.owtr.out = utf8_out,
+		.buffer.begin = gu_utf8_writer_buf_begin,
+		.buffer.end = gu_utf8_writer_buf_end);
+	uwtr->owtr.wtr.out_.buffer = &uwtr->buffer;
+	return &uwtr->owtr.wtr;
 }
 
+
+#if 0
 #ifdef GU_UCS_WCHAR
 #include <stdlib.h>
 #include <wchar.h>
@@ -196,8 +98,8 @@ struct GuLocaleWriter {
 };
 
 size_t
-gu_locale_writer_write(GuWriter* wtr, 
-		       const GuUCS* buf, size_t size, GuError* err)
+gu_locale_writer_write(GuWriter* wtr, const uint8_t* utf8_src, size_t sz, 
+		       GuError* err)
 {
 	GuLocaleWriter* lwtr = (GuLocaleWriter*) wtr;
 	size_t done = 0;
@@ -207,6 +109,49 @@ gu_locale_writer_write(GuWriter* wtr,
 #else
 	size_t margin = 1;
 #endif
+	GuOut* out = lwtr->owtr.out;
+	if (gu_out_is_buffered(out)) {
+		while (done < sz) {
+			size_t dst_sz;
+			uint8_t* dst = gu_out_begin_span(out, &dst_sz);
+			if (!dst) {
+				break;
+			}
+			if (dst_sz <= margin) {
+				gu_out_end_span(out, 0);
+				break;
+			}
+			size_t end = dst_sz - margin;
+			const uint8_t* 
+			size_t n = done;
+			while (n < sz && dst_i <= end) {
+#ifdef GU_UCS_WCHAR
+				GuUCS ucs = gu_
+				wchar_t wc = src[n];
+				size_t nb = wcrtomb((char*) p, wc, &lwtr->ps);
+#else
+			*p = (uint8_t) gu_ucs_char(buf[n], err);
+			size_t nb = 1;
+			if (!gu_ok(err)) {
+				gu_error_clear(err);
+				nb = (size_t) -1;
+			}
+#endif
+			if (nb == (size_t) -1) {
+				*p++ = (uint8_t) '?';
+			} else {
+				p += nb;
+			}
+				
+			}
+			for (
+
+		}
+
+
+
+	}
+
 	uint8_t cbuf[256];
 	while (done < size && gu_ok(err)) {
 		uint8_t* p = cbuf;
@@ -243,14 +188,30 @@ gu_locale_writer(GuOut* out, GuPool* pool)
 {
 	GuLocaleWriter* lwtr = gu_new_s(
 		pool, GuLocaleWriter,
-		.owtr = {
-			.wtr = { .write = gu_locale_writer_write,
-				 .flush = gu_out_writer_flush },
-   		        .out = out });
+		.wtr.out.output = gu_locale_writer_output,
+		.wtr.out.flush = gu_locale_writer_flush,
+		.out = out);
 #ifdef GU_UCS_WCHAR
 	lwtr->ps = gu_init_mbstate;
 	lwtr->mb_cur_max = MB_CUR_MAX;
 #endif
 	return (GuWriter*) lwtr;
 }
+
+#endif
+
+extern inline void
+gu_ucs_write(GuUCS ucs, GuWriter* wtr, GuError* err);
+
+extern inline void
+gu_writer_flush(GuWriter* wtr, GuError* err);
+
+extern inline void
+gu_putc(char c, GuWriter* wtr, GuError* err);
+
+extern inline void
+gu_puts(const char* str, GuWriter* wtr, GuError* err);
+
+extern inline size_t
+gu_utf8_write(const uint8_t* src, size_t sz, GuWriter* wtr, GuError* err);
 

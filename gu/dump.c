@@ -39,7 +39,11 @@ gu_dump_stderr(GuType* type, const void* value, GuError* err)
 {
 	GuPool* pool = gu_pool_new();
 	GuFile* errf = gu_file(stderr, pool);
+#if 0
 	GuWriter* wtr = gu_locale_writer(&errf->out, pool);
+#else
+	GuWriter* wtr = gu_make_utf8_writer(&errf->out, pool);
+#endif
 	GuDump* ctx = gu_new_dump(wtr, NULL, err, pool);
 	gu_dump(type, value, ctx);
 	gu_pool_free(pool);
@@ -53,6 +57,15 @@ gu_dump_scalar(GuDump* ctx, const char* fmt, ...)
 	va_start(args, fmt);
 	GuString s = gu_format_string_v(fmt, args, tmp_pool);
 	va_end(args);
+	gu_yaml_scalar(ctx->yaml, s);
+	gu_pool_free(tmp_pool);
+}
+
+static void
+gu_dump_str_scalar(GuDump* ctx, const char* str)
+{
+	GuPool* tmp_pool = gu_pool_new();
+	GuString s = gu_str_string(str, tmp_pool);
 	gu_yaml_scalar(ctx->yaml, s);
 	gu_pool_free(tmp_pool);
 }
@@ -128,7 +141,7 @@ gu_dump_str(GuDumpFn* dumper, GuType* type, const void* p,
 	(void) dumper;
 	(void) type;
 	const GuStr* sp = p;
-	gu_dump_scalar(ctx, "%s", *sp);
+	gu_dump_str_scalar(ctx, *sp);
 }
 
 static void 
@@ -200,7 +213,7 @@ gu_dump_struct(GuDumpFn* dumper, GuType* type, const void* p,
 
 	for (int i = 0; i < srepr->members.len; i++) {
 		const GuMember* member = &srepr->members.elems[i];
-		gu_dump_scalar(ctx, "%s", member->name);
+		gu_dump_str_scalar(ctx, member->name);
 		const uint8_t* memp = &data[member->offset];
 		if (member->is_flex) {
 			// Flexible array member
@@ -328,7 +341,7 @@ gu_dump_variant(GuDumpFn* dumper, GuType* type, const void* p,
 		GuConstructor* ctor = &vtype->ctors.elems[i];
 		if (ctor->c_tag == tag) {
 			gu_yaml_begin_mapping(ctx->yaml);
-			gu_dump_scalar(ctx, "%s", ctor->c_name);
+			gu_dump_str_scalar(ctx, ctor->c_name);
 			void* data = gu_variant_data(*vp);
 			gu_dump(ctor->type, data, ctx);
 			gu_yaml_end(ctx->yaml);
@@ -347,7 +360,7 @@ gu_dump_enum(GuDumpFn* dumper, GuType* type, const void* p,
 	GuEnumType* etype = gu_type_cast(type, enum);
 	GuEnumConstant* cp = gu_enum_value(etype, p);
 	gu_assert(cp != NULL);
-	gu_dump_scalar(ctx, "%s", cp->name);
+	gu_dump_str_scalar(ctx, cp->name);
 }
 
 static void

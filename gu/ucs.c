@@ -4,7 +4,8 @@
 
 GU_DEFINE_TYPE(GuUCSError, abstract, _);
 
-#ifdef CHAR_ASCII
+
+#ifdef GU_CHAR_ASCII
 
 bool
 gu_char_is_valid(char c)
@@ -22,13 +23,6 @@ gu_char_is_valid(char c)
 	return UINT64_C(0x7ffffffefffffffe) & (UINT64_C(1) << (c - 64));
 }
 
-GuUCS
-gu_char_ucs(char c)
-{
-	gu_require(gu_char_is_valid(c));
-	return (GuUCS) c;
-}
-
 char
 gu_ucs_char(GuUCS uc, GuError* err)
 {
@@ -42,7 +36,7 @@ gu_ucs_char(GuUCS uc, GuError* err)
 	return 0;
 }
 
-#else
+#else // defined(GU_CHAR_ASCII)
 
 static const char gu_ucs_ascii[128] =
 	"\0\0\0\0\0\0\0\a\b\t\n\v\f\r\0\0"
@@ -51,7 +45,7 @@ static const char gu_ucs_ascii[128] =
 	"\0ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_"
 	"\0abcdefghijklmnopqrstuvwxyz{|}~\0";
 
-static const uint8_t gu_ucs_ascii_reverse[CHAR_MAX] = {
+const uint8_t gu_ucs_ascii_reverse_[CHAR_MAX] = {
 	['\0'] = 0x00, ['\a'] = 0x07, ['\b'] = 0x08, ['\t'] = 0x09,
 	['\n'] = 0x0a, ['\v'] = 0x0b, ['\f'] = 0x0c, ['\r'] = 0x0d,
 	[' '] = 0x20, ['!'] = 0x21, ['"'] = 0x22, ['#'] = 0x23, ['%'] = 0x25,
@@ -80,16 +74,9 @@ bool
 gu_char_is_valid(char c)
 {
 	if (c > 0) {
-		return (gu_ucs_ascii_reverse_table[c] > 0);
+		return (gu_ucs_ascii_reverse_[c] > 0);
 	}
 	return (c == '\0');
-}
-
-GuUCS
-gu_char_ucs(char c)
-{
-	gu_require(gu_char_is_valid(c)));
-	return gu_ucs_ascii_reverse[(int) c];
 }
 
 char
@@ -140,3 +127,9 @@ gu_ucs_to_str(const GuUCS* ubuf, size_t len, char* cbuf, GuError* err)
 	return n;
 }
 
+
+extern inline bool
+gu_ucs_valid(GuUCS ucs);
+
+extern inline GuUCS
+gu_char_ucs(char c);

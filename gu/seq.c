@@ -166,7 +166,7 @@ typedef struct GuBufOut GuBufOut;
 struct GuBufOut
 {
 	GuOut out;
-	GuOutBuf buffer;
+	GuOutBuffer buffer;
 	GuBuf* buf;
 };
 
@@ -183,7 +183,7 @@ gu_buf_out_output(GuOut* out, const uint8_t* src, size_t sz, GuError* err)
 }
 
 static uint8_t*
-gu_buf_outbuf_begin(GuOutBuf* buffer, size_t* sz_out)
+gu_buf_outbuf_begin(GuOutBuffer* buffer, size_t* sz_out)
 {
 	GuBufOut* bout = gu_container(buffer, GuBufOut, buffer);
 	GuBuf* buf = bout->buf;
@@ -199,7 +199,7 @@ gu_buf_outbuf_begin(GuOutBuf* buffer, size_t* sz_out)
 }
 
 static void
-gu_buf_outbuf_end(GuOutBuf* buffer, size_t sz, GuError* err)
+gu_buf_outbuf_end(GuOutBuffer* buffer, size_t sz, GuError* err)
 {
 	(void) err;
 	GuBufOut* bout = gu_container(buffer, GuBufOut, buffer);
