@@ -177,15 +177,16 @@ void gu_str_out_utf8_(const char* str, GuOut* out, GuError* err)
 {
 	if (gu_out_is_buffered(out)) {
 		size_t len = strlen(str);
-		size_t sz;
+		size_t sz = 0;
 		uint8_t* buf = gu_out_begin_span(out, &sz);
-		GuPool* tmp_pool = NULL;
-		if (sz < len) {
+		if (buf != NULL && sz < len) {
 			gu_out_end_span(out, 0);
 			buf = NULL;
 		}
+		GuPool* tmp_pool = NULL;
+		if (buf == NULL) // NO BRACES HERE
+			tmp_pool = gu_local_pool(); 
 		if (buf == NULL) {
-			tmp_pool = gu_pool_new();
 			buf = gu_new_n(tmp_pool, uint8_t, len);
 		}
 		for (size_t i = 0; i < len; i++) {

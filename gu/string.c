@@ -167,7 +167,7 @@ gu_string_write(GuString s, GuWriter* wtr, GuError* err)
 GuString
 gu_format_string_v(const char* fmt, va_list args, GuPool* pool)
 {
-	GuPool* tmp_pool = gu_pool_new();
+	GuPool* tmp_pool = gu_local_pool();
 	GuStringBuf* sb = gu_string_buf(tmp_pool);
 	GuWriter* wtr = gu_string_buf_writer(sb, tmp_pool);
 	gu_vprintf(fmt, args, wtr, NULL);
@@ -192,7 +192,7 @@ gu_str_string(const char* str, GuPool* pool)
 #ifdef CHAR_IS_ASCII
 	return gu_utf8_string((const uint8_t*) str, strlen(str), pool);
 #else
-	GuPool* tmp_pool = gu_pool_new();
+	GuPool* tmp_pool = gu_local_pool();
 	GuStringBuf* sb = gu_string_buf(tmp_pool);
 	GuWriter* wtr = gu_string_buf_writer(sb, tmp_pool);
 	gu_puts(str, wtr, NULL);

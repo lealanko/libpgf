@@ -13,10 +13,10 @@ typedef enum {
 } GuErrorState;
 
 struct GuError {
+	GuErrorState state;
 	GuError* parent;
 	GuKind* catch;
 	GuPool* pool;
-	GuErrorState state;
 	GuType* caught;
 	const void* data;
 };
@@ -97,7 +97,7 @@ gu_error_raise_debug_(GuError* err, GuType* type,
 
 static inline bool
 gu_ok(GuError* err) {
-	return !gu_error_is_raised(err);
+	return !GU_UNLIKELY(gu_error_is_raised(err));
 }
 
 #define gu_return_on_error(err_, retval_)		\

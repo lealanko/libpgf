@@ -38,7 +38,7 @@ static const size_t
 gu_mem_chunk_max_size = 1024 * sizeof(void*),
 
 // number of bytes to allocate in the pool when it is created
-	gu_mem_pool_initial_size = 16 * sizeof(void*),
+	gu_mem_pool_initial_size = 24 * sizeof(void*),
 
 // Pool allocations larger than this will get their own chunk if
 // there's no room in the current one. Allocations smaller than this may trigger
@@ -52,26 +52,6 @@ gu_mem_chunk_max_size = 1024 * sizeof(void*),
 /* Malloc tuning: the additional memory used by malloc next to the
    allocated object */
 	gu_malloc_overhead = sizeof(size_t);
-
-
-
-#ifdef HAVE_MAX_ALIGN_T
-typedef max_align_t GuMaxAlign;
-#else
-typedef union {
-	char c;
-	short s;
-	int i;
-	long l;
-	long long ll;
-	intmax_t im;
-	float f;
-	double d;
-	long double ld;
-	void* p;
-	void (*fp)();
-} GuMaxAlign;
-#endif
 
 static void*
 gu_mem_realloc(void* p, size_t size)
@@ -163,21 +143,28 @@ struct GuFinalizerNode {
 	GuFinalizer* fin;
 };
 
+enum GuPoolFlags {
+	GU_POOL_LOCAL = 1 << 0
+};
+
 struct GuPool {
 	uint8_t* curr_buf; // actually GuMemChunk*
 	GuMemChunk* chunks;
 	GuFinalizerNode* finalizers;
+	uint16_t flags;
 	uint16_t left_edge;
 	uint16_t right_edge;
 	uint16_t curr_size;
 	uint8_t init_buf[];
 };
 
-GuPool* 
-gu_pool_new(void)
+static GuPool*
+gu_make_pool(uint8_t* buf, size_t sz)
 {
-	size_t sz = GU_FLEX_SIZE(GuPool, init_buf, gu_mem_pool_initial_size);
-	GuPool* pool = gu_mem_buf_alloc(sz, &sz);
+	gu_require(gu_aligned((uintptr_t) (void*) buf, gu_alignof(GuPool)));
+	gu_require(sz >= sizeof(GuPool));
+	GuPool* pool = (GuPool*) buf;
+	pool->flags = 0;
 	pool->curr_size = sz;
 	pool->curr_buf = (uint8_t*) pool;
 	pool->chunks = NULL;
@@ -186,6 +173,22 @@ gu_pool_new(void)
 	pool->right_edge = sz;
 	VG(VALGRIND_CREATE_MEMPOOL(pool, 0, false));
 	return pool;
+}
+
+GuPool*
+gu_local_pool_(uint8_t* buf, size_t sz)
+{
+	GuPool* pool = gu_make_pool(buf, sz);
+	pool->flags |= GU_POOL_LOCAL;
+	return pool;
+}
+
+GuPool* 
+gu_pool_new(void)
+{
+	size_t sz = GU_FLEX_SIZE(GuPool, init_buf, gu_mem_pool_initial_size);
+	uint8_t* buf = gu_mem_buf_alloc(sz, &sz);
+	return gu_make_pool(buf, sz);
 }
 
 static void
@@ -229,10 +232,9 @@ gu_pool_malloc_aligned(GuPool* pool, size_t pre_align, size_t pre_size,
 		gu_pool_expand(pool, pos);
 		gu_assert(pos <= pool->right_edge);
 	}
-	VG(size_t left = pool->left_edge);
 	pool->left_edge = pos;
-	void* addr = &pool->curr_buf[pos - size];
-	VG(VALGRIND_MEMPOOL_ALLOC(pool, addr, pos - left));
+	uint8_t* addr = &pool->curr_buf[pos - size];
+	VG(VALGRIND_MEMPOOL_ALLOC(pool, addr - pre_size, size + pre_size ));
 	return addr;
 }
 
@@ -271,9 +273,10 @@ gu_malloc_prefixed(GuPool* pool, size_t pre_align, size_t pre_size,
 		GuMemChunk* chunk = gu_mem_alloc(full_size);
 		chunk->next = pool->chunks;
 		pool->chunks = chunk;
-		void* addr = &chunk->data[full_size - size
-					  - offsetof(GuMemChunk, data)];
-		VG(VALGRIND_MEMPOOL_ALLOC(pool, addr, full_size));
+		uint8_t* addr = &chunk->data[full_size - size
+					     - offsetof(GuMemChunk, data)];
+		VG(VALGRIND_MEMPOOL_ALLOC(pool, addr - pre_size,
+					  pre_size + size));
 		return addr;
 	} else if (pre_align == 1 && align == 1) {
 		uint8_t* buf = gu_pool_malloc_unaligned(pool, pre_size + size);
@@ -322,7 +325,9 @@ gu_pool_free(GuPool* pool)
 		chunk = next;
 	}
 	VG(VALGRIND_DESTROY_MEMPOOL(pool));
-	gu_mem_buf_free(pool);
+	if (!pool->flags & GU_POOL_LOCAL) {
+		gu_mem_buf_free(pool);
+	}
 }
 
 

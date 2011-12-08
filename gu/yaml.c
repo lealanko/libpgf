@@ -222,7 +222,7 @@ gu_yaml_scalar(GuYaml* yaml, GuString s)
 {
 	gu_yaml_begin_node(yaml);
 	gu_yaml_putc(yaml, '"');
-	GuPool* tmp_pool = gu_pool_new();
+	GuPool* tmp_pool = gu_local_pool();
 	GuReader* rdr = gu_string_reader(s, tmp_pool);
 	GuError* err = gu_error(yaml->err, GuEOF, NULL);
 	
@@ -237,15 +237,17 @@ gu_yaml_scalar(GuYaml* yaml, GuString s)
 		if (!gu_ok(err)) {
 			break;
 		}
-		if (u == 0x22 || u == 0x5c) {
-			gu_yaml_putc(yaml, '\\');
+		if (GU_LIKELY(u >= 0x20 && u < 0x7f)) {
+			if (GU_UNLIKELY(u == 0x22 || u == 0x5c)) {
+				gu_yaml_putc(yaml, '\\');
+			}
 			gu_ucs_write(u, yaml->wtr, yaml->err);
-		} else if (u < 0x20 && esc[u]) {
+		} else if (GU_UNLIKELY(u < 0x20 && esc[u])) {
 			gu_yaml_printf(yaml, "\\%c", esc[u]);
-		} else if (u >= 0x7f && u <= 0xff) {
+		} else if (GU_UNLIKELY(u <= 0x9f)) {
 			gu_yaml_printf(yaml, "\\x%02x", (unsigned) u);
-		} else if ((u >= 0xd800 && u <= 0xdfff) ||
-			   (u >= 0xfffe && u <= 0xffff)) {
+		} else if (GU_UNLIKELY((u >= 0xd800 && u <= 0xdfff) ||
+				       (u >= 0xfffe && u <= 0xffff))) {
 			gu_yaml_printf(yaml, "\\u%04x", (unsigned) u);
 		} else {
 			gu_ucs_write(u, yaml->wtr, yaml->err);

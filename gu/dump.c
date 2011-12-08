@@ -52,7 +52,7 @@ gu_dump_stderr(GuType* type, const void* value, GuError* err)
 static void
 gu_dump_scalar(GuDump* ctx, const char* fmt, ...)
 {
-	GuPool* tmp_pool = gu_pool_new();
+	GuPool* tmp_pool = gu_local_pool();
 	va_list args;
 	va_start(args, fmt);
 	GuString s = gu_format_string_v(fmt, args, tmp_pool);
@@ -64,7 +64,7 @@ gu_dump_scalar(GuDump* ctx, const char* fmt, ...)
 static void
 gu_dump_str_scalar(GuDump* ctx, const char* str)
 {
-	GuPool* tmp_pool = gu_pool_new();
+	GuPool* tmp_pool = gu_local_pool();
 	GuString s = gu_str_string(str, tmp_pool);
 	gu_yaml_scalar(ctx->yaml, s);
 	gu_pool_free(tmp_pool);

@@ -150,6 +150,23 @@ typedef uintptr_t GuWord;
 
 #define GU_WORD_MAX UINTPTR_MAX
 
+// TODO: use max_align_t once C1X is supported
+typedef union {
+	char c;
+	short s;
+	int i;
+	long l;
+	long long ll;
+	intmax_t im;
+	float f;
+	double d;
+	long double ld;
+	void* p;
+	void (*fp)();
+} GuMaxAlign;
+
+#define gu_alloca(N)				\
+	(((union { GuMaxAlign align_; uint8_t buf_[N]; }){{0}}).buf_)
 
 #ifdef GU_GNUC
 # define GU_LIKELY(EXPR) __builtin_expect(EXPR, 1)

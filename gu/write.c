@@ -11,7 +11,7 @@ gu_utf32_write(const GuUCS* src, size_t len, GuWriter* wtr, GuError* err)
 void
 gu_vprintf(const char* fmt, va_list args, GuWriter* wtr, GuError* err)
 {
-	GuPool* tmp_pool = gu_pool_new();
+	GuPool* tmp_pool = gu_local_pool();
 	char* str = gu_vasprintf(fmt, args, tmp_pool);
 	gu_puts(str, wtr, err);
 	gu_pool_free(tmp_pool);

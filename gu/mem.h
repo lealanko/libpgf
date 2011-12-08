@@ -44,15 +44,18 @@ typedef struct GuPool GuPool;
 GU_ONLY GuPool*
 gu_pool_new(void);
 
-//GuPool*
-//gu_make_pool(uint8_t* init_buf, size_t sz);
-
-//#define gu_pool_new()				\
-//	gu_make_pool((uint8_t[256]){}, 256)
-
 /**< Create a new memory pool.
  *
  */
+
+GuPool*
+gu_local_pool_(uint8_t* init_buf, size_t sz);
+
+#define GU_LOCAL_POOL_INIT_SIZE (16 * sizeof(GuWord))
+
+#define gu_local_pool()				\
+	gu_local_pool_(gu_alloca(GU_LOCAL_POOL_INIT_SIZE),	\
+		       GU_LOCAL_POOL_INIT_SIZE)
 
 
 void gu_pool_finally(GuPool* pool, GuFinalizer* finalize);
