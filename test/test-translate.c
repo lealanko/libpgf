@@ -36,8 +36,8 @@ int main(int argc, char* argv[]) {
 		goto fail;
 	}
 	GuError* err = gu_new_error(NULL, NULL, pool);
-	GuFile* inf = gu_file(infile, pool);
-	PgfPGF* pgf = pgf_read(&inf->in, pool, err);
+	GuIn* in = gu_file_in(infile, pool);
+	PgfPGF* pgf = pgf_read(in, pool, err);
 	if (!gu_ok(err)) {
 		fprintf(stderr, "Reading PGF failed\n");
 		status = EXIT_FAILURE;

@@ -10,12 +10,13 @@ typedef struct GuFile GuFile;
 struct GuFile
 {
 	FILE* file;
-	GuIn in;
 	GuOut out;
 };
 
 GuFile*
 gu_file(FILE* file, GuPool* pool);
 
+GuIn* 
+gu_file_in(FILE* file, GuPool* pool);
 
 #endif // GU_FILE_H_

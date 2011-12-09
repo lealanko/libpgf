@@ -81,7 +81,7 @@ gu_string_reader(GuString s, GuPool* pool)
 		len = (p[0] == 0) ? ((size_t*) p)[-1] : p[0];
 		buf = &p[1];
 	}
-	GuIn* in = gu_buf_in(buf, len, pool);
+	GuIn* in = gu_data_in(buf, len, pool);
 	GuReader* rdr = gu_utf8_reader(in, pool);
 	return rdr;
 }

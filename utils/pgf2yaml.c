@@ -7,8 +7,8 @@
 int main(void) {
 	GuPool* pool = gu_pool_new();
 	GuError* err = gu_error(NULL, type, pool);
-	GuFile* inf = gu_file(stdin, pool);
-	PgfPGF* pgf = pgf_read(&inf->in, pool, err);
+	GuIn* in = gu_file_in(stdin, pool);
+	PgfPGF* pgf = pgf_read(in, pool, err);
 	int status = 0;
 	if (!gu_ok(err)) {
 		fprintf(stderr, "Reading PGF failed\n");
