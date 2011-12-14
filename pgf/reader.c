@@ -387,7 +387,7 @@ pgf_read_to_GuString(GuType* type, PgfReader* rdr, void* to)
 	
 	GuPool* tmp_pool = gu_pool_new();
 	GuStringBuf* sbuf = gu_string_buf(tmp_pool);
-	GuWriter* wtr = gu_string_buf_writer(sbuf, tmp_pool);
+	GuWriter* wtr = gu_string_buf_writer(sbuf);
 
 	GuLength len = pgf_read_len(rdr);
 
@@ -412,7 +412,7 @@ pgf_read_to_PgfCId(GuType* type, PgfReader* rdr, void* to)
 	
 	GuPool* tmp_pool = gu_pool_new();
 	GuStringBuf* sbuf = gu_string_buf(tmp_pool);
-	GuWriter* wtr = gu_string_buf_writer(sbuf, tmp_pool);
+	GuWriter* wtr = gu_string_buf_writer(sbuf);
 
 	GuLength len = pgf_read_len(rdr);
 

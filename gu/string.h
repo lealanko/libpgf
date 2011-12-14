@@ -49,7 +49,7 @@ GuStringBuf*
 gu_string_buf(GuPool* pool);
 
 GuWriter*
-gu_string_buf_writer(GuStringBuf* sb, GuPool* pool);
+gu_string_buf_writer(GuStringBuf* sb);
 
 GuString
 gu_string_buf_freeze(GuStringBuf* sb, GuPool* pool);

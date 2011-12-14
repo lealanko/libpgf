@@ -11,20 +11,24 @@ const GuString gu_empty_string = { 1 };
 
 struct GuStringBuf {
 	GuByteBuf* bbuf;
+	GuWriter* wtr;
 };
 
 GuStringBuf*
 gu_string_buf(GuPool* pool)
 {
+	GuBuf* buf = gu_new_buf(uint8_t, pool);
+	GuOut* out = gu_buf_out(buf, pool);
+	GuWriter* wtr = gu_make_utf8_writer(out, pool);
 	return gu_new_s(pool, GuStringBuf,
-			.bbuf = gu_new_buf(uint8_t, pool));
+			.bbuf = buf,
+			.wtr = wtr);
 }
 
 GuWriter*
-gu_string_buf_writer(GuStringBuf* sb, GuPool* pool)
+gu_string_buf_writer(GuStringBuf* sb)
 {
-	GuOut* out = gu_buf_out(sb->bbuf, pool);
-	return gu_make_utf8_writer(out, pool);
+	return sb->wtr;
 }
 
 static GuString
@@ -58,6 +62,7 @@ gu_utf8_string(const uint8_t* buf, size_t sz, GuPool* pool)
 GuString
 gu_string_buf_freeze(GuStringBuf* sb, GuPool* pool)
 {
+	gu_writer_flush(sb->wtr, NULL);
 	uint8_t* data = gu_buf_data(sb->bbuf);
 	size_t len = gu_buf_length(sb->bbuf);
 	return gu_utf8_string(data, len, pool);
@@ -169,8 +174,9 @@ gu_format_string_v(const char* fmt, va_list args, GuPool* pool)
 {
 	GuPool* tmp_pool = gu_local_pool();
 	GuStringBuf* sb = gu_string_buf(tmp_pool);
-	GuWriter* wtr = gu_string_buf_writer(sb, tmp_pool);
+	GuWriter* wtr = gu_string_buf_writer(sb);
 	gu_vprintf(fmt, args, wtr, NULL);
+	gu_writer_flush(wtr, NULL);
 	GuString s = gu_string_buf_freeze(sb, pool);
 	gu_pool_free(tmp_pool);
 	return s;
@@ -194,8 +200,9 @@ gu_str_string(const char* str, GuPool* pool)
 #else
 	GuPool* tmp_pool = gu_local_pool();
 	GuStringBuf* sb = gu_string_buf(tmp_pool);
-	GuWriter* wtr = gu_string_buf_writer(sb, tmp_pool);
+	GuWriter* wtr = gu_string_buf_writer(sb);
 	gu_puts(str, wtr, NULL);
+	gu_writer_flush(wtr, NULL);
 	GuString s = gu_string_buf_freeze(sb, pool);
 	gu_pool_free(tmp_pool);
 	return s;

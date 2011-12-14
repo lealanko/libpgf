@@ -21,14 +21,26 @@ gu_file_output(GuOutStream* stream, const uint8_t* buf, size_t len, GuError* err
 	return wrote;
 }
 
+static void
+gu_file_flush(GuOutStream* stream, GuError* err)
+{
+	GuFileOutStream* fos = gu_container(stream, GuFileOutStream, stream);
+	errno = 0;
+	if (fflush(fos->file) != 0) {
+		gu_raise_errno(err);
+	}
+}
+
 GuOut*
 gu_file_out(FILE* file, GuPool* pool)
 {
 	GuFileOutStream* fos = gu_new_i(pool, GuFileOutStream,
 					.stream.output = gu_file_output,
+					.stream.flush = gu_file_flush,
 					.file = file);
 	return gu_make_out(&fos->stream, pool);
 }
+
 
 typedef struct GuFileInStream GuFileInStream;
 

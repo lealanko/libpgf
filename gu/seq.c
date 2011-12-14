@@ -190,8 +190,8 @@ gu_buf_outbuf_begin(GuOutStream* stream, size_t req, size_t* sz_out, GuError* er
 	GuBufOut* bout = gu_container(stream, GuBufOut, stream);
 	GuBuf* buf = bout->buf;
 	size_t esz = buf->elem_size;
-	gu_buf_require(buf, (req + esz - 1) / esz);
 	size_t len = gu_buf_length(buf);
+	gu_buf_require(buf, len + (req + esz - 1) / esz);
 	size_t avail = buf->avail_len;
 	gu_assert(len < avail);
 	*sz_out = esz * (avail - len);

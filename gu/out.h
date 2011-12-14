@@ -15,6 +15,7 @@ struct GuOutStream {
 	void (*end_buf)(GuOutStream* self, size_t span, GuError* err);
 	size_t (*output)(GuOutStream* self, const uint8_t* buf, size_t size,
 			 GuError* err);
+	void (*flush)(GuOutStream* self, GuError* err);
 };
 
 
@@ -23,6 +24,7 @@ struct GuOut {
 	ptrdiff_t buf_curr;
 	size_t buf_size;
 	GuOutStream* stream;
+	GuFinalizer fini;
 };
 
 
