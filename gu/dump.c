@@ -38,11 +38,11 @@ void
 gu_dump_stderr(GuType* type, const void* value, GuError* err)
 {
 	GuPool* pool = gu_pool_new();
-	GuFile* errf = gu_file(stderr, pool);
+	GuOut* out = gu_file_out(stderr, pool);
 #if 0
-	GuWriter* wtr = gu_locale_writer(&errf->out, pool);
+	GuWriter* wtr = gu_locale_writer(out, pool);
 #else
-	GuWriter* wtr = gu_make_utf8_writer(&errf->out, pool);
+	GuWriter* wtr = gu_make_utf8_writer(out, pool);
 #endif
 	GuDump* ctx = gu_new_dump(wtr, NULL, err, pool);
 	gu_dump(type, value, ctx);

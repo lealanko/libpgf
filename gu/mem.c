@@ -180,6 +180,7 @@ gu_local_pool_(uint8_t* buf, size_t sz)
 {
 	GuPool* pool = gu_make_pool(buf, sz);
 	pool->flags |= GU_POOL_LOCAL;
+	gu_debug("%p", pool);
 	return pool;
 }
 
@@ -188,7 +189,9 @@ gu_pool_new(void)
 {
 	size_t sz = GU_FLEX_SIZE(GuPool, init_buf, gu_mem_pool_initial_size);
 	uint8_t* buf = gu_mem_buf_alloc(sz, &sz);
-	return gu_make_pool(buf, sz);
+	GuPool* pool = gu_make_pool(buf, sz);
+	gu_debug("%p", pool);
+	return pool;
 }
 
 static void
@@ -261,6 +264,9 @@ void*
 gu_malloc_prefixed(GuPool* pool, size_t pre_align, size_t pre_size,
 		   size_t align, size_t size)
 {
+	gu_enter("-> %p %zu %zu %zu %zu",
+		 pool, pre_align, pre_size, align, size);
+	void* ret = NULL;
 	if (pre_align == 0) {
 		pre_align = gu_alignof(GuMaxAlign);
 	}
@@ -277,25 +283,25 @@ gu_malloc_prefixed(GuPool* pool, size_t pre_align, size_t pre_size,
 					     - offsetof(GuMemChunk, data)];
 		VG(VALGRIND_MEMPOOL_ALLOC(pool, addr - pre_size,
 					  pre_size + size));
-		return addr;
+		ret = addr;
 	} else if (pre_align == 1 && align == 1) {
 		uint8_t* buf = gu_pool_malloc_unaligned(pool, pre_size + size);
-		return &buf[pre_size];
+		ret = &buf[pre_size];
 	} else {
-		return gu_pool_malloc_aligned(pool, pre_align, pre_size,
-					      align, size);
+		ret = gu_pool_malloc_aligned(pool, pre_align, pre_size,
+					     align, size);
 	}
+	gu_exit("<- %p", ret);
+	return ret;
 }
 
 void*
 gu_malloc_aligned(GuPool* pool, size_t size, size_t align)
 {
-	gu_enter("-> %p %zu %zu", pool, size, align);
 	if (align == 0) {
 		align = GU_MIN(size, gu_alignof(GuMaxAlign));
 	}
 	void* ret = gu_malloc_prefixed(pool, 1, 0, align, size);
-	gu_exit("<- %p", ret);
 	return ret;
 }
 
@@ -312,6 +318,7 @@ gu_pool_finally(GuPool* pool, GuFinalizer* finalizer)
 void
 gu_pool_free(GuPool* pool)
 {
+	gu_debug("%p", pool);
 	GuFinalizerNode* node = pool->finalizers;
 	while (node) {
 		GuFinalizerNode* next = node->next;

@@ -129,7 +129,10 @@ gu_utf32_out_utf8_buffered_(const GuUCS* src, size_t len, GuOut* out,
 	size_t src_i = 0;
 	while (src_i < len) {
 		size_t dst_sz;
-		uint8_t* dst = gu_out_begin_span(out, &dst_sz);
+		uint8_t* dst = gu_out_begin_span(out, len - src_i, &dst_sz, err);
+		if (!gu_ok(err)) {
+			return src_i;
+		}
 		if (!dst) {
 			gu_out_utf8(src[src_i], out, err);
 			if (!gu_ok(err)) {
@@ -150,7 +153,7 @@ gu_utf32_out_utf8_buffered_(const GuUCS* src, size_t len, GuOut* out,
 				dst_i += gu_advance_utf8(ucs, &dst[dst_i]);
 			} while (src_i < end);
 		} 
-		gu_out_end_span(out, dst_i);
+		gu_out_end_span(out, dst_i, err);
 	}
 	return src_i;
 }
@@ -175,36 +178,27 @@ gu_utf32_out_utf8(const GuUCS* src, size_t len, GuOut* out, GuError* err)
 
 void gu_str_out_utf8_(const char* str, GuOut* out, GuError* err)
 {
-	if (gu_out_is_buffered(out)) {
-		size_t len = strlen(str);
-		size_t sz = 0;
-		uint8_t* buf = gu_out_begin_span(out, &sz);
-		if (buf != NULL && sz < len) {
-			gu_out_end_span(out, 0);
-			buf = NULL;
-		}
-		GuPool* tmp_pool = NULL;
-		if (buf == NULL) // NO BRACES HERE
-			tmp_pool = gu_local_pool(); 
-		if (buf == NULL) {
-			buf = gu_new_n(tmp_pool, uint8_t, len);
-		}
-		for (size_t i = 0; i < len; i++) {
-			GuUCS ucs = gu_char_ucs(str[i]);
-			buf[i] = (uint8_t) ucs;
-		}
-		if (tmp_pool) {
-			gu_out_bytes(out, buf, len, err);
-			gu_pool_free(tmp_pool);
-		} else {
-			gu_out_end_span(out, len);
-		}
+	size_t len = strlen(str);
+	size_t sz = 0;
+	uint8_t* buf = gu_out_begin_span(out, len, &sz, err);
+	if (!gu_ok(err)) {
+		return;
+	}
+	if (buf != NULL && sz < len) {
+		gu_out_end_span(out, 0, err);
+		buf = NULL;
+	}
+	GuPool* tmp_pool = buf ? NULL : gu_local_pool();
+	buf = buf ? buf : gu_new_n(tmp_pool, uint8_t, len);
+	for (size_t i = 0; i < len; i++) {
+		GuUCS ucs = gu_char_ucs(str[i]);
+		buf[i] = (uint8_t) ucs;
+	}
+	if (tmp_pool) {
+		gu_out_bytes(out, buf, len, err);
+		gu_pool_free(tmp_pool);
 	} else {
-		for (const char* p = str; *p; p++) {
-			GuUCS ucs = gu_char_ucs(*p);
-			gu_out_u8(out, (uint8_t) ucs, err);
-			// defer error checking
-		}
+		gu_out_end_span(out, len, err);
 	}
 }
 

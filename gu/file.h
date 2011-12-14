@@ -5,16 +5,8 @@
 #include <gu/out.h>
 #include <stdio.h>
 
-typedef struct GuFile GuFile;
-
-struct GuFile
-{
-	FILE* file;
-	GuOut out;
-};
-
-GuFile*
-gu_file(FILE* file, GuPool* pool);
+GuOut*
+gu_file_out(FILE* file, GuPool* pool);
 
 GuIn* 
 gu_file_in(FILE* file, GuPool* pool);

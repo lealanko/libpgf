@@ -4,6 +4,29 @@
 
 #define GU_OUT_BUF_THRESHOLD 1024
 
+
+GuOut
+gu_init_out(GuOutStream* stream)
+{
+	gu_require(stream != NULL);
+	GuOut out = {
+		.buf_end = NULL,
+		.buf_curr = 0,
+		.stream = stream
+	};
+	return out;
+}
+
+
+
+GuOut*
+gu_make_out(GuOutStream* stream, GuPool* pool)
+{
+	GuOut* out = gu_new(pool, GuOut);
+	*out = gu_init_out(stream);
+	return out;
+}
+
 extern inline bool
 gu_out_try_buf_(GuOut* out, const uint8_t* src, size_t len);
 
@@ -14,21 +37,21 @@ gu_out_bytes(GuOut* out, const uint8_t* buf, size_t len, GuError* err);
 static size_t
 gu_out_output(GuOut* out, const uint8_t* src, size_t len, GuError* err)
 {
-	return out->output(out, src, len, err);
+	return out->stream->output(out->stream, src, len, err);
 }
 
 
 static bool
-gu_out_begin_buf(GuOut* out)
+gu_out_begin_buf(GuOut* out, size_t req, GuError* err)
 {
-	GuOutBuffer* buffer = out->buffer;
-	gu_assert(!out->buf_start);
-	if (buffer) {
+	GuOutStream* stream = out->stream;
+	gu_assert(!out->buf_end);
+	if (stream->begin_buf) {
+		size_t req = 1;
 		size_t sz = 0;
-		uint8_t* buf = buffer->begin(buffer, &sz);
+		uint8_t* buf = stream->begin_buf(stream, req, &sz, err);
 		gu_assert(sz <= PTRDIFF_MAX);
 		if (buf) {
-			out->buf_start = buf;
 			out->buf_end = &buf[sz];
 			out->buf_curr = -(ptrdiff_t) sz;
 			return true;
@@ -38,40 +61,21 @@ gu_out_begin_buf(GuOut* out)
 }
 
 
-static void 
-gu_out_end_buf(GuOut* out, GuError* err)
+void 
+gu_out_flush(GuOut* out, GuError* err)
 {
-	if (out->buf_start) {
-		size_t curr_len = 
-			(out->buf_end - out->buf_start) + out->buf_curr;
-		out->buffer->end(out->buffer, curr_len, err);
-		out->buf_start = out->buf_end = NULL;
-		out->buf_curr = 0;
+	if (out->buf_end) {
+		size_t curr_len = ((ptrdiff_t)out->buf_size) + out->buf_curr;
+		out->stream->end_buf(out->stream, curr_len, err);
+		out->buf_end = NULL;
+		out->buf_size = out->buf_curr = 0;
 	}
-}
-
-
-void
-gu_out_set_buffer(GuOut* out, GuOutBuffer* buffer, GuError* err)
-{
-	gu_out_end_buf(out, err);
-	out->buffer = buffer;
-}
-
-void
-gu_out_enable_buffering(GuOut* out, size_t buf_sz, GuPool* pool)
-{
-	if (gu_out_is_buffered(out)) {
-		return;
-	}
-	GuOutBuffer* buffer = gu_out_make_buffer(out, buf_sz, pool);
-	gu_out_set_buffer(out, buffer, NULL);
 }
 
 uint8_t*
-gu_out_begin_span(GuOut* out, size_t* sz_out)
+gu_out_begin_span(GuOut* out, size_t req, size_t* sz_out, GuError* err)
 {
-	if (!out->buf_end) {
+	if (!out->buf_end && !gu_out_begin_buf(out, req, err)) {
 		return NULL;
 	}
 	*sz_out = -out->buf_curr;
@@ -79,47 +83,73 @@ gu_out_begin_span(GuOut* out, size_t* sz_out)
 }
 
 void
-gu_out_end_span(GuOut* out, size_t sz)
+gu_out_end_span(GuOut* out, size_t sz, GuError* err)
 {
 	ptrdiff_t new_curr = (ptrdiff_t) sz + out->buf_curr;
 	gu_require(new_curr <= 0);
 	out->buf_curr = new_curr;
+	if (new_curr == 0) {
+		gu_out_flush(out, err);
+	}
 }
 
-typedef struct GuSimpleOutBuffer GuSimpleOutBuffer;
+typedef struct GuBufferedOutStream GuBufferedOutStream;
 
-struct GuSimpleOutBuffer {
-	GuOutBuffer buffer;
-	GuOut* out;
+struct GuBufferedOutStream {
+	GuOutStream stream;
+	GuOut* real_out;
 	size_t sz;
-	uint8_t data[];
+	uint8_t buf[];
 };
 
 uint8_t*
-gu_simple_out_buf_begin(GuOutBuffer* self, size_t* sz_out)
+gu_buffered_out_buf_begin(GuOutStream* self, size_t req, size_t* sz_out,
+			  GuError* err)
 {
-	GuSimpleOutBuffer* b = (GuSimpleOutBuffer*) self;
+	GuBufferedOutStream* b =
+		gu_container(self, GuBufferedOutStream, stream);
 	*sz_out = b->sz;
-	return b->data;
+	return b->buf;
 }
 
 void
-gu_simple_out_buf_end(GuOutBuffer* self, size_t sz, GuError* err)
+gu_buffered_out_buf_end(GuOutStream* self, size_t sz, GuError* err)
 {
-	GuSimpleOutBuffer* b = (GuSimpleOutBuffer*) self;
+	GuBufferedOutStream* b =
+		gu_container(self, GuBufferedOutStream, stream);
 	gu_require(sz <= b->sz);
-	gu_out_output(b->out, b->data, sz, err);
+	gu_out_output(b->real_out, b->buf, sz, err);
 }
 
-GuOutBuffer*
-gu_out_make_buffer(GuOut* out, size_t sz, GuPool* pool)
+size_t
+gu_buffered_out_output(GuOutStream* self, const uint8_t* src, size_t sz,
+		       GuError* err)
 {
-	GuSimpleOutBuffer* b = gu_flex_new(pool, GuSimpleOutBuffer, data, sz);
-	b->buffer.begin = gu_simple_out_buf_begin;
-	b->buffer.end = gu_simple_out_buf_end;
-	b->out = out;
+	GuBufferedOutStream* b =
+		gu_container(self, GuBufferedOutStream, stream);
+	return gu_out_output(b->real_out, src, sz, err);
+}
+
+GuOut*
+gu_make_buffered_out(GuOut* out, size_t sz, GuPool* pool)
+{
+	GuBufferedOutStream* b =
+		gu_flex_new(pool, GuBufferedOutStream, buf, sz);
+	b->stream.begin_buf = gu_buffered_out_buf_begin;
+	b->stream.end_buf = gu_buffered_out_buf_end;
+	b->stream.output = gu_buffered_out_output;
+	b->real_out = out;
 	b->sz = sz;
-	return (GuOutBuffer*) b;
+	return gu_make_out(&b->stream, pool);
+}
+
+GuOut*
+gu_out_buffered(GuOut* out, GuPool* pool)
+{
+	if (gu_out_is_buffered(out)) {
+		return out;
+	}
+	return gu_make_buffered_out(out, 4096, pool);
 }
 
 size_t
@@ -131,27 +161,67 @@ gu_out_bytes_(GuOut* restrict out, const uint8_t* restrict src, size_t len,
 	} else if (gu_out_try_buf_(out, src, len)) {
 		return len;
 	}
-	gu_out_end_buf(out, err);
+	gu_out_flush(out, err);
 	if (!gu_ok(err)) {
 		return 0;
-	} else if (len <= GU_OUT_BUF_THRESHOLD && gu_out_begin_buf(out)) {
+	} else if (len <= GU_OUT_BUF_THRESHOLD &&
+		   gu_out_begin_buf(out, len, err)) {
 		if (gu_out_try_buf_(out, src, len)) {
 			return len;
 		} else {
-			gu_out_end_buf(out, err);
+			gu_out_flush(out, err);
 		}
 	}
 	return gu_out_output(out, src, len, err);
 }
 
-void
-gu_out_flush(GuOut* out, GuError* err)
+
+
+typedef struct GuProxyOutStream GuProxyOutStream;
+
+struct GuProxyOutStream {
+	GuOutStream stream;
+	GuOut* real_out;
+};
+
+
+uint8_t*
+gu_proxy_out_buf_begin(GuOutStream* self, size_t req, size_t* sz_out,
+		       GuError* err)
 {
-	gu_out_end_buf(out, err);
-	if (gu_ok(err) && out->flush) {
-		out->flush(out, err);
-	}
+	GuProxyOutStream* pos =
+		gu_container(self, GuProxyOutStream, stream);
+	return gu_out_begin_span(pos->real_out, req, sz_out, err);
 }
+
+void
+gu_proxy_out_buf_end(GuOutStream* self, size_t sz, GuError* err)
+{
+	GuProxyOutStream* pos =
+		gu_container(self, GuProxyOutStream, stream);
+	gu_out_end_span(pos->real_out, sz, err);
+}
+
+size_t
+gu_proxy_out_output(GuOutStream* self, const uint8_t* src, size_t sz,
+		    GuError* err)
+{
+	GuProxyOutStream* pos =
+		gu_container(self, GuProxyOutStream, stream);
+	return gu_out_bytes(pos->real_out, src, sz, err);
+}
+
+
+GuOutStream*
+gu_out_proxy_stream(GuOut* out, GuPool* pool)
+{
+	return &gu_new_s(pool, GuProxyOutStream,
+			 .stream.begin_buf = gu_proxy_out_buf_begin,
+			 .stream.end_buf = gu_proxy_out_buf_end,
+			 .stream.output = gu_proxy_out_output,
+			 .real_out = out)->stream;
+}
+
 
 
 extern inline void

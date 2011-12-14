@@ -53,10 +53,14 @@ gu_local_pool_(uint8_t* init_buf, size_t sz);
 
 #define GU_LOCAL_POOL_INIT_SIZE (16 * sizeof(GuWord))
 
+#ifdef NDEBUG
 #define gu_local_pool()				\
 	gu_local_pool_(gu_alloca(GU_LOCAL_POOL_INIT_SIZE),	\
 		       GU_LOCAL_POOL_INIT_SIZE)
-
+#else
+#define gu_local_pool()				\
+	gu_pool_new()
+#endif
 
 void gu_pool_finally(GuPool* pool, GuFinalizer* finalize);
 /**< Register a function to be run when the pool is freed.

@@ -1,44 +1,34 @@
 #include <gu/file.h>
 
+typedef struct GuFileOutStream GuFileOutStream;
+
+struct GuFileOutStream {
+	GuOutStream stream;
+	FILE* file;
+};
 
 static size_t
-gu_file_output(GuOut* out, const uint8_t* buf, size_t len, GuError* err)
+gu_file_output(GuOutStream* stream, const uint8_t* buf, size_t len, GuError* err)
 {
-	GuFile* file = gu_container(out, GuFile, out);
+	GuFileOutStream* fos = gu_container(stream, GuFileOutStream, stream);
 	errno = 0;
-	size_t wrote = fwrite(buf, 1, len, file->file);
+	size_t wrote = fwrite(buf, 1, len, fos->file);
 	if (wrote < len) {
-		if (ferror(file->file)) {
+		if (ferror(fos->file)) {
 			gu_raise_errno(err);
 		}
 	}
 	return wrote;
 }
 
-static void
-gu_file_flush(GuOut* out, GuError* err)
+GuOut*
+gu_file_out(FILE* file, GuPool* pool)
 {
-	GuFile* file = gu_container(out, GuFile, out);
-	errno = 0;
-	int ret = fflush(file->file);
-	if (ret == EOF) {
-		gu_raise_errno(err);
-	}
+	GuFileOutStream* fos = gu_new_i(pool, GuFileOutStream,
+					.stream.output = gu_file_output,
+					.file = file);
+	return gu_make_out(&fos->stream, pool);
 }
-
-
-GuFile*
-gu_file(FILE* file, GuPool* pool)
-{
-	return gu_new_s(
-		pool, GuFile,
-		.file = file,
-		.out = {
-			.output = gu_file_output,
-			.flush = gu_file_flush	 
-				 });
-}
-
 
 typedef struct GuFileInStream GuFileInStream;
 

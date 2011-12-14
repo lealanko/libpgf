@@ -52,12 +52,8 @@ gu_vprintf(const char* fmt, va_list args, GuWriter* wtr, GuError* err);
 void
 gu_printf(GuWriter* wtr, GuError* err, const char* fmt, ...);
 
-typedef struct GuOutWriter GuOutWriter;
-
-struct GuOutWriter {
-	GuWriter wtr;
-	GuOut* out;
-};
+//GuWriter
+//gu_init_utf8_writer(GuOut* utf8_out);
 
 GuWriter*
 gu_make_utf8_writer(GuOut* utf8_out, GuPool* pool);

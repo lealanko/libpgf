@@ -165,16 +165,16 @@ gu_buf_freeze(GuBuf* buf, GuPool* pool)
 typedef struct GuBufOut GuBufOut;
 struct GuBufOut
 {
-	GuOut out;
-	GuOutBuffer buffer;
+	GuOutStream stream;
 	GuBuf* buf;
 };
 
 static size_t
-gu_buf_out_output(GuOut* out, const uint8_t* src, size_t sz, GuError* err)
+gu_buf_out_output(GuOutStream* stream, const uint8_t* src, size_t sz,
+		  GuError* err)
 {
 	(void) err;
-	GuBufOut* bout = (GuBufOut*) out;
+	GuBufOut* bout = gu_container(stream, GuBufOut, stream);
 	GuBuf* buf = bout->buf;
 	gu_assert(sz % buf->elem_size == 0);
 	size_t len = sz / buf->elem_size;
@@ -183,26 +183,26 @@ gu_buf_out_output(GuOut* out, const uint8_t* src, size_t sz, GuError* err)
 }
 
 static uint8_t*
-gu_buf_outbuf_begin(GuOutBuffer* buffer, size_t* sz_out)
+gu_buf_outbuf_begin(GuOutStream* stream, size_t req, size_t* sz_out, GuError* err)
 {
-	GuBufOut* bout = gu_container(buffer, GuBufOut, buffer);
+	(void) req;
+	(void) err;
+	GuBufOut* bout = gu_container(stream, GuBufOut, stream);
 	GuBuf* buf = bout->buf;
+	size_t esz = buf->elem_size;
+	gu_buf_require(buf, (req + esz - 1) / esz);
 	size_t len = gu_buf_length(buf);
 	size_t avail = buf->avail_len;
-	if (len == avail) {
-		gu_buf_require(buf, len + 1);
-		avail = buf->avail_len;
-	}
 	gu_assert(len < avail);
-	*sz_out = buf->elem_size * (avail - len);
-	return &buf->data[len * buf->elem_size];
+	*sz_out = esz * (avail - len);
+	return &buf->data[len * esz];
 }
 
 static void
-gu_buf_outbuf_end(GuOutBuffer* buffer, size_t sz, GuError* err)
+gu_buf_outbuf_end(GuOutStream* stream, size_t sz, GuError* err)
 {
 	(void) err;
-	GuBufOut* bout = gu_container(buffer, GuBufOut, buffer);
+	GuBufOut* bout = gu_container(stream, GuBufOut, stream);
 	GuBuf* buf = bout->buf;
 	size_t len = gu_buf_length(buf);
 	size_t elem_size = buf->elem_size;
@@ -214,12 +214,12 @@ gu_buf_outbuf_end(GuOutBuffer* buffer, size_t sz, GuError* err)
 GuOut*
 gu_buf_out(GuBuf* buf, GuPool* pool)
 {
-	return (GuOut*) gu_new_s(
-		pool, GuBufOut,
-		.out.output = gu_buf_out_output,
-		.buffer.begin = gu_buf_outbuf_begin,
-		.buffer.end = gu_buf_outbuf_end,
-		.buf = buf);
+	GuBufOut* bout = gu_new_s(pool, GuBufOut,
+				  .stream.output = gu_buf_out_output,
+				  .stream.begin_buf = gu_buf_outbuf_begin,
+				  .stream.end_buf = gu_buf_outbuf_end,
+				  .buf = buf);
+	return gu_make_out(&bout->stream, pool);
 }
 
 const GuSeq

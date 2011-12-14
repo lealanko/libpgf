@@ -74,7 +74,7 @@ bool
 gu_char_is_valid(char c)
 {
 	if (c > 0) {
-		return (gu_ucs_ascii_reverse_[c] > 0);
+		return (gu_ucs_ascii_reverse_[(int) c] > 0);
 	}
 	return (c == '\0');
 }

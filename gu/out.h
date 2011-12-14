@@ -7,44 +7,55 @@
 
 typedef struct GuOut GuOut;
 
-typedef struct GuOutBuffer GuOutBuffer;
+typedef struct GuOutStream GuOutStream;
 
-struct GuOutBuffer {
-	uint8_t* (*begin)(GuOutBuffer* self, size_t* sz_out);
-	void (*end)(GuOutBuffer* self, size_t size, GuError* err);
+struct GuOutStream {
+	uint8_t* (*begin_buf)(GuOutStream* self, size_t req, size_t* sz_out,
+			      GuError* err);
+	void (*end_buf)(GuOutStream* self, size_t span, GuError* err);
+	size_t (*output)(GuOutStream* self, const uint8_t* buf, size_t size,
+			 GuError* err);
 };
 
 
 struct GuOut {
 	uint8_t* restrict buf_end;
 	ptrdiff_t buf_curr;
-	uint8_t* buf_start;
-	GuOutBuffer* buffer;
-	size_t (*output)(GuOut* self, const uint8_t* buf, size_t size,
-			 GuError* err);
-	void (*flush)(GuOut* self, GuError* err);
+	size_t buf_size;
+	GuOutStream* stream;
 };
+
+
+GuOut
+gu_init_out(GuOutStream* stream);
+
+GuOut*
+gu_make_out(GuOutStream* stream, GuPool* pool);
 
 inline bool
 gu_out_is_buffered(GuOut* out)
 {
-	return (out->buffer != NULL);
+	return !!out->stream->begin_buf;
 }
 
+GuOutStream*
+gu_out_proxy_stream(GuOut* out, GuPool* pool);
+
+GuOut*
+gu_make_buffered_out(GuOut* out, size_t buf_sz, GuPool* pool);
+
+GuOut*
+gu_out_buffered(GuOut* out, GuPool* pool);
+
 uint8_t*
-gu_out_begin_span(GuOut* out, size_t* sz_inout);
+gu_out_begin_span(GuOut* out, size_t req, size_t* sz_out, GuError* err);
+
+uint8_t*
+gu_out_force_span(GuOut* out, size_t min, size_t max, size_t* sz_out,
+		  GuError* err);
 
 void
-gu_out_end_span(GuOut* out, size_t sz);
-
-GuOutBuffer*
-gu_out_make_buffer(GuOut* out, size_t sz, GuPool* pool);
-
-void
-gu_out_set_buffer(GuOut* out, GuOutBuffer* buffer, GuError* err);
-
-void
-gu_out_enable_buffering(GuOut* out, size_t buf_sz, GuPool* pool);
+gu_out_end_span(GuOut* out, size_t sz, GuError* err);
 
 size_t
 gu_out_bytes_(GuOut* restrict out, const uint8_t* restrict src, 

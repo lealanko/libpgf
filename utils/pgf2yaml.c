@@ -15,10 +15,10 @@ int main(void) {
 		status = 1;
 		goto fail_read;
 	}
-	GuFile* outf = gu_file(stdout, pool);
+	GuOut* out = gu_file_out(stdout, pool);
 	// GuWriter* wtr = gu_locale_writer(&outf->out, pool);
-	gu_out_enable_buffering(&outf->out, 4096, pool);
-	GuWriter* wtr = gu_make_utf8_writer(&outf->out, pool);
+	out = gu_out_buffered(out, pool);
+	GuWriter* wtr = gu_make_utf8_writer(out, pool);
 	GuWriter* bwtr = wtr;
 	GuDump* ctx = gu_new_dump(bwtr, NULL, err, pool);
 	gu_dump(gu_type(PgfPGF), pgf, ctx);

@@ -26,57 +26,14 @@ gu_printf(GuWriter* wtr, GuError* err, const char* fmt, ...)
 	va_end(args);
 }
 
-void
-gu_out_writer_flush(GuOut* out, GuError* err)
-{
-	GuOutWriter* owtr = gu_container(out, GuOutWriter, wtr.out_);
-	gu_out_flush(owtr->out, err);
-}
-
-
-typedef struct GuUTF8Writer GuUTF8Writer;
-
-struct GuUTF8Writer {
-	GuOutWriter owtr;
-	GuOutBuffer buffer;
-};
-
-size_t
-gu_utf8_writer_output(GuOut* out, const uint8_t* src, size_t sz, 
-		      GuError* err)
-{
-	GuUTF8Writer* uwtr = gu_container(out, GuUTF8Writer, owtr.wtr.out_);
-	return gu_out_bytes(uwtr->owtr.out, src, sz, err);
-}
-
-uint8_t*
-gu_utf8_writer_buf_begin(GuOutBuffer* buffer, size_t* sz_out)
-{
-	GuUTF8Writer* uwtr = gu_container(buffer, GuUTF8Writer, buffer);
-	return gu_out_begin_span(uwtr->owtr.out, sz_out);
-}
-
-void
-gu_utf8_writer_buf_end(GuOutBuffer* buffer, size_t sz, GuError* err)
-{
-	(void) err;
-	GuUTF8Writer* uwtr = gu_container(buffer, GuUTF8Writer, buffer);
-	gu_out_end_span(uwtr->owtr.out, sz);
-}
-
 
 GuWriter*
 gu_make_utf8_writer(GuOut* utf8_out, GuPool* pool)
 {
-	GuUTF8Writer* uwtr = gu_new_i(
-		pool, GuUTF8Writer,
-		.owtr.wtr.out_.output = gu_utf8_writer_output,
-		.owtr.wtr.out_.flush = gu_out_writer_flush,
-		.owtr.out = utf8_out,
-		.buffer.begin = gu_utf8_writer_buf_begin,
-		.buffer.end = gu_utf8_writer_buf_end);
-	uwtr->owtr.wtr.out_.buffer = &uwtr->buffer;
-	return &uwtr->owtr.wtr;
+	GuOutStream* stream = gu_out_proxy_stream(utf8_out, pool);
+	GuWriter* wtr = gu_new(pool, GuWriter);
+	wtr->out_ = gu_init_out(stream);
+	return wtr;
 }
 
 
