@@ -410,3 +410,6 @@ gu_in_bytes(GuIn* in, uint8_t* buf, size_t sz, GuError* err);
 
 extern inline int
 gu_in_peek_u8(GuIn* restrict in);
+
+extern inline void
+gu_in_consume(GuIn* restrict in, size_t sz);

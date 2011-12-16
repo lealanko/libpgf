@@ -107,7 +107,9 @@ inline void
 gu_out_u8(GuOut* restrict out, uint8_t u, GuError* err)
 {
 	if (GU_UNLIKELY(!gu_out_try_u8_(out, u))) {
-		gu_out_bytes_(out, &u, 1, err);
+		extern void gu_out_u8_(GuOut* restrict out, uint8_t u, 
+				       GuError* err);
+		gu_out_u8_(out, u, err);
 	}
 }
 

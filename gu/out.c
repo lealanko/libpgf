@@ -22,11 +22,34 @@ gu_out_is_buffering(GuOut* out)
 	return out->buf_end;
 }
 
+
+static void
+gu_out_end_buf(GuOut* out, GuError* err)
+{
+	if (!gu_out_is_buffering(out)) {
+		return;
+	}
+	GuOutStream* stream = out->stream;
+	size_t curr_len = ((ptrdiff_t)out->buf_size) + out->buf_curr;
+	stream->end_buf(stream, curr_len, err);
+	out->buf_end = NULL;
+	out->buf_size = out->buf_curr = 0;
+}
+
 static bool
 gu_out_begin_buf(GuOut* out, size_t req, GuError* err)
 {
 	GuOutStream* stream = out->stream;
-	gu_assert(!gu_out_is_buffering(out));
+	if (gu_out_is_buffering(out)) {
+		if (out->buf_curr < 0) {
+			return true;
+		} else {
+			gu_out_end_buf(out, err);
+			if (!gu_ok(err)) {
+				return false;
+			}
+		}
+	}
 	if (stream->begin_buf) {
 		size_t sz = 0;
 		uint8_t* buf = stream->begin_buf(stream, req, &sz, err);
@@ -39,17 +62,6 @@ gu_out_begin_buf(GuOut* out, size_t req, GuError* err)
 		}
 	}
 	return false;
-}
-
-static void
-gu_out_end_buf(GuOut* out, GuError* err)
-{
-	GuOutStream* stream = out->stream;
-	gu_assert(gu_out_is_buffering(out));
-	size_t curr_len = ((ptrdiff_t)out->buf_size) + out->buf_curr;
-	stream->end_buf(stream, curr_len, err);
-	out->buf_end = NULL;
-	out->buf_size = out->buf_curr = 0;
 }
 
 
@@ -86,6 +98,10 @@ gu_out_bytes(GuOut* out, const uint8_t* buf, size_t len, GuError* err);
 static size_t
 gu_out_output(GuOut* out, const uint8_t* src, size_t len, GuError* err)
 {
+	gu_out_end_buf(out, err);
+	if (!gu_ok(err)) {
+		return 0;
+	}
 	return out->stream->output(out->stream, src, len, err);
 }
 
@@ -134,17 +150,23 @@ gu_out_bytes_(GuOut* restrict out, const uint8_t* restrict src, size_t len,
 	} else if (gu_out_try_buf_(out, src, len)) {
 		return len;
 	}
-	gu_out_flush(out, err);
-	if (!gu_ok(err)) {
-		return 0;
-	} else if (gu_out_begin_buf(out, len, err)) {
+	if (gu_out_begin_buf(out, len, err)) {
 		if (gu_out_try_buf_(out, src, len)) {
 			return len;
-		} else {
-			gu_out_end_buf(out, err);
 		}
 	}
 	return gu_out_output(out, src, len, err);
+}
+
+
+void gu_out_u8_(GuOut* restrict out, uint8_t u, GuError* err)
+{
+	if (gu_out_begin_buf(out, 1, err)) {
+		if (gu_out_try_u8_(out, u)) {
+			return;
+		}
+	}
+	gu_out_output(out, &u, 1, err);
 }
 
 
