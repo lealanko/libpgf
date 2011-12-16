@@ -87,7 +87,7 @@ gu_string_reader(GuString s, GuPool* pool)
 		buf = &p[1];
 	}
 	GuIn* in = gu_data_in(buf, len, pool);
-	GuReader* rdr = gu_utf8_reader(in, pool);
+	GuReader* rdr = gu_make_utf8_reader(in, pool);
 	return rdr;
 }
 
@@ -155,11 +155,11 @@ gu_string_write(GuString s, GuWriter* wtr, GuError* err)
 	if (w & 1) {
 		sz = (w & 0xff) >> 1;
 		gu_assert(sz <= sizeof(GuWord));
-		size_t i = sz - 1;
-		do {
+		size_t i = sz;
+		while (i > 0) {
 			w >>= 8;
-			buf[i--] = w & 0xff;
-		} while (i > 0);
+			buf[--i] = w & 0xff;
+		}
 		src = buf;
 	} else {
 		uint8_t* p = (void*) w;

@@ -25,7 +25,7 @@ gu_utf8_decode(const uint8_t** src_inout)
 }
 
 GuUCS
-gu_in_utf8(GuIn* in, GuError* err)
+gu_in_utf8_(GuIn* in, GuError* err)
 {
 	uint8_t c = gu_in_u8(in, err);
 	if (!gu_ok(err)) {
@@ -99,6 +99,12 @@ gu_advance_utf8(GuUCS ucs, uint8_t* buf)
 	}
 }
 
+char
+gu_in_utf8_char_(GuIn* in, GuError* err)
+{
+	return gu_ucs_char(gu_in_utf8(in, err), err);
+}
+
 void
 gu_out_utf8_long_(GuUCS ucs, GuOut* out, GuError* err)
 {
@@ -153,7 +159,7 @@ gu_utf32_out_utf8_buffered_(const GuUCS* src, size_t len, GuOut* out,
 				dst_i += gu_advance_utf8(ucs, &dst[dst_i]);
 			} while (src_i < end);
 		} 
-		gu_out_end_span(out, dst_i, err);
+		gu_out_end_span(out, dst_i);
 	}
 	return src_i;
 }
@@ -185,7 +191,7 @@ void gu_str_out_utf8_(const char* str, GuOut* out, GuError* err)
 		return;
 	}
 	if (buf != NULL && sz < len) {
-		gu_out_end_span(out, 0, err);
+		gu_out_end_span(out, 0);
 		buf = NULL;
 	}
 	GuPool* tmp_pool = buf ? NULL : gu_local_pool();
@@ -198,7 +204,7 @@ void gu_str_out_utf8_(const char* str, GuOut* out, GuError* err)
 		gu_out_bytes(out, buf, len, err);
 		gu_pool_free(tmp_pool);
 	} else {
-		gu_out_end_span(out, len, err);
+		gu_out_end_span(out, len);
 	}
 }
 
@@ -207,64 +213,8 @@ void gu_str_out_utf8_(const char* str, GuOut* out, GuError* err)
 extern inline void 
 gu_str_out_utf8(const char* str, GuOut* out, GuError* err);
 
-#if 0
-static size_t
-gu_utf8_writer_write(GuWriter* wtr, const GuUCS* ubuf,
-		     size_t len, GuError* err)
-{
-	GuUTF8Writer* uwtr = (GuUTF8Writer*) wtr;
+extern inline GuUCS
+gu_in_utf8(GuIn* in, GuError* err);
 
-}
-
-static void
-gu_utf8_writer_flush(GuWriter* wtr, GuError* err)
-{
-	GuUTF8Writer* uwtr = (GuUTF8Writer*) wtr;
-	gu_out_flush(uwtr->out, err);
-}
-
-GuWriter*
-gu_utf8_writer(GuOut* out, GuPool* pool)
-{
-	return (GuWriter*) gu_new_s(
-		pool, GuUTF8Writer,
-		.wtr = { .write = gu_utf8_writer_write,
-			 .flush = gu_utf8_writer_flush },
-		.out = out);
-}
-
-#endif
-
-
-typedef struct GuUTF8Reader GuUTF8Reader;
-
-struct GuUTF8Reader {
-	GuReader rdr;
-	GuIn* in;
-};
-
-static size_t
-gu_utf8_reader_read(GuReader* rdr, GuUCS* buf, size_t max_len, GuError* err)
-{
-	GuUTF8Reader* urdr = (GuUTF8Reader*) rdr;
-	GuError* tmp_err = gu_error(err, GuEOF, NULL);
-	size_t n = 0;
-	while (n < max_len) {
-		buf[n] = gu_in_utf8(urdr->in, tmp_err);
-		if (!gu_ok(tmp_err)) {
-			break;
-		}
-		n++;
-	}
-	return n;
-}
-
-GuReader*
-gu_utf8_reader(GuIn* in, GuPool* pool)
-{
-	return (GuReader*) gu_new_s(pool, GuUTF8Reader,
-				    .rdr = { gu_utf8_reader_read },
-				    .in = in);
-}
-
-
+extern inline char
+gu_in_utf8_char(GuIn* in, GuError* err);

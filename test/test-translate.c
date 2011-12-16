@@ -54,8 +54,9 @@ int main(int argc, char* argv[]) {
 		pgf_lzr_new(pool, pgf, to_concr);
 	int lin_idx = 0;
 
-	GuFile* outf = gu_file(stdout, pool);
-	GuWriter* wtr = gu_locale_writer(&outf->out, pool);
+	GuOut* out = gu_file_out(stdout, pool);
+	// GuWriter* wtr = gu_locale_writer(out, pool);
+	GuWriter* wtr = gu_make_utf8_writer(out, pool);
 	
 	while (true) {
 		fprintf(stdout, "> ");

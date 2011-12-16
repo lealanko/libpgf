@@ -8,8 +8,9 @@
 typedef struct GuInStream GuInStream;
 
 struct GuInStream {
-	const uint8_t* (*next_buffer)(GuInStream* self, size_t* sz_out, 
-				      GuError* err);
+	const uint8_t* (*begin_buffer)(GuInStream* self, size_t* sz_out, 
+				       GuError* err);
+	void (*end_buffer)(GuInStream* self, size_t consumed, GuError* err);
 	size_t (*input)(GuInStream* self, uint8_t* buf, size_t max_sz, 
 			GuError* err);
 };
@@ -19,21 +20,20 @@ typedef struct GuIn GuIn;
 struct GuIn {
 	const uint8_t* restrict buf_end;
 	ptrdiff_t buf_curr;
+	size_t buf_size;
 	GuInStream* stream;
+	GuFinalizer fini;
 };
 
 
-
-inline GuIn
-gu_init_in(GuInStream* stream)
-{
-	return (GuIn) { .buf_curr = 0,
-			.buf_end = NULL,
-			.stream = stream };
-}
-
 GuIn*
 gu_make_in(GuInStream* stream, GuPool* pool);
+
+const uint8_t*
+gu_in_begin_span(GuIn* in, size_t *sz_out, GuError* err);
+
+void
+gu_in_end_span(GuIn* in, size_t consumed);
 
 size_t
 gu_in_some(GuIn* in, uint8_t* buf, size_t max_len, GuError* err);
@@ -52,6 +52,15 @@ gu_in_bytes(GuIn* in, uint8_t* buf, size_t sz, GuError* err)
 	}
 	memcpy(buf, &in->buf_end[curr], sz);
 	in->buf_curr = new_curr;
+}
+
+inline int
+gu_in_peek_u8(GuIn* restrict in)
+{
+	if (GU_UNLIKELY(in->buf_curr == 0)) {
+		return -1;
+	}
+	return in->buf_end[in->buf_curr++];
 }
 
 inline uint8_t 
@@ -110,7 +119,7 @@ double
 gu_in_f64be(GuIn* in, GuError* err);
 
 GuIn*
-gu_buffered_in(GuIn* in, GuPool* pool);
+gu_buffered_in(GuIn* in, size_t sz, GuPool* pool);
 
 GuIn*
 gu_data_in(const uint8_t* buf, size_t size, GuPool* pool);

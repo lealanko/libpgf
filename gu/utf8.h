@@ -4,13 +4,31 @@
 #include <gu/in.h>
 #include <gu/out.h>
 #include <gu/ucs.h>
-#include <gu/read.h>
 
-GuUCS
-gu_in_utf8(GuIn* in, GuError* err);
+inline GuUCS
+gu_in_utf8(GuIn* in, GuError* err)
+{
+	int i = gu_in_peek_u8(in);
+	if (i >= 0 && i < 0x80) {
+		return (GuUCS) i;
+	}
+	extern GuUCS gu_in_utf8_(GuIn* in, GuError* err);
+	return gu_in_utf8_(in, err);
+}
 
-GuReader*
-gu_utf8_reader(GuIn* in, GuPool* pool);
+
+inline char
+gu_in_utf8_char(GuIn* in, GuError* err)
+{
+#ifdef GU_CHAR_ASCII
+	int i = gu_in_peek_u8(in);
+	if (i >= 0 && i < 0x80) {
+		return (char) i;
+	}
+#endif
+	extern char gu_in_utf8_char_(GuIn* in, GuError* err);
+	return gu_in_utf8_char_(in, err);
+}
 
 void
 gu_out_utf8_long_(GuUCS ucs, GuOut* out, GuError* err);

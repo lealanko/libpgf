@@ -1,29 +1,30 @@
 #ifndef GU_READ_H_
 #define GU_READ_H_
 
+#include <gu/in.h>
 #include <gu/ucs.h>
+#include <gu/utf8.h>
 
-typedef const struct GuReader GuReader;
+typedef struct GuReader GuReader;
 
 struct GuReader {
-	size_t (*read)(GuReader* rdr, GuUCS* buf, size_t max_len, GuError* err);
+	GuIn in_;
 };
 
-size_t
-gu_read(GuReader* rdr, GuUCS* buf, size_t max_len, GuError* err);
+inline GuUCS
+gu_read_ucs(GuReader* rdr, GuError* err)
+{
+	return gu_in_utf8(&rdr->in_, err);
+}
 
-size_t
-gu_read_all(GuReader* rdr, GuUCS* buf, size_t len, GuError* err);
-
-GuUCS
-gu_read_ucs(GuReader* rdr, GuError* err);
-
-char
-gu_getc(GuReader* rdr, GuError* err);
-
-#include <gu/in.h>
+inline char
+gu_getc(GuReader* rdr, GuError* err)
+{
+	return gu_in_utf8_char(&rdr->in_, err);
+}
 
 GuReader*
-gu_char_reader(GuIn* in, GuPool* pool);
+gu_make_utf8_reader(GuIn* utf8_in, GuPool* pool);
+
 
 #endif // GU_READ_H_

@@ -2,8 +2,6 @@
 #include <gu/out.h>
 
 
-#define GU_OUT_BUF_THRESHOLD 1024
-
 
 GuOut
 gu_init_out(GuOutStream* stream)
@@ -18,15 +16,54 @@ gu_init_out(GuOutStream* stream)
 	return out;
 }
 
+static bool
+gu_out_is_buffering(GuOut* out)
+{
+	return out->buf_end;
+}
+
+static bool
+gu_out_begin_buf(GuOut* out, size_t req, GuError* err)
+{
+	GuOutStream* stream = out->stream;
+	gu_assert(!gu_out_is_buffering(out));
+	if (stream->begin_buf) {
+		size_t sz = 0;
+		uint8_t* buf = stream->begin_buf(stream, req, &sz, err);
+		gu_assert(sz <= PTRDIFF_MAX);
+		if (buf) {
+			out->buf_end = &buf[sz];
+			out->buf_curr = -(ptrdiff_t) sz;
+			out->buf_size = sz;
+			return true;
+		}
+	}
+	return false;
+}
+
+static void
+gu_out_end_buf(GuOut* out, GuError* err)
+{
+	GuOutStream* stream = out->stream;
+	gu_assert(gu_out_is_buffering(out));
+	size_t curr_len = ((ptrdiff_t)out->buf_size) + out->buf_curr;
+	stream->end_buf(stream, curr_len, err);
+	out->buf_end = NULL;
+	out->buf_size = out->buf_curr = 0;
+}
+
+
 
 static void
 gu_out_fini(GuFinalizer* self)
 {
 	GuOut* out = gu_container(self, GuOut, fini);
-	GuPool* pool = gu_local_pool();
-	GuError* err = gu_new_error(NULL, gu_kind(type), pool);
-	gu_out_flush(out, err);
-	gu_pool_free(pool);
+	if (gu_out_is_buffering(out)) {
+		GuPool* pool = gu_local_pool();
+		GuError* err = gu_new_error(NULL, gu_kind(type), pool);
+		gu_out_end_buf(out, err);
+		gu_pool_free(pool);
+	}
 }
 
 GuOut*
@@ -53,24 +90,6 @@ gu_out_output(GuOut* out, const uint8_t* src, size_t len, GuError* err)
 }
 
 
-static bool
-gu_out_begin_buf(GuOut* out, size_t req, GuError* err)
-{
-	GuOutStream* stream = out->stream;
-	gu_assert(!out->buf_end);
-	if (stream->begin_buf) {
-		size_t sz = 0;
-		uint8_t* buf = stream->begin_buf(stream, req, &sz, err);
-		gu_assert(sz <= PTRDIFF_MAX);
-		if (buf) {
-			out->buf_end = &buf[sz];
-			out->buf_curr = -(ptrdiff_t) sz;
-			out->buf_size = sz;
-			return true;
-		}
-	}
-	return false;
-}
 
 
 void 
@@ -78,13 +97,10 @@ gu_out_flush(GuOut* out, GuError* err)
 {
 	GuOutStream* stream = out->stream;
 	if (out->buf_end) {
-		size_t curr_len = ((ptrdiff_t)out->buf_size) + out->buf_curr;
-		stream->end_buf(stream, curr_len, err);
-		out->buf_end = NULL;
-		out->buf_size = out->buf_curr = 0;
-	}
-	if (!gu_ok(err)) {
-		return;
+		gu_out_end_buf(out, err);
+		if (!gu_ok(err)) {
+			return;
+		}
 	}
 	if (stream->flush) {
 		stream->flush(stream, err);
@@ -102,15 +118,50 @@ gu_out_begin_span(GuOut* out, size_t req, size_t* sz_out, GuError* err)
 }
 
 void
-gu_out_end_span(GuOut* out, size_t sz, GuError* err)
+gu_out_end_span(GuOut* out, size_t sz)
 {
 	ptrdiff_t new_curr = (ptrdiff_t) sz + out->buf_curr;
 	gu_require(new_curr <= 0);
 	out->buf_curr = new_curr;
-	if (new_curr == 0) {
-		gu_out_flush(out, err);
-	}
 }
+
+size_t
+gu_out_bytes_(GuOut* restrict out, const uint8_t* restrict src, size_t len, 
+	      GuError* err)
+{
+	if (!gu_ok(err)) {
+		return 0;
+	} else if (gu_out_try_buf_(out, src, len)) {
+		return len;
+	}
+	gu_out_flush(out, err);
+	if (!gu_ok(err)) {
+		return 0;
+	} else if (gu_out_begin_buf(out, len, err)) {
+		if (gu_out_try_buf_(out, src, len)) {
+			return len;
+		} else {
+			gu_out_end_buf(out, err);
+		}
+	}
+	return gu_out_output(out, src, len, err);
+}
+
+
+extern inline void
+gu_out_u8(GuOut* restrict out, uint8_t u, GuError* err);
+
+extern inline void
+gu_out_s8(GuOut* restrict out, int8_t i, GuError* err);
+
+extern inline bool
+gu_out_is_buffered(GuOut* out);
+
+extern inline bool
+gu_out_try_u8_(GuOut* restrict out, uint8_t u);
+
+
+
 
 
 
@@ -139,7 +190,7 @@ gu_proxy_out_buf_end(GuOutStream* self, size_t sz, GuError* err)
 {
 	GuProxyOutStream* pos =
 		gu_container(self, GuProxyOutStream, stream);
-	gu_out_end_span(pos->real_out, sz, err);
+	gu_out_end_span(pos->real_out, sz);
 }
 
 static size_t
@@ -226,40 +277,4 @@ gu_out_buffered(GuOut* out, GuPool* pool)
 	return gu_make_buffered_out(out, 4096, pool);
 }
 
-size_t
-gu_out_bytes_(GuOut* restrict out, const uint8_t* restrict src, size_t len, 
-	      GuError* err)
-{
-	if (!gu_ok(err)) {
-		return 0;
-	} else if (gu_out_try_buf_(out, src, len)) {
-		return len;
-	}
-	gu_out_flush(out, err);
-	if (!gu_ok(err)) {
-		return 0;
-	} else if (len <= GU_OUT_BUF_THRESHOLD &&
-		   gu_out_begin_buf(out, len, err)) {
-		if (gu_out_try_buf_(out, src, len)) {
-			return len;
-		} else {
-			gu_out_flush(out, err);
-		}
-	}
-	return gu_out_output(out, src, len, err);
-}
 
-
-
-
-extern inline void
-gu_out_u8(GuOut* restrict out, uint8_t u, GuError* err);
-
-extern inline void
-gu_out_s8(GuOut* restrict out, int8_t i, GuError* err);
-
-extern inline bool
-gu_out_is_buffered(GuOut* out);
-
-extern inline bool
-gu_out_try_u8_(GuOut* restrict out, uint8_t u);

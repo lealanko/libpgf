@@ -57,7 +57,7 @@ gu_out_force_span(GuOut* out, size_t min, size_t max, size_t* sz_out,
 		  GuError* err);
 
 void
-gu_out_end_span(GuOut* out, size_t sz, GuError* err);
+gu_out_end_span(GuOut* out, size_t sz);
 
 size_t
 gu_out_bytes_(GuOut* restrict out, const uint8_t* restrict src, 
