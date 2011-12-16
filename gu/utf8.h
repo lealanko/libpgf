@@ -10,6 +10,7 @@ gu_in_utf8(GuIn* in, GuError* err)
 {
 	int i = gu_in_peek_u8(in);
 	if (i >= 0 && i < 0x80) {
+		gu_in_consume(in, 1);
 		return (GuUCS) i;
 	}
 	extern GuUCS gu_in_utf8_(GuIn* in, GuError* err);
@@ -23,6 +24,7 @@ gu_in_utf8_char(GuIn* in, GuError* err)
 #ifdef GU_CHAR_ASCII
 	int i = gu_in_peek_u8(in);
 	if (i >= 0 && i < 0x80) {
+		gu_in_consume(in, 1);
 		return (char) i;
 	}
 #endif

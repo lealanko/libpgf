@@ -60,8 +60,16 @@ gu_in_peek_u8(GuIn* restrict in)
 	if (GU_UNLIKELY(in->buf_curr == 0)) {
 		return -1;
 	}
-	return in->buf_end[in->buf_curr++];
+	return in->buf_end[in->buf_curr];
 }
+
+inline void
+gu_in_consume(GuIn* restrict in, size_t sz)
+{
+	gu_require((ptrdiff_t) sz + in->buf_curr <= 0);
+	in->buf_curr += sz;
+}
+
 
 inline uint8_t 
 gu_in_u8(GuIn* restrict in, GuError* err)
