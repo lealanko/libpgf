@@ -756,7 +756,7 @@ pgf_read_new_PgfCncCat(GuType* type, PgfReader* rdr, GuPool* pool,
 		}
 		gu_debug("range[%d] = %d", i, ccat ? ccat->fid : -1);
 	}
-	cnccat->n_lins = n_lins;
+	cnccat->n_lins = n_lins == -1 ? 0 : (size_t) n_lins;
 	cnccat->cats = cats;
 	cnccat->lindefs = gu_map_get(rdr->curr_lindefs, &first, PgfFunIds*);
 	cnccat->labels = pgf_read_new(rdr, gu_type(GuStringL), 
