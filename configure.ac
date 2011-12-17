@@ -8,33 +8,28 @@ AC_CONFIG_MACRO_DIR([m4])
 AM_INIT_AUTOMAKE([1.7.9])
 m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES])
 
-AC_CONFIG_HEADERS([config.h])
+PKG_PROG_PKG_CONFIG
+
+AC_CONFIG_HEADERS([config.h guconfig.h])
 
 #AC_GNU_SOURCE
-#AC_CANONICAL_HOST
 AM_MAINTAINER_MODE
-
-dnl Checks for programs.
+AC_CHECK_LIB(m,nan)
 AC_PROG_MAKE_SET
 AC_PROG_INSTALL
 AC_PROG_LIBTOOL
 AC_PROG_CC
 AC_PROG_CC_C99
 
-# we use DOLT, a libtool wrapper (speed improvement)
-# see m4/dolt.m4
-# DOLT
-
-
-AC_CHECK_FUNCS([alarm gettimeofday memset strndup inet_ntoa])
-AC_CHECK_FUNCS([strstr select strerror])
 AC_C_ALIGNOF
 AC_C_FAM_IN_MEM
 AC_C_STATEMENT_EXPRESSIONS
+
+m4_define([ORIG_DEFINE],m4_defn([AC_DEFINE]))
+m4_define([_ORIG_DEFINE],m4_defn([_AC_DEFINE]))
+m4_pushdef([AC_DEFINE],[ORIG_DEFINE([GU_$1],[$2],[$3])])
 AC_C_ASCII
-
-
-AC_CHECK_LIB(m, sin)
+m4_popdef([AC_DEFINE])
 
 dnl Doxygen support
 DX_PS_FEATURE(OFF)	
@@ -53,6 +48,7 @@ DX_INIT_DOXYGEN(libpgf)
 
 AC_CONFIG_FILES([Makefile
 	         libgu.pc
+		 libpgf.pc
 		 ])
 
 AC_OUTPUT

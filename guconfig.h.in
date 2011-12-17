@@ -1,9 +1,2 @@
-/* Define to 1 if a struct with flexible array members can be the last member
-   of another struct. */
-#undef GU_CAN_HAVE_FAM_IN_MEMBER
-
-/* Define to the name of the alignof operator. */
-#undef gu_alignof
-
-/* Define to 1 if statement expressions are supported. */
-#undef GU_HAVE_STATEMENT_EXPRESSIONS
+/* Define to 1 if character literals use ASCII encoding */
+#undef GU_CHAR_ASCII
