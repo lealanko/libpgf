@@ -44,20 +44,16 @@ GuVariant gu_variant_init_alloc(GuPool* pool, uint8_t tag,
 				size_t size, size_t align, 
 				const void* init);
 
-#define gu_variant_new(pool, tag, type, variant_out)	  \
+#define gu_new_variant(pool, tag, type, variant_out)	  \
 	((type*)gu_variant_alloc(pool, tag, sizeof(type), \
 				 gu_alignof(type), variant_out))
 
 /**< 
  * @hideinitializer */
 
-#define gu_variant_new_i(pool, tag, t_, ...)				\
+#define gu_new_variant_i(pool, tag, t_, ...)				\
 	gu_variant_init_alloc(pool, tag, sizeof(t_), gu_alignof(t_),	\
 			      (&(t_){ __VA_ARGS__ }))
-
-// deprecated, redundant
-#define gu_variant_new_s gu_variant_new_i
-
 
 
 

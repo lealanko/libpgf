@@ -101,8 +101,8 @@ int main(void)
 	blump->ints[7] = 77;
 	gu_dump(gu_type(Blump), blump, ctx);
 
-	Tree leaf = gu_variant_new_s(pool, LEAF, Leaf, 42);
-	Tree branch = gu_variant_new_s(pool, BRANCH, Branch, leaf, leaf);
+	Tree leaf = gu_new_variant_i(pool, LEAF, Leaf, 42);
+	Tree branch = gu_new_variant_i(pool, BRANCH, Branch, leaf, leaf);
 	gu_dump(gu_type(Tree), &branch, ctx);
 
 	TreeTag tag = BRANCH;

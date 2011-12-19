@@ -818,7 +818,7 @@ pgf_read_new_table = GU_TYPETABLE(
 	);
 
 static PgfReader*
-pgf_reader_new(GuIn* in, GuPool* opool, GuPool* pool, GuError* err)
+pgf_new_reader(GuIn* in, GuPool* opool, GuPool* pool, GuError* err)
 {
 	PgfReader* rdr = gu_new(PgfReader, pool);
 	rdr->opool = opool;
@@ -838,7 +838,7 @@ PgfPGF*
 pgf_read(GuIn* in, GuPool* pool, GuError* err)
 {
 	GuPool* tmp_pool = gu_new_pool();
-	PgfReader* rdr = pgf_reader_new(in, pool, tmp_pool, err);
+	PgfReader* rdr = pgf_new_reader(in, pool, tmp_pool, err);
 	PgfPGF* pgf = pgf_read_new(rdr, gu_type(PgfPGF), pool, NULL);
 	gu_pool_free(tmp_pool);
 	gu_return_on_error(err, NULL);

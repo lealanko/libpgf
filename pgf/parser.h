@@ -9,7 +9,7 @@ typedef struct PgfParse PgfParse;
 typedef struct PgfParseResult PgfParseResult;
 
 PgfParser*
-pgf_parser_new(PgfConcr* concr, GuPool* pool);
+pgf_new_parser(PgfConcr* concr, GuPool* pool);
 
 PgfParse*
 pgf_parser_parse(PgfParser* parser, PgfCId cat, int lin_idx, GuPool* pool);

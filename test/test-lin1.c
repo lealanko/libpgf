@@ -36,7 +36,7 @@ int main(int argc, char* argv[]) {
 	}
 	GuString lang_s = gu_str_string(lang, pool);
 	PgfConcr* concr = gu_map_get(pgf->concretes, &lang_s, PgfConcr*);
-	PgfLzr* lzr = pgf_lzr_new(pool, pgf, concr);
+	PgfLzr* lzr = pgf_new_lzr(pool, pgf, concr);
 
 	GuFile* outf = gu_file(stdout, pool);
 	GuWriter* wtr = gu_locale_writer(&outf->out, pool);
@@ -69,7 +69,7 @@ int main(int argc, char* argv[]) {
 			break;
 		}
 	
-		PgfLzn* lzn = pgf_lzn_new(lzr, expr, pool);
+		PgfLzn* lzn = pgf_new_lzn(lzr, expr, pool);
 		
 		while (true) {
 			PgfLinForm form = pgf_lzn_next_form(lzn, pool);

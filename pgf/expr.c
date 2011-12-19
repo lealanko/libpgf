@@ -213,7 +213,7 @@ pgf_expr_parser_term(PgfExprParser* parser)
 	} else if (pgf_expr_parser_token_is_id(la)) {
 		pgf_expr_parser_consume(parser);
 		GuString s = gu_str_string(la, parser->expr_pool);
-		return gu_variant_new_i(parser->expr_pool,
+		return gu_new_variant_i(parser->expr_pool,
 					PGF_EXPR_FUN,
 					PgfExprFun,
 					s);
@@ -234,7 +234,7 @@ pgf_expr_parser_expr(PgfExprParser* parser)
 		if (gu_variant_is_null(arg)) {
 			return expr;
 		}
-		expr = gu_variant_new_i(parser->expr_pool,
+		expr = gu_new_variant_i(parser->expr_pool,
 					PGF_EXPR_APP,
 					PgfExprApp,
 					expr, arg);

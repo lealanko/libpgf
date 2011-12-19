@@ -45,7 +45,7 @@ struct PgfLinFuncs {
 
 
 PgfLzr*
-pgf_lzr_new(GuPool* pool, PgfPGF* pgf, PgfConcr* cnc);
+pgf_new_lzr(GuPool* pool, PgfPGF* pgf, PgfConcr* cnc);
 
 void
 pgf_lzr_linearize(PgfLzr* lzr, PgfLinForm form, int lin_idx, PgfLinFuncs** fnsp);
@@ -58,7 +58,7 @@ pgf_lzr_linearize_simple(PgfLzr* lzr, PgfLinForm form,
 			 int lin_idx, GuWriter* wtr, GuError* err);
 
 PgfLzn*
-pgf_lzn_new(PgfLzr* lzr, PgfExpr expr, GuPool* pool);
+pgf_new_lzn(PgfLzr* lzr, PgfExpr expr, GuPool* pool);
 
 PgfLinForm
 pgf_lzn_next_form(PgfLzn* lzn, GuPool* pool);

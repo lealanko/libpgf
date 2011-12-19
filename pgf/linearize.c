@@ -249,7 +249,7 @@ pgf_lzr_index_cnccat_cb(GuMapItor* fn, const void* key, void* value,
 
 
 PgfLzr*
-pgf_lzr_new(GuPool* pool, PgfPGF* pgf, PgfConcr* cnc)
+pgf_new_lzr(GuPool* pool, PgfPGF* pgf, PgfConcr* cnc)
 {
 	PgfLzr* lzr = gu_new(PgfLzr, pool);
 	lzr->pgf = pgf;
@@ -425,7 +425,7 @@ pgf_lzn_infer(PgfLzn* lzn, PgfExpr expr, GuPool* pool, PgfLinForm* form_out)
 		case PGF_EXPR_LIT: {
 			PgfExprLit* elit = i.data;
 			if (pool != NULL) {
-				*form_out = gu_variant_new_s(
+				*form_out = gu_new_variant_i(
 					pool, PGF_LIN_FORM_LIT,
 					PgfLinFormLit,
 					.lit = elit->lit);
@@ -442,7 +442,7 @@ pgf_lzn_infer(PgfLzn* lzn, PgfExpr expr, GuPool* pool, PgfLinForm* form_out)
 }
 
 PgfLzn*
-pgf_lzn_new(PgfLzr* lzr, PgfExpr expr, GuPool* pool)
+pgf_new_lzn(PgfLzr* lzr, PgfExpr expr, GuPool* pool)
 {
 	PgfLzn* lzn = gu_new(PgfLzn, pool);
 	lzn->lzr = lzr;

@@ -49,9 +49,9 @@ int main(int argc, char* argv[]) {
 	PgfConcr* to_concr =
 		gu_map_get(pgf->concretes, &to_lang, PgfConcr*);
 	PgfParser* parser =
-		pgf_parser_new(from_concr, pool);
+		pgf_new_parser(from_concr, pool);
 	PgfLzr* lzr =
-		pgf_lzr_new(pool, pgf, to_concr);
+		pgf_new_lzr(pool, pgf, to_concr);
 	int lin_idx = 0;
 
 	GuOut* out = gu_file_out(stdout, pool);
@@ -91,7 +91,7 @@ int main(int argc, char* argv[]) {
 			putchar(' ');
 			pgf_expr_print(expr, wtr, err);
 			putchar('\n');
-			PgfLzn* lzn = pgf_lzn_new(lzr, expr, ppool);
+			PgfLzn* lzn = pgf_new_lzn(lzr, expr, ppool);
 			while (true) {
 				PgfLinForm form = pgf_lzn_next_form(lzn, ppool);
 				if (gu_variant_is_null(form)) {

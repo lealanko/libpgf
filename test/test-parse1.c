@@ -40,7 +40,7 @@ int main(int argc, char* argv[]) {
 	}
 
 	PgfConcr* concr = gu_strmap_get(pgf->concretes, lang);
-	PgfParser* parser = pgf_parser_new(concr, pool);
+	PgfParser* parser = pgf_new_parser(concr, pool);
 
 	while (true) {
 		fprintf(stdout, "> ");

@@ -134,16 +134,16 @@ int main(void)
 
 	GuPool* pool = gu_new_pool();
 	Tree t1, t2, t3, t4, t5;
-	Leaf* l1 = gu_variant_new(pool, LEAF, Leaf, &t1);
+	Leaf* l1 = gu_new_variant(pool, LEAF, Leaf, &t1);
 	l1->value = 42;
-	Leaf* l2 = gu_variant_new(pool, LEAF, Leaf, &t2);
+	Leaf* l2 = gu_new_variant(pool, LEAF, Leaf, &t2);
 	l2->value = 7;
-	Leaf* l3 = gu_variant_new(pool, LEAF, Leaf, &t3);
+	Leaf* l3 = gu_new_variant(pool, LEAF, Leaf, &t3);
 	l3->value = 16;
-	Branch* b1 = gu_variant_new(pool, BRANCH, Branch, &t4);
+	Branch* b1 = gu_new_variant(pool, BRANCH, Branch, &t4);
 	b1->left = t2;
 	b1->right = t3;
-	Branch* b2 = gu_variant_new(pool, BRANCH, Branch, &t5);
+	Branch* b2 = gu_new_variant(pool, BRANCH, Branch, &t5);
 	b2->left = t1;
 	b2->right = t4;
 	dump(gu_type(Tree), &t5);

@@ -170,7 +170,7 @@ pgf_item_base_symbol(PgfItemBase* ibase, size_t seq_idx, GuPool* pool)
 		if (seq_idx == 1) {
 			return gu_null_variant;
 		} else {
-			return gu_variant_new_i(pool, PGF_SYMBOL_CAT,
+			return gu_new_variant_i(pool, PGF_SYMBOL_CAT,
 						PgfSymbolCat,
 						.d = 0, .r = ibase->lin_idx);
 		}
@@ -272,7 +272,7 @@ pgf_parsing_complete(PgfParsing* parsing, PgfItem* item)
 	case PGF_PRODUCTION_APPLY: {
 		PgfProductionApply* papp = i.data;
 		PgfProductionApply* new_papp = 
-			gu_variant_new(parsing->pool,
+			gu_new_variant(parsing->pool,
 				       PGF_PRODUCTION_APPLY,
 				       PgfProductionApply,
 				       &prod);
@@ -282,7 +282,7 @@ pgf_parsing_complete(PgfParsing* parsing, PgfItem* item)
 	}
 	case PGF_PRODUCTION_COERCE: {
 		PgfProductionCoerce* new_pcoerce =
-			gu_variant_new(parsing->pool,
+			gu_new_variant(parsing->pool,
 				       PGF_PRODUCTION_COERCE,
 				       PgfProductionCoerce,
 				       &prod);
@@ -585,7 +585,7 @@ pgf_production_to_expr(PgfProduction prod, GuChoice* choice, GuPool* pool)
 	switch (pi.tag) {
 	case PGF_PRODUCTION_APPLY: {
 		PgfProductionApply* papp = pi.data;
-		PgfExpr expr = gu_variant_new_i(pool, PGF_EXPR_FUN,
+		PgfExpr expr = gu_new_variant_i(pool, PGF_EXPR_FUN,
 						PgfExprFun,
 						.fun = papp->fun->fun);
 		size_t n_args = gu_seq_length(papp->args);
@@ -593,7 +593,7 @@ pgf_production_to_expr(PgfProduction prod, GuChoice* choice, GuPool* pool)
 			PgfPArg* parg = gu_seq_index(papp->args, PgfPArg, i);
 			gu_assert(!parg->hypos || !parg->hypos->len);
 			PgfExpr earg = pgf_cat_to_expr(parg->ccat, choice, pool);
-			expr = gu_variant_new_i(pool, PGF_EXPR_APP,
+			expr = gu_new_variant_i(pool, PGF_EXPR_APP,
 						PgfExprApp,
 						.fun = expr, .arg = earg);
 		}
@@ -615,7 +615,7 @@ pgf_cat_to_expr(PgfCCat* cat, GuChoice* choice, GuPool* pool)
 {
 	if (cat->fid != PGF_FID_SYNTHETIC) {
 		// XXX: What should the PgfMetaId be?
-		return gu_variant_new_i(pool, PGF_EXPR_META,
+		return gu_new_variant_i(pool, PGF_EXPR_META,
 					PgfExprMeta, 
 					.id = 0);
 	}
@@ -686,7 +686,7 @@ pgf_parser_parse(PgfParser* parser, PgfCId cat, int lin_idx, GuPool* pool)
 }
 
 PgfParser* 
-pgf_parser_new(PgfConcr* concr, GuPool* pool)
+pgf_new_parser(PgfConcr* concr, GuPool* pool)
 {
 	gu_require(concr != NULL);
 	PgfParser* parser = gu_new(PgfParser, pool);
