@@ -26,7 +26,7 @@ gu_dump(GuType* type, const void* value, GuDump* ctx)
 {
 	GuDumpFn* dumper = gu_type_map_get(ctx->dumpers, type);
 	if (ctx->print_address) {
-		GuPool* pool = gu_pool_new();
+		GuPool* pool = gu_make_pool();
 		GuString s = gu_format_string(pool, "%p", value);
 		gu_yaml_comment(ctx->yaml, s);
 		gu_pool_free(pool);
@@ -37,7 +37,7 @@ gu_dump(GuType* type, const void* value, GuDump* ctx)
 void
 gu_dump_stderr(GuType* type, const void* value, GuError* err)
 {
-	GuPool* pool = gu_pool_new();
+	GuPool* pool = gu_make_pool();
 	GuOut* out = gu_file_out(stderr, pool);
 #if 0
 	GuWriter* wtr = gu_locale_writer(out, pool);

@@ -157,7 +157,7 @@ pgf_expr_parser_lookahead(PgfExprParser* parser)
 		break;
 	default:
 		if (isalpha(c)) {
-			GuPool* tmp_pool = gu_pool_new();
+			GuPool* tmp_pool = gu_make_pool();
 			GuCharBuf* chars = gu_new_buf(char, tmp_pool);
 			while (isalnum(c) || c == '_') {
 				gu_buf_push(chars, char, c);
@@ -246,7 +246,7 @@ pgf_expr_parser_expr(PgfExprParser* parser)
 PgfExpr
 pgf_read_expr(GuReader* rdr, GuPool* pool, GuError* err)
 {
-	GuPool* tmp_pool = gu_pool_new();
+	GuPool* tmp_pool = gu_make_pool();
 	PgfExprParser* parser = gu_new(tmp_pool, PgfExprParser);
 	parser->rdr = rdr;
 	parser->intern = gu_intern_new(tmp_pool, pool);

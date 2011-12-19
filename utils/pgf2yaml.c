@@ -5,7 +5,7 @@
 #include <gu/utf8.h>
 
 int main(void) {
-	GuPool* pool = gu_pool_new();
+	GuPool* pool = gu_make_pool();
 	GuError* err = gu_error(NULL, type, pool);
 	GuIn* in = gu_file_in(stdin, pool);
 	PgfPGF* pgf = pgf_read(in, pool, err);

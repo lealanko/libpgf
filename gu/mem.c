@@ -159,7 +159,7 @@ struct GuPool {
 };
 
 static GuPool*
-gu_make_pool(uint8_t* buf, size_t sz)
+gu_init_pool(uint8_t* buf, size_t sz)
 {
 	gu_require(gu_aligned((uintptr_t) (void*) buf, gu_alignof(GuPool)));
 	gu_require(sz >= sizeof(GuPool));
@@ -178,18 +178,18 @@ gu_make_pool(uint8_t* buf, size_t sz)
 GuPool*
 gu_local_pool_(uint8_t* buf, size_t sz)
 {
-	GuPool* pool = gu_make_pool(buf, sz);
+	GuPool* pool = gu_init_pool(buf, sz);
 	pool->flags |= GU_POOL_LOCAL;
 	gu_debug("%p", pool);
 	return pool;
 }
 
 GuPool* 
-gu_pool_new(void)
+gu_make_pool(void)
 {
 	size_t sz = GU_FLEX_SIZE(GuPool, init_buf, gu_mem_pool_initial_size);
 	uint8_t* buf = gu_mem_buf_alloc(sz, &sz);
-	GuPool* pool = gu_make_pool(buf, sz);
+	GuPool* pool = gu_init_pool(buf, sz);
 	gu_debug("%p", pool);
 	return pool;
 }

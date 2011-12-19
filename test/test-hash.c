@@ -6,7 +6,7 @@
 
 void test_strs(int n)
 {
-	GuPool* pool = gu_pool_new();
+	GuPool* pool = gu_make_pool();
 	GuMap* ht = gu_new_map(GuStr, gu_str_hasher,
 			       int, NULL, pool);
 	for (int i = 0; i < n; i++) {
@@ -23,7 +23,7 @@ void test_strs(int n)
 
 void test_strings(int n)
 {
-	GuPool* pool = gu_pool_new();
+	GuPool* pool = gu_make_pool();
 	GuMap* ht = gu_new_map(GuString, gu_string_hasher,
 			       int, NULL, pool);
 	for (int i = 0; i < n; i++) {
@@ -40,7 +40,7 @@ void test_strings(int n)
 
 void test_ints(int n)
 {
-	GuPool* pool = gu_pool_new();
+	GuPool* pool = gu_make_pool();
 	GuMap* ht = gu_new_map(int, gu_int_hasher,
 			       int, NULL, pool);
 	for (int i = 0; i < n; i++) {

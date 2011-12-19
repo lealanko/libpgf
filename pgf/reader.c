@@ -212,7 +212,7 @@ pgf_read_new_struct(GuType* type, PgfReader* rdr,
 {
 	GuStructRepr* stype = gu_type_cast(type, struct);
 	if (gu_struct_has_flex(stype)) {
-		GuPool* tmp_pool = gu_pool_new();
+		GuPool* tmp_pool = gu_make_pool();
 		void* to = gu_type_malloc(type, tmp_pool);
 		void* p = pgf_read_struct(stype, rdr, to, pool, size_out);
 		gu_pool_free(tmp_pool);
@@ -252,7 +252,7 @@ pgf_read_to_GuVariant(GuType* type, PgfReader* rdr, void* to)
 	}
 	GuConstructor* ctor = &vtype->ctors.elems[btag];
 	gu_enter("-> variant %s", ctor->c_name);
-	GuPool* tmp_pool = gu_pool_new();
+	GuPool* tmp_pool = gu_make_pool();
 	GuTypeRepr* repr = gu_type_repr(ctor->type);
 	size_t size = repr->size;
 	void* init = pgf_read_new(rdr, ctor->type, tmp_pool, &size);
@@ -338,7 +338,7 @@ pgf_read_into_map(GuMapType* mtype, PgfReader* rdr, GuMap* map, GuPool* pool)
 	   map. But the actual values need to be more persistent so we
 	   store them in rdr->opool. */
 	(void) pool;
-	GuPool* tmp_pool = gu_pool_new();
+	GuPool* tmp_pool = gu_make_pool();
 	void* key = NULL;
 	void* value = NULL;
 	GuLength len = pgf_read_len(rdr);
@@ -385,7 +385,7 @@ pgf_read_to_GuString(GuType* type, PgfReader* rdr, void* to)
 	gu_enter("-> GuString");
 	GuString* sp = to;
 	
-	GuPool* tmp_pool = gu_pool_new();
+	GuPool* tmp_pool = gu_make_pool();
 	GuStringBuf* sbuf = gu_string_buf(tmp_pool);
 	GuWriter* wtr = gu_string_buf_writer(sbuf);
 
@@ -410,7 +410,7 @@ pgf_read_to_PgfCId(GuType* type, PgfReader* rdr, void* to)
 	gu_enter("-> PgfCId");
 	PgfCId* sp = to;
 	
-	GuPool* tmp_pool = gu_pool_new();
+	GuPool* tmp_pool = gu_make_pool();
 	GuStringBuf* sbuf = gu_string_buf(tmp_pool);
 	GuWriter* wtr = gu_string_buf_writer(sbuf);
 
@@ -657,7 +657,7 @@ pgf_read_new_PgfConcr(GuType* type, PgfReader* rdr, GuPool* pool,
 	 * is allocated from rdr->opool. Once everything is resolved
 	 * and indices aren't needed, the temporary pool can be
 	 * freed. */
-	GuPool* tmp_pool = gu_pool_new();
+	GuPool* tmp_pool = gu_make_pool();
 	rdr->curr_pool = tmp_pool;
 	PgfConcr* concr = gu_new(pool, PgfConcr);;
 	concr->cflags = 
@@ -837,7 +837,7 @@ pgf_reader_new(GuIn* in, GuPool* opool, GuPool* pool, GuError* err)
 PgfPGF*
 pgf_read(GuIn* in, GuPool* pool, GuError* err)
 {
-	GuPool* tmp_pool = gu_pool_new();
+	GuPool* tmp_pool = gu_make_pool();
 	PgfReader* rdr = pgf_reader_new(in, pool, tmp_pool, err);
 	PgfPGF* pgf = pgf_read_new(rdr, gu_type(PgfPGF), pool, NULL);
 	gu_pool_free(tmp_pool);

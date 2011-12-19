@@ -74,7 +74,7 @@ GU_DEFINE_TYPE(Tree, GuVariant,
 
 int main(void)
 {
-	GuPool* pool = gu_pool_new();
+	GuPool* pool = gu_make_pool();
 	Ints* fooh = gu_list_new(Ints, pool, 3);
 	Baz b = { 42, "fnord", fooh };
 	int* elems = gu_list_elems(fooh);
