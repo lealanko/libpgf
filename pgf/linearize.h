@@ -45,7 +45,7 @@ struct PgfLinFuncs {
 
 
 PgfLzr*
-pgf_new_lzr(GuPool* pool, PgfPGF* pgf, PgfConcr* cnc);
+pgf_new_lzr(PgfPGF* pgf, PgfConcr* cnc, GuPool* pool);
 
 void
 pgf_lzr_linearize(PgfLzr* lzr, PgfLinForm form, int lin_idx, PgfLinFuncs** fnsp);

@@ -249,7 +249,7 @@ pgf_lzr_index_cnccat_cb(GuMapItor* fn, const void* key, void* value,
 
 
 PgfLzr*
-pgf_new_lzr(GuPool* pool, PgfPGF* pgf, PgfConcr* cnc)
+pgf_new_lzr(PgfPGF* pgf, PgfConcr* cnc, GuPool* pool)
 {
 	PgfLzr* lzr = gu_new(PgfLzr, pool);
 	lzr->pgf = pgf;
