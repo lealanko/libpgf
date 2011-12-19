@@ -125,7 +125,7 @@ gu_malloc_init(GuPool* pool, size_t size, const void* init)
 #define gu_new(type, pool) \
 	gu_new_n(type, 1, pool)
 
-#define gu_new_prefixed(pool, pre_type, type)				\
+#define gu_new_prefixed(pre_type, type, pool)				\
 	((type*)(gu_malloc_prefixed((pool),				\
 				    gu_alignof(pre_type), sizeof(pre_type), \
 				    gu_alignof(type), sizeof(type))))

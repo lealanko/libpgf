@@ -54,7 +54,7 @@ gu_buf_fini(GuFinalizer* fin)
 GuBuf*
 gu_make_buf(size_t elem_size, GuPool* pool)
 {
-	GuBuf* buf = gu_new_prefixed(pool, unsigned, GuBuf);
+	GuBuf* buf = gu_new_prefixed(unsigned, GuBuf, pool);
 	gu_buf_set_length(buf, 0);
 	buf->elem_size = elem_size;
 	buf->data = NULL;
