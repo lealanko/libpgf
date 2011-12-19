@@ -7,7 +7,7 @@ int main(void)
 {
 	mtrace();
 	
-	GuPool* pool = gu_make_pool();
+	GuPool* pool = gu_new_pool();
 	GuFile* outf = gu_file(stdout, pool);
 	GuError* err = gu_error(NULL, type, NULL);
 	GuWriter* owtr = gu_locale_writer(&outf->out, pool);

@@ -19,7 +19,7 @@ gu_string_buf(GuPool* pool)
 {
 	GuBuf* buf = gu_new_buf(uint8_t, pool);
 	GuOut* out = gu_buf_out(buf, pool);
-	GuWriter* wtr = gu_make_utf8_writer(out, pool);
+	GuWriter* wtr = gu_new_utf8_writer(out, pool);
 	return gu_new_s(pool, GuStringBuf,
 			.bbuf = buf,
 			.wtr = wtr);
@@ -87,7 +87,7 @@ gu_string_reader(GuString s, GuPool* pool)
 		buf = &p[1];
 	}
 	GuIn* in = gu_data_in(buf, len, pool);
-	GuReader* rdr = gu_make_utf8_reader(in, pool);
+	GuReader* rdr = gu_new_utf8_reader(in, pool);
 	return rdr;
 }
 

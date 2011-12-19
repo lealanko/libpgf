@@ -185,7 +185,7 @@ gu_local_pool_(uint8_t* buf, size_t sz)
 }
 
 GuPool* 
-gu_make_pool(void)
+gu_new_pool(void)
 {
 	size_t sz = GU_FLEX_SIZE(GuPool, init_buf, gu_mem_pool_initial_size);
 	uint8_t* buf = gu_mem_buf_alloc(sz, &sz);

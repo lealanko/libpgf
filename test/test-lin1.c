@@ -11,7 +11,7 @@
 
 
 int main(int argc, char* argv[]) {
-	GuPool* pool = gu_make_pool();
+	GuPool* pool = gu_new_pool();
 	int status = EXIT_SUCCESS;
 	if (argc != 3) {
 		fputs("usage: test-lin1 Grammar.pgf lang\n", stderr);

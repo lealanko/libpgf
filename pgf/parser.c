@@ -564,7 +564,7 @@ pgf_parse_token(PgfParse* parse, PgfToken tok, GuPool* pool)
 		return NULL;
 	}
 	PgfParse* next_parse = pgf_parse_new(parse->parser, pool);
-	GuPool* tmp_pool = gu_make_pool();
+	GuPool* tmp_pool = gu_new_pool();
 	PgfParsing* parsing = pgf_parsing_new(next_parse, pool, tmp_pool);
 	size_t n_items = gu_buf_length(agenda);
 	for (size_t i = 0; i < n_items; i++) {
@@ -665,7 +665,7 @@ PgfParse*
 pgf_parser_parse(PgfParser* parser, PgfCId cat, int lin_idx, GuPool* pool)
 {
 	PgfParse* parse = pgf_parse_new(parser, pool);
-	GuPool* tmp_pool = gu_make_pool();
+	GuPool* tmp_pool = gu_new_pool();
 	PgfParsing* parsing = pgf_parsing_new(parse, pool, tmp_pool);
 	PgfCncCat* cnccat =
 		gu_map_get(parser->concr->cnccats, &cat, PgfCncCat*);

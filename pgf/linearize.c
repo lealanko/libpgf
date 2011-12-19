@@ -373,7 +373,7 @@ pgf_lzn_infer_application(PgfLzn* lzn, PgfApplication* appl,
 		gu_exit("<- couldn't find f");
 		return NULL;
 	}
-	GuPool* tmp_pool = gu_make_pool();
+	GuPool* tmp_pool = gu_new_pool();
 	PgfCCat* ret = NULL;
 	int n = appl->n_args;
 	PgfCCatIds* arg_cats = gu_list_new(PgfCCatIds, tmp_pool, n);
@@ -415,7 +415,7 @@ static PgfCCat*
 pgf_lzn_infer(PgfLzn* lzn, PgfExpr expr, GuPool* pool, PgfLinForm* form_out)
 {
 	PgfCCat* ret = NULL;
-	GuPool* tmp_pool = gu_make_pool();
+	GuPool* tmp_pool = gu_new_pool();
 	PgfApplication* appl = pgf_expr_unapply(expr, tmp_pool);
 	if (appl != NULL) {
 		ret = pgf_lzn_infer_application(lzn, appl, pool, form_out);

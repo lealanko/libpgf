@@ -256,7 +256,7 @@ gu_in_fini(GuFinalizer* fin)
 }
 
 GuIn*
-gu_make_in(GuInStream* stream, GuPool* pool)
+gu_new_in(GuInStream* stream, GuPool* pool)
 {
 	return gu_new_s(pool, GuIn,
 			.buf_end = NULL,
@@ -304,7 +304,7 @@ gu_proxy_in(GuIn* in, GuPool* pool)
 		.stream.end_buffer = gu_proxy_in_end_buffer,
 		.stream.input = gu_proxy_in_input,
 		.real_in = in);
-	return gu_make_in(&pis->stream, pool);
+	return gu_new_in(&pis->stream, pool);
 }
 
 enum {
@@ -367,7 +367,7 @@ gu_buffered_in(GuIn* in, size_t buf_sz, GuPool* pool)
 	};
 	bis->have = bis->curr = 0;
 	bis->alloc = buf_sz;
-	return gu_make_in(&bis->stream, pool);
+	return gu_new_in(&bis->stream, pool);
 }
 
 typedef struct GuDataIn GuDataIn;
@@ -399,7 +399,7 @@ gu_data_in(const uint8_t* data, size_t sz, GuPool* pool)
 				.stream.begin_buffer = gu_data_in_begin_buffer,
 				.data = data,
 				.sz = sz);
-	return gu_make_in(&di->stream, pool);
+	return gu_new_in(&di->stream, pool);
 }
 
 extern inline uint8_t 

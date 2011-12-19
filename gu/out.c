@@ -79,7 +79,7 @@ gu_out_fini(GuFinalizer* self)
 }
 
 GuOut*
-gu_make_out(GuOutStream* stream, GuPool* pool)
+gu_new_out(GuOutStream* stream, GuPool* pool)
 {
 	GuOut* out = gu_new(GuOut, pool);
 	*out = gu_init_out(stream);
@@ -275,7 +275,7 @@ gu_buffered_out_buf_end(GuOutStream* self, size_t sz, GuError* err)
 }
 
 GuOut*
-gu_make_buffered_out(GuOut* out, size_t sz, GuPool* pool)
+gu_new_buffered_out(GuOut* out, size_t sz, GuPool* pool)
 {
 	GuBufferedOutStream* b =
 		gu_flex_new(pool, GuBufferedOutStream, buf, sz);
@@ -287,7 +287,7 @@ gu_make_buffered_out(GuOut* out, size_t sz, GuPool* pool)
 	};
 	b->pstream.real_out = out;
 	b->sz = sz;
-	return gu_make_out(&b->pstream.stream, pool);
+	return gu_new_out(&b->pstream.stream, pool);
 }
 
 GuOut*
@@ -296,7 +296,7 @@ gu_out_buffered(GuOut* out, GuPool* pool)
 	if (gu_out_is_buffered(out)) {
 		return out;
 	}
-	return gu_make_buffered_out(out, 4096, pool);
+	return gu_new_buffered_out(out, 4096, pool);
 }
 
 

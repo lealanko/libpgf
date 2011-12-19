@@ -56,7 +56,7 @@ gu_printf(GuWriter* wtr, GuError* err, const char* fmt, ...);
 //gu_init_utf8_writer(GuOut* utf8_out);
 
 GuWriter*
-gu_make_utf8_writer(GuOut* utf8_out, GuPool* pool);
+gu_new_utf8_writer(GuOut* utf8_out, GuPool* pool);
 
 GuWriter*
 gu_make_locale_writer(GuOut* locale_out, GuPool* pool);

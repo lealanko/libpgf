@@ -32,7 +32,7 @@ GuOut
 gu_init_out(GuOutStream* stream);
 
 GuOut*
-gu_make_out(GuOutStream* stream, GuPool* pool);
+gu_new_out(GuOutStream* stream, GuPool* pool);
 
 inline bool
 gu_out_is_buffered(GuOut* out)
@@ -44,7 +44,7 @@ GuOutStream*
 gu_out_proxy_stream(GuOut* out, GuPool* pool);
 
 GuOut*
-gu_make_buffered_out(GuOut* out, size_t buf_sz, GuPool* pool);
+gu_new_buffered_out(GuOut* out, size_t buf_sz, GuPool* pool);
 
 GuOut*
 gu_out_buffered(GuOut* out, GuPool* pool);

@@ -9,7 +9,7 @@ static GU_DEFINE_TYPE(Ints, GuSeq, gu_type(int));
 
 int main(void)
 {
-	GuPool* pool = gu_make_pool();
+	GuPool* pool = gu_new_pool();
 	Ints is = ints_new(pool);
 	for (int i = 0; i < 100; i++) {
 		ints_push(is, i * i);

@@ -27,7 +27,7 @@ struct GuIn {
 
 
 GuIn*
-gu_make_in(GuInStream* stream, GuPool* pool);
+gu_new_in(GuInStream* stream, GuPool* pool);
 
 const uint8_t*
 gu_in_begin_span(GuIn* in, size_t *sz_out, GuError* err);

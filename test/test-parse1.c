@@ -14,7 +14,7 @@
 
 
 int main(int argc, char* argv[]) {
-	GuPool* pool = gu_make_pool();
+	GuPool* pool = gu_new_pool();
 	int status = EXIT_SUCCESS;
 	if (argc != 4) {
 		fputs("usage: test-parse1 pgf cat lang\n", stderr);
@@ -54,7 +54,7 @@ int main(int argc, char* argv[]) {
 		} else if (line[0] == '\0') {
 			break;
 		}
-		GuPool* ppool = gu_make_pool();
+		GuPool* ppool = gu_new_pool();
 		PgfParse* parse = pgf_parser_parse(parser, cat, 0, pool);
 		if (parse == NULL) {
 			fprintf(stderr, "Couldn't begin parsing");

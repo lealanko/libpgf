@@ -16,7 +16,7 @@
 
 int main(int argc, char* argv[]) {
 	setlocale(LC_CTYPE, "");
-	GuPool* pool = gu_make_pool();
+	GuPool* pool = gu_new_pool();
 	int status = EXIT_SUCCESS;
 	if (argc != 5) {
 		fputs("usage: test-translate pgf cat from_lang to_lang\n", stderr);
@@ -56,7 +56,7 @@ int main(int argc, char* argv[]) {
 
 	GuOut* out = gu_file_out(stdout, pool);
 	// GuWriter* wtr = gu_locale_writer(out, pool);
-	GuWriter* wtr = gu_make_utf8_writer(out, pool);
+	GuWriter* wtr = gu_new_utf8_writer(out, pool);
 	
 	while (true) {
 		fprintf(stdout, "> ");
@@ -70,7 +70,7 @@ int main(int argc, char* argv[]) {
 		} else if (line[0] == '\0') {
 			break;
 		}
-		GuPool* ppool = gu_make_pool();
+		GuPool* ppool = gu_new_pool();
 		PgfParse* parse =
 			pgf_parser_parse(parser, cat, lin_idx, pool);
 		if (parse == NULL) {

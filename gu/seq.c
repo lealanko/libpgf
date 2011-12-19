@@ -219,7 +219,7 @@ gu_buf_out(GuBuf* buf, GuPool* pool)
 				  .stream.begin_buf = gu_buf_outbuf_begin,
 				  .stream.end_buf = gu_buf_outbuf_end,
 				  .buf = buf);
-	return gu_make_out(&bout->stream, pool);
+	return gu_new_out(&bout->stream, pool);
 }
 
 const GuSeq

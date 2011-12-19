@@ -42,7 +42,7 @@ typedef struct GuPool GuPool;
 
 
 GU_ONLY GuPool*
-gu_make_pool(void);
+gu_new_pool(void);
 
 /**< Create a new memory pool.
  *
@@ -59,7 +59,7 @@ gu_local_pool_(uint8_t* init_buf, size_t sz);
 		       GU_LOCAL_POOL_INIT_SIZE)
 #else
 #define gu_local_pool()				\
-	gu_make_pool()
+	gu_new_pool()
 #endif
 
 void gu_pool_finally(GuPool* pool, GuFinalizer* finalize);

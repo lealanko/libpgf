@@ -38,7 +38,7 @@ gu_file_out(FILE* file, GuPool* pool)
 					.stream.output = gu_file_output,
 					.stream.flush = gu_file_flush,
 					.file = file);
-	return gu_make_out(&fos->stream, pool);
+	return gu_new_out(&fos->stream, pool);
 }
 
 
@@ -69,5 +69,5 @@ gu_file_in(FILE* file, GuPool* pool)
 	GuFileInStream* fis = gu_new_s(pool, GuFileInStream,
 				       .stream.input = gu_file_input,
 				       .file = file);
-	return gu_make_in(&fis->stream, pool);
+	return gu_new_in(&fis->stream, pool);
 }

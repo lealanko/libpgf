@@ -7,7 +7,7 @@ extern inline char
 gu_getc(GuReader* rdr, GuError* err);
 
 GuReader*
-gu_make_utf8_reader(GuIn* utf8_in, GuPool* pool)
+gu_new_utf8_reader(GuIn* utf8_in, GuPool* pool)
 {
 	
 }

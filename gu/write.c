@@ -28,7 +28,7 @@ gu_printf(GuWriter* wtr, GuError* err, const char* fmt, ...)
 
 
 GuWriter*
-gu_make_utf8_writer(GuOut* utf8_out, GuPool* pool)
+gu_new_utf8_writer(GuOut* utf8_out, GuPool* pool)
 {
 	GuOutStream* stream = gu_out_proxy_stream(utf8_out, pool);
 	GuWriter* wtr = gu_new(GuWriter, pool);
