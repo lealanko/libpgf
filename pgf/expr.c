@@ -249,7 +249,7 @@ pgf_read_expr(GuReader* rdr, GuPool* pool, GuError* err)
 	GuPool* tmp_pool = gu_new_pool();
 	PgfExprParser* parser = gu_new(PgfExprParser, tmp_pool);
 	parser->rdr = rdr;
-	parser->intern = gu_new_intern(tmp_pool, pool);
+	parser->intern = gu_new_intern(pool, tmp_pool);
 	parser->expr_pool = pool;
 	parser->err = err;
 	parser->lookahead = NULL;

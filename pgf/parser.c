@@ -272,20 +272,18 @@ pgf_parsing_complete(PgfParsing* parsing, PgfItem* item)
 	case PGF_PRODUCTION_APPLY: {
 		PgfProductionApply* papp = i.data;
 		PgfProductionApply* new_papp = 
-			gu_new_variant(parsing->pool,
-				       PGF_PRODUCTION_APPLY,
+			gu_new_variant(PGF_PRODUCTION_APPLY,
 				       PgfProductionApply,
-				       &prod);
+				       &prod, parsing->pool);
 		new_papp->fun = papp->fun;
 		new_papp->args = item->args;
 		break;
 	}
 	case PGF_PRODUCTION_COERCE: {
 		PgfProductionCoerce* new_pcoerce =
-			gu_new_variant(parsing->pool,
-				       PGF_PRODUCTION_COERCE,
+			gu_new_variant(PGF_PRODUCTION_COERCE,
 				       PgfProductionCoerce,
-				       &prod);
+				       &prod, parsing->pool);
 		PgfPArg* parg = gu_seq_index(item->args, PgfPArg, 0);
 		gu_assert(!parg->hypos || !parg->hypos->len);
 		new_pcoerce->coerce = parg->ccat;

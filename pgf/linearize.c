@@ -380,8 +380,8 @@ pgf_lzn_infer_application(PgfLzn* lzn, PgfApplication* appl,
 
 	PgfLinFormApp* appt = NULL;
 	if (form_out) {
-		appt = gu_new_flex_variant(pool, PGF_LIN_FORM_APP, PgfLinFormApp, 
-					   args, n, form_out);
+		appt = gu_new_flex_variant(PGF_LIN_FORM_APP, PgfLinFormApp, 
+					   args, n, form_out, pool);
 		appt->n_args = n;
 	}
 

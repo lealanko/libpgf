@@ -25,8 +25,8 @@ enum {
 };
 
 void* 
-gu_variant_alloc(GuPool* pool, uint8_t tag, size_t size, 
-		 size_t align, GuVariant* variant_out)
+gu_alloc_variant(uint8_t tag, size_t size, 
+		 size_t align, GuVariant* variant_out, GuPool* pool)
 {
 	align = gu_max(align, GU_VARIANT_ALIGNMENT);
 	if (((size_t)tag) > GU_VARIANT_ALIGNMENT - 2) {
@@ -42,11 +42,11 @@ gu_variant_alloc(GuPool* pool, uint8_t tag, size_t size,
 }
 
 GuVariant 
-gu_variant_init_alloc(GuPool* pool, uint8_t tag, 
-		      size_t size, size_t align, const void* init)
+gu_make_variant(uint8_t tag, size_t size, size_t align, const void* init,
+		GuPool* pool)
 {
 	GuVariant v;
-	void* data = gu_variant_alloc(pool, tag, size, align, &v);
+	void* data = gu_alloc_variant(tag, size, align, &v, pool);
 	memcpy(data, init, size);
 	return v;
 }

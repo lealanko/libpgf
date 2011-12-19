@@ -7,7 +7,7 @@
 
 typedef struct GuIntern GuIntern;
 
-GuIntern* gu_new_intern(GuPool* pool, GuPool* str_pool);
+GuIntern* gu_new_intern(GuPool* str_pool, GuPool* pool);
 const char* gu_intern_str(GuIntern* intern, const char* cstr);
 
 

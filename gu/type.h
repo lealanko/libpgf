@@ -415,7 +415,7 @@ struct GuTypeTable {
 typedef struct GuTypeMap GuTypeMap;
 
 GuTypeMap*
-gu_new_type_map(GuPool* pool, GuTypeTable* table);
+gu_new_type_map(GuTypeTable* table, GuPool* pool);
 
 void*
 gu_type_map_get(GuTypeMap* tmap, GuType* type);

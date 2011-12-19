@@ -36,32 +36,32 @@
 typedef struct GuVariant GuVariant;
 
 
-void* gu_variant_alloc(GuPool* pool, uint8_t tag, 
+void* gu_alloc_variant(uint8_t tag, 
 		       size_t size, size_t align, 
-		       GuVariant* variant_out);
+		       GuVariant* variant_out, GuPool* pool);
 
-GuVariant gu_variant_init_alloc(GuPool* pool, uint8_t tag, 
-				size_t size, size_t align, 
-				const void* init);
+GuVariant gu_make_variant(uint8_t tag, 
+			  size_t size, size_t align, 
+			  const void* init, GuPool* pool);
 
-#define gu_new_variant(pool, tag, type, variant_out)	  \
-	((type*)gu_variant_alloc(pool, tag, sizeof(type), \
-				 gu_alignof(type), variant_out))
+#define gu_new_variant(tag, type, variant_out, pool)	    \
+	((type*)gu_alloc_variant(tag, sizeof(type), \
+				 gu_alignof(type), variant_out, pool))
 
 /**< 
  * @hideinitializer */
 
-#define gu_new_variant_i(pool, tag, t_, ...)				\
-	gu_variant_init_alloc(pool, tag, sizeof(t_), gu_alignof(t_),	\
-			      (&(t_){ __VA_ARGS__ }))
+#define gu_new_variant_i(POOL, TAG, T, ...)				\
+	gu_make_variant(TAG, sizeof(T), gu_alignof(T),			\
+			&(T){ __VA_ARGS__ }, POOL)
 
 
 
-#define gu_new_flex_variant(ator, tag, type, flex_mem, n_elems, variant_out)	\
-	((type*)gu_variant_alloc(ator, tag,				\
+#define gu_new_flex_variant(tag, type, flex_mem, n_elems, variant_out, pool)	\
+	((type*)gu_alloc_variant(tag,				\
 				 GU_FLEX_SIZE(type, flex_mem, n_elems), \
 				 gu_flex_alignof(type),			\
-				 variant_out))
+				 variant_out, pool))
 /**< 
  * @hideinitializer */
 

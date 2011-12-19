@@ -121,7 +121,7 @@ static GuTypeTable dumpers2 =
 static void dump(GuType* t, void* val) 
 {
 	GuPool* pool = gu_new_pool();
-	GuTypeMap* map = gu_new_type_map(pool, &dumpers2);
+	GuTypeMap* map = gu_new_type_map(&dumpers2, pool);
 	dump_aux(map, t, val);
 }
 
@@ -134,16 +134,16 @@ int main(void)
 
 	GuPool* pool = gu_new_pool();
 	Tree t1, t2, t3, t4, t5;
-	Leaf* l1 = gu_new_variant(pool, LEAF, Leaf, &t1);
+	Leaf* l1 = gu_new_variant(LEAF, Leaf, &t1, pool);
 	l1->value = 42;
-	Leaf* l2 = gu_new_variant(pool, LEAF, Leaf, &t2);
+	Leaf* l2 = gu_new_variant(LEAF, Leaf, &t2, pool);
 	l2->value = 7;
-	Leaf* l3 = gu_new_variant(pool, LEAF, Leaf, &t3);
+	Leaf* l3 = gu_new_variant(LEAF, Leaf, &t3, pool);
 	l3->value = 16;
-	Branch* b1 = gu_new_variant(pool, BRANCH, Branch, &t4);
+	Branch* b1 = gu_new_variant(BRANCH, Branch, &t4, pool);
 	b1->left = t2;
 	b1->right = t3;
-	Branch* b2 = gu_new_variant(pool, BRANCH, Branch, &t5);
+	Branch* b2 = gu_new_variant(BRANCH, Branch, &t5, pool);
 	b2->left = t1;
 	b2->right = t4;
 	dump(gu_type(Tree), &t5);

@@ -256,8 +256,7 @@ pgf_read_to_GuVariant(GuType* type, PgfReader* rdr, void* to)
 	GuTypeRepr* repr = gu_type_repr(ctor->type);
 	size_t size = repr->size;
 	void* init = pgf_read_new(rdr, ctor->type, tmp_pool, &size);
-	*vto = gu_variant_init_alloc(rdr->opool, btag, size,
-				     repr->align, init);
+	*vto = gu_make_variant(btag, size, repr->align, init, rdr->opool);
 	gu_pool_free(tmp_pool);
 	gu_exit("<- variant %s", ctor->c_name);
 }
@@ -827,8 +826,8 @@ pgf_new_reader(GuIn* in, GuPool* opool, GuPool* pool, GuError* err)
 	rdr->in = in;
 	rdr->curr_sequences = NULL;
 	rdr->curr_cncfuns = NULL;
-	rdr->read_to_map = gu_new_type_map(pool, &pgf_read_to_table);
-	rdr->read_new_map = gu_new_type_map(pool, &pgf_read_new_table);
+	rdr->read_to_map = gu_new_type_map(&pgf_read_to_table, pool);
+	rdr->read_new_map = gu_new_type_map(&pgf_read_new_table, pool);
 	rdr->pool = pool;
 	return rdr;
 }

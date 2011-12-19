@@ -96,7 +96,7 @@ gu_type_map_init(GuTypeMap* tmap, GuTypeTable* table)
 }
 
 GuTypeMap*
-gu_new_type_map(GuPool* pool, GuTypeTable* table)
+gu_new_type_map(GuTypeTable* table, GuPool* pool)
 {
 	GuTypeMap* tmap =
 		gu_new_i(pool, GuTypeMap,
