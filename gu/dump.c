@@ -14,7 +14,7 @@ gu_new_dump(GuWriter* wtr, GuTypeTable* dumpers, GuError* err, GuPool* pool)
 	if (dumpers == NULL) {
 		dumpers = &gu_dump_table;
 	}
-	ctx->dumpers = gu_type_map_new(pool, dumpers);
+	ctx->dumpers = gu_new_type_map(pool, dumpers);
 	ctx->yaml = gu_new_yaml(wtr, err, pool);
 	ctx->data = gu_new_addr_map(void, void*, &gu_null, pool);
 	ctx->print_address = false;

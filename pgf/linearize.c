@@ -143,7 +143,7 @@ pgf_lzr_add_infer_entry(PgfLzr* lzr,
 {
 	PgfPArgs args = papply->args;
 	size_t n_args = gu_seq_length(args);
-	PgfCCatIds* arg_cats = gu_list_new(PgfCCatIds, lzr->pool, n_args);
+	PgfCCatIds* arg_cats = gu_new_list(PgfCCatIds, lzr->pool, n_args);
 	for (size_t i = 0; i < n_args; i++) {
 		// XXX: What about the hypos in the args?
 		gu_list_index(arg_cats, i) = gu_seq_get(args, PgfPArg, i).ccat;
@@ -376,16 +376,16 @@ pgf_lzn_infer_application(PgfLzn* lzn, PgfApplication* appl,
 	GuPool* tmp_pool = gu_new_pool();
 	PgfCCat* ret = NULL;
 	int n = appl->n_args;
-	PgfCCatIds* arg_cats = gu_list_new(PgfCCatIds, tmp_pool, n);
+	PgfCCatIds* arg_cats = gu_new_list(PgfCCatIds, tmp_pool, n);
 
 	PgfLinFormApp* appt = NULL;
 	if (form_out) {
-		appt = gu_variant_flex_new(pool, PGF_LIN_FORM_APP, PgfLinFormApp, 
+		appt = gu_new_flex_variant(pool, PGF_LIN_FORM_APP, PgfLinFormApp, 
 					   args, n, form_out);
 		appt->n_args = n;
 	}
 
-	PgfChoiceMarks* marksl = gu_list_new(PgfChoiceMarks, tmp_pool, n + 1);
+	PgfChoiceMarks* marksl = gu_new_list(PgfChoiceMarks, tmp_pool, n + 1);
 	GuChoiceMark* marks = gu_list_elems(marksl);
 	int i = 0;
 	marks[i] = gu_choice_mark(lzn->ch);
@@ -447,7 +447,7 @@ pgf_new_lzn(PgfLzr* lzr, PgfExpr expr, GuPool* pool)
 	PgfLzn* lzn = gu_new(PgfLzn, pool);
 	lzn->lzr = lzr;
 	lzn->expr = expr;
-	lzn->ch = gu_choice_new(pool);
+	lzn->ch = gu_new_choice(pool);
 	return lzn;
 }
 

@@ -75,7 +75,7 @@ GU_DEFINE_TYPE(Tree, GuVariant,
 int main(void)
 {
 	GuPool* pool = gu_new_pool();
-	Ints* fooh = gu_list_new(Ints, pool, 3);
+	Ints* fooh = gu_new_list(Ints, pool, 3);
 	Baz b = { 42, "fnord", fooh };
 	int* elems = gu_list_elems(fooh);
 	elems[0] = 7;
@@ -93,7 +93,7 @@ int main(void)
 	gu_dump(gu_type(Dict), dict, ctx);
 
 
-	Blump* blump = gu_flex_new(pool, Blump, ints, 8);
+	Blump* blump = gu_new_flex(pool, Blump, ints, 8);
 	blump->len = 8;
 	blump->koo = "urk";
 	blump->ints[0] = 42;

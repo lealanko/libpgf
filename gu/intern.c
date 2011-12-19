@@ -6,7 +6,7 @@ struct GuIntern {
 };
 
 GuIntern*
-gu_intern_new(GuPool* pool, GuPool* str_pool)
+gu_new_intern(GuPool* pool, GuPool* str_pool)
 {
 	GuIntern* intern = gu_new(GuIntern, pool);
 	intern->str_pool = str_pool;

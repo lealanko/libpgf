@@ -737,7 +737,7 @@ pgf_read_new_PgfCncCat(GuType* type, PgfReader* rdr, GuPool* pool,
 	int first = pgf_read_int(rdr);
 	int last = pgf_read_int(rdr);
 	int len = last + 1 - first;
-	PgfCCatIds* cats = gu_list_new(PgfCCatIds, pool, len);
+	PgfCCatIds* cats = gu_new_list(PgfCCatIds, pool, len);
 	int n_lins = -1;
 	for (int i = 0; i < len; i++) {
 		int n = first + i;
@@ -827,8 +827,8 @@ pgf_new_reader(GuIn* in, GuPool* opool, GuPool* pool, GuError* err)
 	rdr->in = in;
 	rdr->curr_sequences = NULL;
 	rdr->curr_cncfuns = NULL;
-	rdr->read_to_map = gu_type_map_new(pool, &pgf_read_to_table);
-	rdr->read_new_map = gu_type_map_new(pool, &pgf_read_new_table);
+	rdr->read_to_map = gu_new_type_map(pool, &pgf_read_to_table);
+	rdr->read_new_map = gu_new_type_map(pool, &pgf_read_new_table);
 	rdr->pool = pool;
 	return rdr;
 }

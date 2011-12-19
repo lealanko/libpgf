@@ -37,7 +37,7 @@
 void* gu_list_alloc(GuPool* pool, size_t base_size, size_t elem_size, 
 		    int n_elems, size_t alignment);
 
-#define gu_list_new(t, pool, n)						\
+#define gu_new_list(t, pool, n)						\
 	((t*) gu_list_alloc(pool,					\
 			    sizeof(t),					\
 			    sizeof(((t*)NULL)->elems[0]),		\

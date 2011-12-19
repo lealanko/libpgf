@@ -121,7 +121,7 @@ static GuTypeTable dumpers2 =
 static void dump(GuType* t, void* val) 
 {
 	GuPool* pool = gu_new_pool();
-	GuTypeMap* map = gu_type_map_new(pool, &dumpers2);
+	GuTypeMap* map = gu_new_type_map(pool, &dumpers2);
 	dump_aux(map, t, val);
 }
 

@@ -57,7 +57,7 @@ GuVariant gu_variant_init_alloc(GuPool* pool, uint8_t tag,
 
 
 
-#define gu_variant_flex_new(ator, tag, type, flex_mem, n_elems, variant_out)	\
+#define gu_new_flex_variant(ator, tag, type, flex_mem, n_elems, variant_out)	\
 	((type*)gu_variant_alloc(ator, tag,				\
 				 GU_FLEX_SIZE(type, flex_mem, n_elems), \
 				 gu_flex_alignof(type),			\

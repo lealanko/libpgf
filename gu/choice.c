@@ -9,7 +9,7 @@ struct GuChoice {
 };
 
 GuChoice*
-gu_choice_new(GuPool* pool)
+gu_new_choice(GuPool* pool)
 {
 	GuChoice* ch = gu_new(GuChoice, pool);
 	ch->path = gu_new_buf(uint8_t, pool);

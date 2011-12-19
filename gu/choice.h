@@ -8,7 +8,7 @@ typedef struct GuChoice GuChoice;
 typedef struct GuChoiceMark GuChoiceMark;
 
 GuChoice*
-gu_choice_new(GuPool* pool);
+gu_new_choice(GuPool* pool);
 
 int
 gu_choice_next(GuChoice* ch, int n_choices);

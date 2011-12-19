@@ -358,7 +358,7 @@ gu_buffered_in(GuIn* in, size_t buf_sz, GuPool* pool)
 {
 	uint8_t* buf = gu_malloc(pool, buf_sz);
 	
-	GuBufferedInStream* bis = gu_flex_new(pool, GuBufferedInStream,
+	GuBufferedInStream* bis = gu_new_flex(pool, GuBufferedInStream,
 					      buf, buf_sz);
 	bis->stream = (GuInStream) {
 		.begin_buffer = gu_buffered_in_begin_buffer,

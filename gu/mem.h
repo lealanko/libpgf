@@ -161,7 +161,7 @@ gu_malloc_init(GuPool* pool, size_t size, const void* init)
 
 
 // Alas, there's no portable way to get the alignment of flex structs.
-#define gu_flex_new(pool_, type_, flex_member_, n_elems_)		\
+#define gu_new_flex(pool_, type_, flex_member_, n_elems_)		\
 	((type_ *)gu_malloc_aligned(					\
 		(pool_),						\
 		GU_FLEX_SIZE(type_, flex_member_, n_elems_),		\

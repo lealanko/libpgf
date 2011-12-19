@@ -278,7 +278,7 @@ GuOut*
 gu_new_buffered_out(GuOut* out, size_t sz, GuPool* pool)
 {
 	GuBufferedOutStream* b =
-		gu_flex_new(pool, GuBufferedOutStream, buf, sz);
+		gu_new_flex(pool, GuBufferedOutStream, buf, sz);
 	b->pstream.stream = (GuOutStream) {
 		.begin_buf = gu_buffered_out_buf_begin,
 		.end_buf = gu_buffered_out_buf_end,

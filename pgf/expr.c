@@ -55,7 +55,7 @@ pgf_expr_unapply(PgfExpr expr, GuPool* pool)
 	if (arity < 0) {
 		return NULL;
 	}
-	PgfApplication* appl = gu_flex_new(pool, PgfApplication, args, arity);
+	PgfApplication* appl = gu_new_flex(pool, PgfApplication, args, arity);
 	appl->n_args = arity;
 	for (int n = arity - 1; n >= 0; n--) {
 		PgfExpr e = pgf_expr_unwrap(expr);
@@ -249,7 +249,7 @@ pgf_read_expr(GuReader* rdr, GuPool* pool, GuError* err)
 	GuPool* tmp_pool = gu_new_pool();
 	PgfExprParser* parser = gu_new(PgfExprParser, tmp_pool);
 	parser->rdr = rdr;
-	parser->intern = gu_intern_new(tmp_pool, pool);
+	parser->intern = gu_new_intern(tmp_pool, pool);
 	parser->expr_pool = pool;
 	parser->err = err;
 	parser->lookahead = NULL;
