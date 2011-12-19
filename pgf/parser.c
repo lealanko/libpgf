@@ -133,7 +133,7 @@ static PgfCCat*
 pgf_parsing_create_completed(PgfParsing* parsing, PgfItemBuf* conts, 
 			     PgfCncCat* cnccat)
 {
-	PgfCCat* cat = gu_new(parsing->pool, PgfCCat);
+	PgfCCat* cat = gu_new(PgfCCat, parsing->pool);
 	cat->cnccat = cnccat;
 	cat->fid = PGF_FID_SYNTHETIC;
 	cat->prods = gu_buf_seq(gu_new_buf(PgfProduction, parsing->pool));
@@ -185,7 +185,7 @@ pgf_item_base_symbol(PgfItemBase* ibase, size_t seq_idx, GuPool* pool)
 static PgfItem*
 pgf_item_new(PgfItemBase* base, GuPool* pool)
 {
-	PgfItem* item = gu_new(pool, PgfItem);
+	PgfItem* item = gu_new(PgfItem, pool);
 	GuVariantInfo pi = gu_variant_open(base->prod);
 	switch (pi.tag) {
 	case PGF_PRODUCTION_APPLY: {
@@ -215,7 +215,7 @@ pgf_item_new(PgfItemBase* base, GuPool* pool)
 static PgfItem*
 pgf_item_copy(PgfItem* item, GuPool* pool)
 {
-	PgfItem* copy = gu_new(pool, PgfItem);
+	PgfItem* copy = gu_new(PgfItem, pool);
 	memcpy(copy, item, sizeof(PgfItem));
 	return copy;
 }
@@ -254,7 +254,7 @@ static void
 pgf_parsing_production(PgfParsing* parsing, PgfCCat* cat, int lin_idx,
 		       PgfProduction prod, PgfItemBuf* conts)
 {
-	PgfItemBase* base = gu_new(parsing->pool, PgfItemBase);
+	PgfItemBase* base = gu_new(PgfItemBase, parsing->pool);
 	base->ccat = cat;
 	base->lin_idx = lin_idx;
 	base->prod = prod;
@@ -537,7 +537,7 @@ pgf_parsing_scan(PgfParsing* parsing, PgfItem* item, PgfToken tok)
 static PgfParsing*
 pgf_parsing_new(PgfParse* parse, GuPool* parse_pool, GuPool* out_pool)
 {
-	PgfParsing* parsing = gu_new(out_pool, PgfParsing);
+	PgfParsing* parsing = gu_new(PgfParsing, out_pool);
 	parsing->parse = parse;
 	parsing->generated_cats = gu_map_type_new(PgfGenCatMap, out_pool);
 	parsing->conts_map = gu_map_type_new(PgfContsMap, out_pool);
@@ -548,7 +548,7 @@ pgf_parsing_new(PgfParse* parse, GuPool* parse_pool, GuPool* out_pool)
 static PgfParse*
 pgf_parse_new(PgfParser* parser, GuPool* pool)
 {
-	PgfParse* parse = gu_new(pool, PgfParse);
+	PgfParse* parse = gu_new(PgfParse, pool);
 	parse->parser = parser;
 	parse->transitions = gu_map_type_new(PgfTransitions, pool);
 	parse->completed = gu_new_buf(PgfCCat*, pool);
@@ -689,7 +689,7 @@ PgfParser*
 pgf_parser_new(PgfConcr* concr, GuPool* pool)
 {
 	gu_require(concr != NULL);
-	PgfParser* parser = gu_new(pool, PgfParser);
+	PgfParser* parser = gu_new(PgfParser, pool);
 	parser->concr = concr;
 	return parser;
 }

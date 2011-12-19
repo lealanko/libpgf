@@ -81,7 +81,7 @@ gu_out_fini(GuFinalizer* self)
 GuOut*
 gu_make_out(GuOutStream* stream, GuPool* pool)
 {
-	GuOut* out = gu_new(pool, GuOut);
+	GuOut* out = gu_new(GuOut, pool);
 	*out = gu_init_out(stream);
 	out->fini.fn = gu_out_fini;
 	gu_pool_finally(pool, &out->fini);

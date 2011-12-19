@@ -11,7 +11,7 @@ struct GuChoice {
 GuChoice*
 gu_choice_new(GuPool* pool)
 {
-	GuChoice* ch = gu_new(pool, GuChoice);
+	GuChoice* ch = gu_new(GuChoice, pool);
 	ch->path = gu_new_buf(uint8_t, pool);
 	ch->path_idx = 0;
 	return ch;

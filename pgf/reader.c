@@ -476,7 +476,7 @@ static void*
 pgf_read_new_PgfCCat(GuType* type, PgfReader* rdr, GuPool* pool,
 		     size_t* size_out)
 {
-	PgfCCat* ccat = gu_new(pool, PgfCCat);
+	PgfCCat* ccat = gu_new(PgfCCat, pool);
 	pgf_read_to_PgfCCat(type, rdr, ccat);
 	*size_out = sizeof(PgfCCat);
 	return ccat;
@@ -659,7 +659,7 @@ pgf_read_new_PgfConcr(GuType* type, PgfReader* rdr, GuPool* pool,
 	 * freed. */
 	GuPool* tmp_pool = gu_make_pool();
 	rdr->curr_pool = tmp_pool;
-	PgfConcr* concr = gu_new(pool, PgfConcr);;
+	PgfConcr* concr = gu_new(PgfConcr, pool);;
 	concr->cflags = 
 		pgf_read_new(rdr, gu_type(PgfFlags), pool, NULL);
 	concr->printnames = 
@@ -732,7 +732,7 @@ pgf_read_new_PgfCncCat(GuType* type, PgfReader* rdr, GuPool* pool,
 	PgfCId cid = *(PgfCId*) rdr->curr_key;
 	gu_enter("-> cid");
 	(void) (type && size_out);
-	PgfCncCat* cnccat = gu_new(pool, PgfCncCat);
+	PgfCncCat* cnccat = gu_new(PgfCncCat, pool);
 	cnccat->cid = cid;
 	int first = pgf_read_int(rdr);
 	int last = pgf_read_int(rdr);
@@ -820,7 +820,7 @@ pgf_read_new_table = GU_TYPETABLE(
 static PgfReader*
 pgf_reader_new(GuIn* in, GuPool* opool, GuPool* pool, GuError* err)
 {
-	PgfReader* rdr = gu_new(pool, PgfReader);
+	PgfReader* rdr = gu_new(PgfReader, pool);
 	rdr->opool = opool;
 	rdr->symtab = gu_new_symtable(opool, pool);
 	rdr->err = err;

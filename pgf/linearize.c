@@ -251,7 +251,7 @@ pgf_lzr_index_cnccat_cb(GuMapItor* fn, const void* key, void* value,
 PgfLzr*
 pgf_lzr_new(GuPool* pool, PgfPGF* pgf, PgfConcr* cnc)
 {
-	PgfLzr* lzr = gu_new(pool, PgfLzr);
+	PgfLzr* lzr = gu_new(PgfLzr, pool);
 	lzr->pgf = pgf;
 	lzr->cnc = cnc;
 	lzr->pool = pool;
@@ -444,7 +444,7 @@ pgf_lzn_infer(PgfLzn* lzn, PgfExpr expr, GuPool* pool, PgfLinForm* form_out)
 PgfLzn*
 pgf_lzn_new(PgfLzr* lzr, PgfExpr expr, GuPool* pool)
 {
-	PgfLzn* lzn = gu_new(pool, PgfLzn);
+	PgfLzn* lzn = gu_new(PgfLzn, pool);
 	lzn->lzr = lzr;
 	lzn->expr = expr;
 	lzn->ch = gu_choice_new(pool);

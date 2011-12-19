@@ -8,7 +8,7 @@ struct GuIntern {
 GuIntern*
 gu_intern_new(GuPool* pool, GuPool* str_pool)
 {
-	GuIntern* intern = gu_new(pool, GuIntern);
+	GuIntern* intern = gu_new(GuIntern, pool);
 	intern->str_pool = str_pool;
 	intern->map = gu_new_set(const char*, gu_str_hasher, pool);
 	return intern;
@@ -37,7 +37,7 @@ struct GuSymTable {
 GuSymTable*
 gu_new_symtable(GuPool* sym_pool, GuPool* pool)
 {
-	GuSymTable* tab = gu_new(pool, GuSymTable);
+	GuSymTable* tab = gu_new(GuSymTable, pool);
 	tab->sym_pool = sym_pool;
 	tab->map = gu_new_set(GuSymbol, gu_string_hasher, pool);
 	return tab;

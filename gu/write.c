@@ -31,7 +31,7 @@ GuWriter*
 gu_make_utf8_writer(GuOut* utf8_out, GuPool* pool)
 {
 	GuOutStream* stream = gu_out_proxy_stream(utf8_out, pool);
-	GuWriter* wtr = gu_new(pool, GuWriter);
+	GuWriter* wtr = gu_new(GuWriter, pool);
 	wtr->out_ = gu_init_out(stream);
 	return wtr;
 }

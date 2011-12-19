@@ -92,7 +92,7 @@ struct GuYaml {
 GuYaml*
 gu_new_yaml(GuWriter* wtr, GuError* err, GuPool* pool)
 {
-	GuYaml* yaml = gu_new(pool, GuYaml);
+	GuYaml* yaml = gu_new(GuYaml, pool);
 	yaml->wtr = wtr;
 	yaml->pool = pool;
 	yaml->err = err;

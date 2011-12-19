@@ -309,7 +309,7 @@ gu_malloc_aligned(GuPool* pool, size_t size, size_t align)
 void 
 gu_pool_finally(GuPool* pool, GuFinalizer* finalizer)
 {
-	GuFinalizerNode* node = gu_new(pool, GuFinalizerNode);
+	GuFinalizerNode* node = gu_new(GuFinalizerNode, pool);
 	node->next = pool->finalizers;
 	node->fin = finalizer;
 	pool->finalizers = node;

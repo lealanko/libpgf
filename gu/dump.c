@@ -9,7 +9,7 @@
 GuDump*
 gu_new_dump(GuWriter* wtr, GuTypeTable* dumpers, GuError* err, GuPool* pool)
 {
-	GuDump* ctx = gu_new(pool, GuDump);
+	GuDump* ctx = gu_new(GuDump, pool);
 	ctx->pool = pool;
 	if (dumpers == NULL) {
 		dumpers = &gu_dump_table;
