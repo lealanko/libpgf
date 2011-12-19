@@ -11,7 +11,7 @@ const char* const gu_null_str = NULL;
 char* 
 gu_new_str(size_t size, GuPool* pool)
 {
-	char* str = gu_new_n(pool, char, size + 1);
+	char* str = gu_new_n(char, size + 1, pool);
 	memset(str, '\0', size + 1);
 	return str;
 }

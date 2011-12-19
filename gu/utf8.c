@@ -195,7 +195,7 @@ void gu_str_out_utf8_(const char* str, GuOut* out, GuError* err)
 		buf = NULL;
 	}
 	GuPool* tmp_pool = buf ? NULL : gu_local_pool();
-	buf = buf ? buf : gu_new_n(tmp_pool, uint8_t, len);
+	buf = buf ? buf : gu_new_n(uint8_t, len, tmp_pool);
 	for (size_t i = 0; i < len; i++) {
 		GuUCS ucs = gu_char_ucs(str[i]);
 		buf[i] = (uint8_t) ucs;

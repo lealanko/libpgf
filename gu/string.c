@@ -76,7 +76,7 @@ gu_string_reader(GuString s, GuPool* pool)
 	size_t len = 0;
 	if (w & 1) {
 		len = (w & 0xff) >> 1;
-		buf = gu_new_n(pool, uint8_t, len);
+		buf = gu_new_n(uint8_t, len, pool);
 		for (int i = len - 1; i >= 0; i--) {
 			w >>= 8;
 			buf[i] = w & 0xff;
