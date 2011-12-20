@@ -26,7 +26,7 @@ int main(int argc, char* argv[]) {
 		status = EXIT_FAILURE;
 		goto fail;
 	}
-	GuError* err = gu_new_error(NULL, gu_kind(GuEOF), pool);
+	GuExn* err = gu_new_exn(NULL, gu_kind(GuEOF), pool);
 	GuFile* inf = gu_file(infile, pool);
 	PgfPGF* pgf = pgf_read(&inf->in, pool, err);
 	if (!gu_ok(err)) {

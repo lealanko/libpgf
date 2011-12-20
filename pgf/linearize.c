@@ -230,7 +230,7 @@ typedef struct {
 
 static void
 pgf_lzr_index_cnccat_cb(GuMapItor* fn, const void* key, void* value,
-			GuError* err)
+			GuExn* err)
 {
 	(void) (key && err);
 	PgfLzrIndexFn* clo = (PgfLzrIndexFn*) fn;
@@ -568,7 +568,7 @@ typedef struct PgfSimpleLin PgfSimpleLin;
 struct PgfSimpleLin {
 	PgfLinFuncs* funcs;
 	GuWriter* wtr;
-	GuError* err;
+	GuExn* err;
 };
 
 static void
@@ -592,7 +592,7 @@ static PgfLinFuncs pgf_file_lin_funcs = {
 
 void
 pgf_lzr_linearize_simple(PgfLzr* lzr, PgfLinForm form,
-			 int lin_idx, GuWriter* wtr, GuError* err)
+			 int lin_idx, GuWriter* wtr, GuExn* err)
 {
 	PgfSimpleLin flin = {
 		.funcs = &pgf_file_lin_funcs,

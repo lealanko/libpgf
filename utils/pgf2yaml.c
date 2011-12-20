@@ -6,7 +6,7 @@
 
 int main(void) {
 	GuPool* pool = gu_new_pool();
-	GuError* err = gu_error(NULL, type, pool);
+	GuExn* err = gu_exn(NULL, type, pool);
 	GuIn* in = gu_file_in(stdin, pool);
 	PgfPGF* pgf = pgf_read(in, pool, err);
 	int status = 0;

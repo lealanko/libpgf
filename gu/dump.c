@@ -7,7 +7,7 @@
 #include <gu/file.h>
 
 GuDump*
-gu_new_dump(GuWriter* wtr, GuTypeTable* dumpers, GuError* err, GuPool* pool)
+gu_new_dump(GuWriter* wtr, GuTypeTable* dumpers, GuExn* err, GuPool* pool)
 {
 	GuDump* ctx = gu_new(GuDump, pool);
 	ctx->pool = pool;
@@ -35,7 +35,7 @@ gu_dump(GuType* type, const void* value, GuDump* ctx)
 }
 
 void
-gu_dump_stderr(GuType* type, const void* value, GuError* err)
+gu_dump_stderr(GuType* type, const void* value, GuExn* err)
 {
 	GuPool* pool = gu_new_pool();
 	GuOut* out = gu_file_out(stderr, pool);
@@ -177,7 +177,7 @@ typedef struct {
 } GuDumpMapFn;
 
 static void
-gu_dump_map_itor(GuMapItor* self, const void* key, void* value, GuError* err)
+gu_dump_map_itor(GuMapItor* self, const void* key, void* value, GuExn* err)
 {
 	(void) err;
 	GuDumpMapFn* clo = (GuDumpMapFn*) self;

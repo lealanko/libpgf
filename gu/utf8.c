@@ -25,7 +25,7 @@ gu_utf8_decode(const uint8_t** src_inout)
 }
 
 GuUCS
-gu_in_utf8_(GuIn* in, GuError* err)
+gu_in_utf8_(GuIn* in, GuExn* err)
 {
 	uint8_t c = gu_in_u8(in, err);
 	if (!gu_ok(err)) {
@@ -47,7 +47,7 @@ gu_in_utf8_(GuIn* in, GuError* err)
 	uint8_t buf[3];
 	// If reading the extra bytes causes EOF, it is an encoding
 	// error, not a legitimate end of character stream.
-	GuError* tmp_err = gu_error(err, GuEOF, NULL);
+	GuExn* tmp_err = gu_exn(err, GuEOF, NULL);
 	gu_in_bytes(in, buf, len, tmp_err);
 	if (tmp_err->caught) {
 		goto fail;
@@ -69,7 +69,7 @@ gu_in_utf8_(GuIn* in, GuError* err)
 	return ucs;
 
 fail:
-	gu_raise(err, GuUCSError);
+	gu_raise(err, GuUCSExn);
 	return 0;
 }
 
@@ -100,13 +100,13 @@ gu_advance_utf8(GuUCS ucs, uint8_t* buf)
 }
 
 char
-gu_in_utf8_char_(GuIn* in, GuError* err)
+gu_in_utf8_char_(GuIn* in, GuExn* err)
 {
 	return gu_ucs_char(gu_in_utf8(in, err), err);
 }
 
 void
-gu_out_utf8_long_(GuUCS ucs, GuOut* out, GuError* err)
+gu_out_utf8_long_(GuUCS ucs, GuOut* out, GuExn* err)
 {
 	uint8_t buf[4];
 	size_t sz = gu_advance_utf8(ucs, buf);
@@ -126,11 +126,11 @@ gu_out_utf8_long_(GuUCS ucs, GuOut* out, GuError* err)
 }
 
 extern inline void
-gu_out_utf8(GuUCS ucs, GuOut* out, GuError* err);
+gu_out_utf8(GuUCS ucs, GuOut* out, GuExn* err);
 
 static size_t 
 gu_utf32_out_utf8_buffered_(const GuUCS* src, size_t len, GuOut* out, 
-			    GuError* err)
+			    GuExn* err)
 {
 	size_t src_i = 0;
 	while (src_i < len) {
@@ -165,7 +165,7 @@ gu_utf32_out_utf8_buffered_(const GuUCS* src, size_t len, GuOut* out,
 }
 
 size_t
-gu_utf32_out_utf8(const GuUCS* src, size_t len, GuOut* out, GuError* err)
+gu_utf32_out_utf8(const GuUCS* src, size_t len, GuOut* out, GuExn* err)
 {
 	if (gu_out_is_buffered(out)) {
 		return gu_utf32_out_utf8_buffered_(src, len, out, err);
@@ -182,7 +182,7 @@ gu_utf32_out_utf8(const GuUCS* src, size_t len, GuOut* out, GuError* err)
 
 #ifndef GU_CHAR_ASCII
 
-void gu_str_out_utf8_(const char* str, GuOut* out, GuError* err)
+void gu_str_out_utf8_(const char* str, GuOut* out, GuExn* err)
 {
 	size_t len = strlen(str);
 	size_t sz = 0;
@@ -211,10 +211,10 @@ void gu_str_out_utf8_(const char* str, GuOut* out, GuError* err)
 #endif
 
 extern inline void 
-gu_str_out_utf8(const char* str, GuOut* out, GuError* err);
+gu_str_out_utf8(const char* str, GuOut* out, GuExn* err);
 
 extern inline GuUCS
-gu_in_utf8(GuIn* in, GuError* err);
+gu_in_utf8(GuIn* in, GuExn* err);
 
 extern inline char
-gu_in_utf8_char(GuIn* in, GuError* err);
+gu_in_utf8_char(GuIn* in, GuExn* err);

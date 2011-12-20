@@ -3,7 +3,7 @@
 
 #include <gu/defs.h>
 #include <gu/assert.h>
-#include <gu/error.h>
+#include <gu/exn.h>
 
 typedef struct GuOut GuOut;
 
@@ -11,11 +11,11 @@ typedef struct GuOutStream GuOutStream;
 
 struct GuOutStream {
 	uint8_t* (*begin_buf)(GuOutStream* self, size_t req, size_t* sz_out,
-			      GuError* err);
-	void (*end_buf)(GuOutStream* self, size_t span, GuError* err);
+			      GuExn* err);
+	void (*end_buf)(GuOutStream* self, size_t span, GuExn* err);
 	size_t (*output)(GuOutStream* self, const uint8_t* buf, size_t size,
-			 GuError* err);
-	void (*flush)(GuOutStream* self, GuError* err);
+			 GuExn* err);
+	void (*flush)(GuOutStream* self, GuExn* err);
 };
 
 
@@ -50,18 +50,18 @@ GuOut*
 gu_out_buffered(GuOut* out, GuPool* pool);
 
 uint8_t*
-gu_out_begin_span(GuOut* out, size_t req, size_t* sz_out, GuError* err);
+gu_out_begin_span(GuOut* out, size_t req, size_t* sz_out, GuExn* err);
 
 uint8_t*
 gu_out_force_span(GuOut* out, size_t min, size_t max, size_t* sz_out,
-		  GuError* err);
+		  GuExn* err);
 
 void
 gu_out_end_span(GuOut* out, size_t sz);
 
 size_t
 gu_out_bytes_(GuOut* restrict out, const uint8_t* restrict src, 
-	      size_t len, GuError* err);
+	      size_t len, GuExn* err);
 
 inline bool
 gu_out_try_buf_(GuOut* restrict out, const uint8_t* restrict src, size_t len)
@@ -79,7 +79,7 @@ gu_out_try_buf_(GuOut* restrict out, const uint8_t* restrict src, size_t len)
 
 inline size_t
 gu_out_bytes(GuOut* restrict out, const uint8_t* restrict src, size_t len, 
-	     GuError* err)
+	     GuExn* err)
 {
 	if (GU_LIKELY(gu_out_try_buf_(out, src, len))) {
 		return len;
@@ -88,7 +88,7 @@ gu_out_bytes(GuOut* restrict out, const uint8_t* restrict src, size_t len,
 }
 
 void
-gu_out_flush(GuOut* out, GuError* err);
+gu_out_flush(GuOut* out, GuExn* err);
 
 inline bool
 gu_out_try_u8_(GuOut* restrict out, uint8_t u)
@@ -104,17 +104,17 @@ gu_out_try_u8_(GuOut* restrict out, uint8_t u)
 }
 
 inline void
-gu_out_u8(GuOut* restrict out, uint8_t u, GuError* err)
+gu_out_u8(GuOut* restrict out, uint8_t u, GuExn* err)
 {
 	if (GU_UNLIKELY(!gu_out_try_u8_(out, u))) {
 		extern void gu_out_u8_(GuOut* restrict out, uint8_t u, 
-				       GuError* err);
+				       GuExn* err);
 		gu_out_u8_(out, u, err);
 	}
 }
 
 inline void
-gu_out_s8(GuOut* restrict out, int8_t i, GuError* err)
+gu_out_s8(GuOut* restrict out, int8_t i, GuExn* err)
 {
 	gu_out_u8(out, (uint8_t) i, err);
 }
@@ -122,45 +122,45 @@ gu_out_s8(GuOut* restrict out, int8_t i, GuError* err)
 
 
 void
-gu_out_u16le(GuOut* out, uint16_t u, GuError* err);
+gu_out_u16le(GuOut* out, uint16_t u, GuExn* err);
 
 void
-gu_out_u16be(GuOut* out, uint16_t u, GuError* err);
+gu_out_u16be(GuOut* out, uint16_t u, GuExn* err);
 
 void
-gu_out_s16le(GuOut* out, int16_t u, GuError* err);
+gu_out_s16le(GuOut* out, int16_t u, GuExn* err);
 
 void
-gu_out_s16be(GuOut* out, int16_t u, GuError* err);
+gu_out_s16be(GuOut* out, int16_t u, GuExn* err);
 
 void
-gu_out_u32le(GuOut* out, uint32_t u, GuError* err);
+gu_out_u32le(GuOut* out, uint32_t u, GuExn* err);
 
 void
-gu_out_u32be(GuOut* out, uint32_t u, GuError* err);
+gu_out_u32be(GuOut* out, uint32_t u, GuExn* err);
 
 void
-gu_out_s32le(GuOut* out, int32_t u, GuError* err);
+gu_out_s32le(GuOut* out, int32_t u, GuExn* err);
 
 void
-gu_out_s32be(GuOut* out, int32_t u, GuError* err);
+gu_out_s32be(GuOut* out, int32_t u, GuExn* err);
 
 void
-gu_out_u64le(GuOut* out, uint64_t u, GuError* err);
+gu_out_u64le(GuOut* out, uint64_t u, GuExn* err);
 
 void
-gu_out_u64be(GuOut* out, uint64_t u, GuError* err);
+gu_out_u64be(GuOut* out, uint64_t u, GuExn* err);
 
 void
-gu_out_s64le(GuOut* out, int64_t u, GuError* err);
+gu_out_s64le(GuOut* out, int64_t u, GuExn* err);
 
 void
-gu_out_s64be(GuOut* out, int64_t u, GuError* err);
+gu_out_s64be(GuOut* out, int64_t u, GuExn* err);
 
 void
-gu_out_f64le(GuOut* out, double d, GuError* err);
+gu_out_f64le(GuOut* out, double d, GuExn* err);
 
 void
-gu_out_f64be(GuOut* out, double d, GuError* err);
+gu_out_f64be(GuOut* out, double d, GuExn* err);
 
 #endif // GU_OUT_H_

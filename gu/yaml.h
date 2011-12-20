@@ -11,7 +11,7 @@ typedef int GuYamlAnchor;
 
 extern const GuYamlAnchor gu_yaml_null_anchor;
 
-GuYaml* gu_new_yaml(GuWriter* wtr, GuError* err, GuPool* pool);
+GuYaml* gu_new_yaml(GuWriter* wtr, GuExn* err, GuPool* pool);
 
 GuYamlAnchor gu_yaml_anchor(GuYaml* yaml);
 

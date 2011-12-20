@@ -9,7 +9,7 @@ int main(void)
 	
 	GuPool* pool = gu_new_pool();
 	GuFile* outf = gu_file(stdout, pool);
-	GuError* err = gu_error(NULL, type, NULL);
+	GuExn* err = gu_exn(NULL, type, NULL);
 	GuWriter* owtr = gu_locale_writer(&outf->out, pool);
 	GuYaml* yaml = gu_new_yaml(owtr, err, pool);
 

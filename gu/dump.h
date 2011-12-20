@@ -19,13 +19,13 @@ struct GuDump {
 typedef void (*GuDumpFn)(GuFn* self, GuType* type, const void* value, GuDump* ctx);
 
 GuDump*
-gu_new_dump(GuWriter* wtr, GuTypeTable* dumpers, GuError* err, GuPool* pool);
+gu_new_dump(GuWriter* wtr, GuTypeTable* dumpers, GuExn* err, GuPool* pool);
 
 void
 gu_dump(GuType* type, const void* value, GuDump* ctx);
 
 void
-gu_dump_stderr(GuType* type, const void* value, GuError* err);
+gu_dump_stderr(GuType* type, const void* value, GuExn* err);
 
 extern GuTypeTable
 gu_dump_table;

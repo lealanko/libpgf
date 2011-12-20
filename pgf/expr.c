@@ -109,7 +109,7 @@ typedef struct PgfExprParser PgfExprParser;
 struct PgfExprParser {
 	GuReader* rdr;
 	GuIntern* intern;
-	GuError* err;
+	GuExn* err;
 	GuPool* expr_pool;
 	const char* lookahead;
 	int next_char;
@@ -244,7 +244,7 @@ pgf_expr_parser_expr(PgfExprParser* parser)
 
 
 PgfExpr
-pgf_read_expr(GuReader* rdr, GuPool* pool, GuError* err)
+pgf_read_expr(GuReader* rdr, GuPool* pool, GuExn* err)
 {
 	GuPool* tmp_pool = gu_new_pool();
 	PgfExprParser* parser = gu_new(PgfExprParser, tmp_pool);
@@ -267,7 +267,7 @@ pgf_read_expr(GuReader* rdr, GuPool* pool, GuError* err)
 
 static void
 pgf_expr_print_with_paren(PgfExpr expr, bool need_paren,
-			  GuWriter* wtr, GuError* err)
+			  GuWriter* wtr, GuExn* err)
 {
 	GuVariantInfo ei = gu_variant_open(expr);
 	switch (ei.tag) {
@@ -303,6 +303,6 @@ pgf_expr_print_with_paren(PgfExpr expr, bool need_paren,
 }
 
 void
-pgf_expr_print(PgfExpr expr, GuWriter* wtr, GuError* err) {
+pgf_expr_print(PgfExpr expr, GuWriter* wtr, GuExn* err) {
 	pgf_expr_print_with_paren(expr, false, wtr, err);
 }

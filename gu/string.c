@@ -146,7 +146,7 @@ gu_string_copy(GuString string, GuPool* pool)
 
 
 void
-gu_string_write(GuString s, GuWriter* wtr, GuError* err)
+gu_string_write(GuString s, GuWriter* wtr, GuExn* err)
 {
 	GuWord w = s.w_;
 	uint8_t buf[sizeof(GuWord)];

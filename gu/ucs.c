@@ -2,7 +2,7 @@
 #include <gu/assert.h>
 #include "config.h"
 
-GU_DEFINE_TYPE(GuUCSError, abstract, _);
+GU_DEFINE_TYPE(GuUCSExn, abstract, _);
 
 
 #ifdef GU_CHAR_ASCII
@@ -24,7 +24,7 @@ gu_char_is_valid(char c)
 }
 
 char
-gu_ucs_char(GuUCS uc, GuError* err)
+gu_ucs_char(GuUCS uc, GuExn* err)
 {
 	if (0 <= uc && uc <= 127) {
 		char c = (char) uc;
@@ -32,7 +32,7 @@ gu_ucs_char(GuUCS uc, GuError* err)
 			return c;
 		}
 	}
-	gu_raise(err, GuUCSError);
+	gu_raise(err, GuUCSExn);
 	return 0;
 }
 
@@ -80,7 +80,7 @@ gu_char_is_valid(char c)
 }
 
 char
-gu_ucs_char(GuUCS uc, GuError* err)
+gu_ucs_char(GuUCS uc, GuExn* err)
 {
 	if (uc == 0) {
 		return '\0';
@@ -90,20 +90,20 @@ gu_ucs_char(GuUCS uc, GuError* err)
 			return (unsigned char) c;
 		}
 	}
-	gu_raise(err, GuUCSError);
+	gu_raise(err, GuUCSExn);
 	return 0;
 }
 
 #endif
 
 size_t
-gu_str_to_ucs(const char* cbuf, size_t len, GuUCS* ubuf, GuError* err)
+gu_str_to_ucs(const char* cbuf, size_t len, GuUCS* ubuf, GuExn* err)
 {
 	size_t n = 0;
 	while (n < len) {
 		char c = cbuf[n];
 		if (!gu_char_is_valid(c)) {
-			gu_raise(err, GuUCSError);
+			gu_raise(err, GuUCSExn);
 			return n;
 		}
 		ubuf[n] = gu_char_ucs(c);
@@ -113,7 +113,7 @@ gu_str_to_ucs(const char* cbuf, size_t len, GuUCS* ubuf, GuError* err)
 }
 
 size_t
-gu_ucs_to_str(const GuUCS* ubuf, size_t len, char* cbuf, GuError* err)
+gu_ucs_to_str(const GuUCS* ubuf, size_t len, char* cbuf, GuExn* err)
 {
 	size_t n = 0;
 	while (n < len) {

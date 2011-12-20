@@ -32,7 +32,7 @@ GuString
 gu_string_copy(GuString string, GuPool* pool);
 
 void
-gu_string_write(GuString string, GuWriter* wtr, GuError* err);
+gu_string_write(GuString string, GuWriter* wtr, GuExn* err);
 
 GuReader*
 gu_string_reader(GuString string, GuPool* pool);

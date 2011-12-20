@@ -8,7 +8,7 @@ struct GuFileOutStream {
 };
 
 static size_t
-gu_file_output(GuOutStream* stream, const uint8_t* buf, size_t len, GuError* err)
+gu_file_output(GuOutStream* stream, const uint8_t* buf, size_t len, GuExn* err)
 {
 	GuFileOutStream* fos = gu_container(stream, GuFileOutStream, stream);
 	errno = 0;
@@ -22,7 +22,7 @@ gu_file_output(GuOutStream* stream, const uint8_t* buf, size_t len, GuError* err
 }
 
 static void
-gu_file_flush(GuOutStream* stream, GuError* err)
+gu_file_flush(GuOutStream* stream, GuExn* err)
 {
 	GuFileOutStream* fos = gu_container(stream, GuFileOutStream, stream);
 	errno = 0;
@@ -50,7 +50,7 @@ struct GuFileInStream {
 };
 
 static size_t 
-gu_file_input(GuInStream* stream, uint8_t* buf, size_t sz, GuError* err)
+gu_file_input(GuInStream* stream, uint8_t* buf, size_t sz, GuExn* err)
 {
 	GuFileInStream* fis = gu_container(stream, GuFileInStream, stream);
 	errno = 0;

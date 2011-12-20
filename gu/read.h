@@ -12,13 +12,13 @@ struct GuReader {
 };
 
 inline GuUCS
-gu_read_ucs(GuReader* rdr, GuError* err)
+gu_read_ucs(GuReader* rdr, GuExn* err)
 {
 	return gu_in_utf8(&rdr->in_, err);
 }
 
 inline char
-gu_getc(GuReader* rdr, GuError* err)
+gu_getc(GuReader* rdr, GuExn* err)
 {
 	return gu_in_utf8_char(&rdr->in_, err);
 }

@@ -171,7 +171,7 @@ struct GuBufOut
 
 static size_t
 gu_buf_out_output(GuOutStream* stream, const uint8_t* src, size_t sz,
-		  GuError* err)
+		  GuExn* err)
 {
 	(void) err;
 	GuBufOut* bout = gu_container(stream, GuBufOut, stream);
@@ -183,7 +183,7 @@ gu_buf_out_output(GuOutStream* stream, const uint8_t* src, size_t sz,
 }
 
 static uint8_t*
-gu_buf_outbuf_begin(GuOutStream* stream, size_t req, size_t* sz_out, GuError* err)
+gu_buf_outbuf_begin(GuOutStream* stream, size_t req, size_t* sz_out, GuExn* err)
 {
 	(void) req;
 	(void) err;
@@ -199,7 +199,7 @@ gu_buf_outbuf_begin(GuOutStream* stream, size_t req, size_t* sz_out, GuError* er
 }
 
 static void
-gu_buf_outbuf_end(GuOutStream* stream, size_t sz, GuError* err)
+gu_buf_outbuf_end(GuOutStream* stream, size_t sz, GuExn* err)
 {
 	(void) err;
 	GuBufOut* bout = gu_container(stream, GuBufOut, stream);

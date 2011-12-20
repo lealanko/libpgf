@@ -75,7 +75,7 @@ typedef GuBuf GuYamlStack;
 
 struct GuYaml {
 	GuWriter* wtr;
-	GuError* err;
+	GuExn* err;
 	GuPool* pool;
 	GuYamlState* state;
 	bool in_node;
@@ -90,7 +90,7 @@ struct GuYaml {
 
 
 GuYaml*
-gu_new_yaml(GuWriter* wtr, GuError* err, GuPool* pool)
+gu_new_yaml(GuWriter* wtr, GuExn* err, GuPool* pool)
 {
 	GuYaml* yaml = gu_new(GuYaml, pool);
 	yaml->wtr = wtr;
@@ -224,7 +224,7 @@ gu_yaml_scalar(GuYaml* yaml, GuString s)
 	gu_yaml_putc(yaml, '"');
 	GuPool* tmp_pool = gu_local_pool();
 	GuReader* rdr = gu_string_reader(s, tmp_pool);
-	GuError* err = gu_error(yaml->err, GuEOF, NULL);
+	GuExn* err = gu_exn(yaml->err, GuEOF, NULL);
 	
 	static const char esc[0x20] = {
 		[0x00] = '0',

@@ -80,9 +80,9 @@ pgf_expr_unapply(PgfExpr expr, GuPool* pool);
 
 
 PgfExpr
-pgf_read_expr(GuReader* rdr, GuPool* pool, GuError* err);
+pgf_read_expr(GuReader* rdr, GuPool* pool, GuExn* err);
 
 void
-pgf_expr_print(PgfExpr expr, GuWriter* wtr, GuError* err);
+pgf_expr_print(PgfExpr expr, GuWriter* wtr, GuExn* err);
 
 #endif /* EXPR_H_ */

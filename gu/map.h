@@ -3,13 +3,13 @@
 
 #include <gu/hash.h>
 #include <gu/mem.h>
-#include <gu/error.h>
+#include <gu/exn.h>
 
 typedef const struct GuMapItor GuMapItor;
 
 struct GuMapItor {
 	void (*fn)(GuMapItor* self, const void* key, void* value,
-		   GuError *err);
+		   GuExn *err);
 };
 
 typedef struct GuMap GuMap;
@@ -69,7 +69,7 @@ gu_map_insert(GuMap* ht, const void* key);
 	GU_END
 
 void
-gu_map_iter(GuMap* ht, GuMapItor* itor, GuError* err);
+gu_map_iter(GuMap* ht, GuMapItor* itor, GuExn* err);
 
 
 typedef GuMap GuIntMap;

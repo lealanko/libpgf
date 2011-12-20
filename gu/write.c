@@ -2,14 +2,14 @@
 
 
 size_t
-gu_utf32_write(const GuUCS* src, size_t len, GuWriter* wtr, GuError* err)
+gu_utf32_write(const GuUCS* src, size_t len, GuWriter* wtr, GuExn* err)
 {
 	return gu_utf32_out_utf8(src, len, &wtr->out_, err);
 }
 
 
 void
-gu_vprintf(const char* fmt, va_list args, GuWriter* wtr, GuError* err)
+gu_vprintf(const char* fmt, va_list args, GuWriter* wtr, GuExn* err)
 {
 	GuPool* tmp_pool = gu_local_pool();
 	char* str = gu_vasprintf(fmt, args, tmp_pool);
@@ -18,7 +18,7 @@ gu_vprintf(const char* fmt, va_list args, GuWriter* wtr, GuError* err)
 }
 
 void
-gu_printf(GuWriter* wtr, GuError* err, const char* fmt, ...)
+gu_printf(GuWriter* wtr, GuExn* err, const char* fmt, ...)
 {
 	va_list args;
 	va_start(args, fmt);
@@ -56,7 +56,7 @@ struct GuLocaleWriter {
 
 size_t
 gu_locale_writer_write(GuWriter* wtr, const uint8_t* utf8_src, size_t sz, 
-		       GuError* err)
+		       GuExn* err)
 {
 	GuLocaleWriter* lwtr = (GuLocaleWriter*) wtr;
 	size_t done = 0;
@@ -90,7 +90,7 @@ gu_locale_writer_write(GuWriter* wtr, const uint8_t* utf8_src, size_t sz,
 			*p = (uint8_t) gu_ucs_char(buf[n], err);
 			size_t nb = 1;
 			if (!gu_ok(err)) {
-				gu_error_clear(err);
+				gu_exn_clear(err);
 				nb = (size_t) -1;
 			}
 #endif
@@ -122,7 +122,7 @@ gu_locale_writer_write(GuWriter* wtr, const uint8_t* utf8_src, size_t sz,
 			*p = (uint8_t) gu_ucs_char(buf[n], err);
 			size_t nb = 1;
 			if (!gu_ok(err)) {
-				gu_error_clear(err);
+				gu_exn_clear(err);
 				nb = (size_t) -1;
 			}
 #endif
@@ -158,17 +158,17 @@ gu_locale_writer(GuOut* out, GuPool* pool)
 #endif
 
 extern inline void
-gu_ucs_write(GuUCS ucs, GuWriter* wtr, GuError* err);
+gu_ucs_write(GuUCS ucs, GuWriter* wtr, GuExn* err);
 
 extern inline void
-gu_writer_flush(GuWriter* wtr, GuError* err);
+gu_writer_flush(GuWriter* wtr, GuExn* err);
 
 extern inline void
-gu_putc(char c, GuWriter* wtr, GuError* err);
+gu_putc(char c, GuWriter* wtr, GuExn* err);
 
 extern inline void
-gu_puts(const char* str, GuWriter* wtr, GuError* err);
+gu_puts(const char* str, GuWriter* wtr, GuExn* err);
 
 extern inline size_t
-gu_utf8_write(const uint8_t* src, size_t sz, GuWriter* wtr, GuError* err);
+gu_utf8_write(const uint8_t* src, size_t sz, GuWriter* wtr, GuExn* err);
 

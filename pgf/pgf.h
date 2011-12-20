@@ -25,7 +25,7 @@
 #ifndef PGF_H_
 #define PGF_H_
 
-#include <gu/error.h>
+#include <gu/exn.h>
 #include <gu/mem.h>
 #include <gu/in.h>
 
@@ -39,7 +39,7 @@ typedef struct PgfPGF PgfPGF;
 
 
 PgfPGF*
-pgf_read(GuIn* in, GuPool* pool, GuError* err); 
+pgf_read(GuIn* in, GuPool* pool, GuExn* err); 
 
 /**< Read a grammar from a PGF file.
  *
@@ -51,8 +51,8 @@ pgf_read(GuIn* in, GuPool* pool, GuError* err);
  * @param[out] err_out  Raised error.
  * If non-\c NULL, \c *err_out should be \c NULL. Then, upon
  * failure, \c *err_out is set to point to a newly allocated
- * error object, which the caller must free with #g_error_free
- * or #g_error_propagate.
+ * error object, which the caller must free with #g_exn_free
+ * or #g_exn_propagate.
  *
  * @return A new PGF object, or \c NULL upon failure. The returned
  * object must later be freed with #pgf_free.

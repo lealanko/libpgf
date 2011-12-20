@@ -282,7 +282,7 @@ gu_map_insert(GuMap* map, const void* key)
 }
 
 void
-gu_map_iter(GuMap* map, GuMapItor* itor, GuError* err)
+gu_map_iter(GuMap* map, GuMapItor* itor, GuExn* err)
 {
 	for (size_t i = 0; i < map->data.n_entries && gu_ok(err); i++) {
 		if (gu_map_entry_is_free(map, &map->data, i)) {
