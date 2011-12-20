@@ -28,58 +28,76 @@
 #include <gu/defs.h>
 #include <gu/fun.h>
 
-typedef struct GuFinalizer GuFinalizer;
-
-struct GuFinalizer {
-	void (*fn)(GuFinalizer* self);
-};
-
-/// @name Memory pools
-/// @{
+/** @defgroup GuPool Memory pools
+ * @{ 
+ */
 
 typedef struct GuPool GuPool;
 /**< A memory pool. */
 
+/** @name Creating a pool 
+ * @{
+ */
 
 GU_ONLY GuPool*
 gu_new_pool(void);
 
 /**< Create a new memory pool.
  *
+ * @return A new memory pool.
  */
+
 
 GuPool*
 gu_local_pool_(uint8_t* init_buf, size_t sz);
+///< @private
 
 #define GU_LOCAL_POOL_INIT_SIZE (16 * sizeof(GuWord))
+///< @private
 
-#ifdef NDEBUG
 #define gu_local_pool()				\
 	gu_local_pool_(gu_alloca(GU_LOCAL_POOL_INIT_SIZE),	\
 		       GU_LOCAL_POOL_INIT_SIZE)
-#else
-#define gu_local_pool()				\
-	gu_new_pool()
-#endif
 
-void gu_pool_finally(GuPool* pool, GuFinalizer* finalize);
-/**< Register a function to be run when the pool is freed.
+/**< Create a stack-allocated memory pool.
+ * 
+ * @return A memory pool whose first chunk is allocated directly from
+ * the stack. This makes its creation faster, and more suitable for
+ * functions that usually allocate only a little memory from the pool
+ * until it is freed.
  *
- * @relates GuPool */
+ * @note The pool created with #gu_local_pool \e must be freed with
+ * #gu_pool_free before the end of the block where #gu_local_pool was
+ * called.
+ *
+ * @note Because #gu_local_pool uses relatively much stack space, it
+ * should not be used in the bodies of recursive functions.
+ */
 
+
+/** @}
+ * @name Destroying a pool
+ * @{
+ */
 
 void
 gu_pool_free(GU_ONLY GuPool* pool);
-/**< Free a memory pool.
+
+/**< Free a memory pool and all objects allocated from it.
  *
- * @relates GuPool */
+ * When the pool is freed, all finalizers registered by
+ * #gu_pool_finally on \p pool are invoked in reverse order of
+ * registration.
+ * 
+ * @note After the pool is freed, all objects allocated from it become
+ * invalid and may no longer be used.
+ */
 
 
-void
-gu_pool_attach(GuPool* child, GuPool* parent);
-/// @}
-
-
+/** @}
+ * @name Allocating from a pool
+ * @{
+ */
 
 void* 
 gu_malloc_aligned(GuPool* pool, size_t size, size_t alignment); 
@@ -112,18 +130,43 @@ gu_malloc_init_aligned(GuPool* pool, size_t size, size_t alignment,
 	memcpy(p, init, size);
 	return p;
 }
+/**< @private */
 
 static inline void*
 gu_malloc_init(GuPool* pool, size_t size, const void* init)
 {
 	return gu_malloc_init_aligned(pool, size, 0, init);
 }
+/**< @private */
+
 
 #define gu_new_n(type, n, pool)						\
 	((type*)gu_malloc_aligned((pool), sizeof(type) * (n), gu_alignof(type)))
+/**< Allocate memory to store an array of objects of a given type.
+ *
+ * @param type  The C type of the objects to allocate.
+ *
+ * @param n     The number of objects to allocate.
+ * 
+ * @param pool  The memory pool to allocate from.
+ *
+ * @return A pointer to a heap-allocated array of \p n uninitialized
+ * objects of type \p type.
+ */
+
 
 #define gu_new(type, pool) \
 	gu_new_n(type, 1, pool)
+/**< Allocate memory to store an object of a given type.
+ *
+ * @param type  The C type of the object to allocate.
+ *
+ * @param pool  The memory pool to allocate from.
+ *
+ * @return A pointer to a heap-allocated uninitialized object of type
+ * \p type.
+ */
+
 
 #define gu_new_prefixed(pre_type, type, pool)				\
 	((type*)(gu_malloc_prefixed((pool),				\
@@ -132,14 +175,6 @@ gu_malloc_init(GuPool* pool, size_t size, const void* init)
 
 
 	
-
-/**< Allocate memory to store an object of a given type.
- *
- * @hideinitializer
- *
- * @param pool  The memory pool to allocate from
- * @param type  The C type of the object to allocate
- * @relates GuPool */
 
 
 #ifdef GU_HAVE_STATEMENT_EXPRESSIONS
@@ -157,8 +192,18 @@ gu_malloc_init(GuPool* pool, size_t size, const void* init)
 				       &(type){ __VA_ARGS__ }))
 #endif // GU_HAVE_STATEMENT_EXPRESSIONS
 
-#define gu_new_s gu_new_i
+/** @def gu_new_i(pool, type, ...)
+ *
+ * Allocate and initialize an object.
+ *
+ * @param pool The pool to allocate from.
+ *
+ * @param type The C type of the object to allocate.
+ *
+ * @param ... An initializer list for the object to allocate.
+ */
 
+#define gu_new_s gu_new_i
 
 // Alas, there's no portable way to get the alignment of flex structs.
 #define gu_new_flex(pool_, type_, flex_member_, n_elems_)		\
@@ -168,19 +213,52 @@ gu_malloc_init(GuPool* pool, size_t size, const void* init)
 		gu_flex_alignof(type_)))
 
 
+/** @}
+ * @name Finalizers
+ * @{
+ */
 
-/// @name Miscellaneous
-/// @{
+typedef struct GuFinalizer GuFinalizer;
 
-size_t gu_mem_alignment(size_t size);
+struct GuFinalizer {
+	void (*fn)(GuFinalizer* self);
+	///< @param self A pointer to this finalizer.
+};
 
-/// @}
 
-GuPool* 
-gu_pool_init(void* p, size_t len, bool in_stack);
+void gu_pool_finally(GuPool* pool, GuFinalizer* fini);
+
+/**< Register \p fini to be called when \p pool is destroyed. The
+ * finalizers are called in reverse order of registration.
+ */
+
+
+/** @}
+ * @}
+ * @defgroup GuMemBuf Memory buffers
+ *
+ * Resizable blocks of heap-allocated memory. These operations differ
+ * from standard \c malloc, \c realloc and \c free -functions in that
+ * memory buffers are not allocated by exact size. Instead, a minimum
+ * size is requested, and the returned buffer may be larger. This
+ * gives the memory allocator more flexibility when the client code
+ * can make use of larger buffers than requested.
+ * 
+ * @{
+ */
 
 GU_ONLY void*
-gu_mem_buf_alloc(size_t min_size, size_t* real_size_out);
+gu_mem_buf_alloc(size_t min_size, size_t* real_size);
+
+/**< Allocate a new memory buffer.
+ *
+ * @param min_size The minimum acceptable size for a returned memory block.
+ *
+ * @param[out] real_size The actual size of the returned memory
+ * block. This is never less than \p min_size.
+ *
+ * @return A pointer to the memory buffer.
+ */
 
 GU_ONLY void*
 gu_mem_buf_realloc(
@@ -188,10 +266,16 @@ gu_mem_buf_realloc(
 	void* buf,
 	size_t min_size,
 	size_t* real_size_out);
+/**< Allocate a new memory buffer to replace an old one.
+ */
 
 void
 gu_mem_buf_free(GU_ONLY void* buf);
 
+/**< Free a memory buffer.
+ */
+
+/// @}
 
 
 

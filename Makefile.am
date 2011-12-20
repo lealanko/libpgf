@@ -48,6 +48,8 @@ pgfinclude_HEADERS = \
 	pgf/parser.h \
 	pgf/pgf.h 
 
+include_HEADERS = $(guinclude_HEADERS) $(pgfinclude_HEADERS)
+
 libgu_la_SOURCES = \
 	gu/assert.c \
 	gu/bits.c \

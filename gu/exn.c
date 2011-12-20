@@ -8,10 +8,10 @@ gu_new_exn(GuExn* parent, GuKind* catch, GuPool* pool)
 	return gu_new_s(pool, GuExn,
 			.parent = parent,
 			.catch = catch,
-			.pool = pool,
 			.state = GU_EXN_OK,
 			.caught = NULL,
-			.data = NULL);
+			.data.pool = pool,
+			.data.data = NULL);
 }
 
 void
@@ -30,7 +30,7 @@ gu_exn_unblock(GuExn* err)
 	}
 }
 
-GuExn*
+GuExnData*
 gu_exn_raise_debug_(GuExn* base, GuType* type, 
 		      const char* filename, const char* func, int lineno)
 {
@@ -53,13 +53,14 @@ gu_exn_raise_debug_(GuExn* base, GuType* type,
 	if (err->state == GU_EXN_OK) {
 		err->caught = type;
 		err->state = GU_EXN_RAISED;
-		return err;
-	} 
+		return &err->data;
+	}
+	// Exceptian had already been raised, possibly blocked.
 	err->state = GU_EXN_RAISED;
 	return NULL;
 }
 
-GuExn*
+GuExnData*
 gu_exn_raise_(GuExn* base, GuType* type)
 {
 	return gu_exn_raise_debug_(base, type, NULL, NULL, -1);

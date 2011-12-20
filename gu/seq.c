@@ -214,7 +214,7 @@ gu_buf_outbuf_end(GuOutStream* stream, size_t sz, GuExn* err)
 GuOut*
 gu_buf_out(GuBuf* buf, GuPool* pool)
 {
-	GuBufOut* bout = gu_new_s(pool, GuBufOut,
+	GuBufOut* bout = gu_new_i(pool, GuBufOut,
 				  .stream.output = gu_buf_out_output,
 				  .stream.begin_buf = gu_buf_outbuf_begin,
 				  .stream.end_buf = gu_buf_outbuf_end,
