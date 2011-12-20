@@ -49,14 +49,16 @@ gu_exn_raise_debug_(GuExn* base, GuType* type,
 		gu_abort_(GU_ASSERT_ASSERTION, filename, func, lineno,
 			  "Unexpected error raised");
 	}
-
-	if (err->state == GU_EXN_OK) {
-		err->caught = type;
-		err->state = GU_EXN_RAISED;
-		return &err->data;
-	}
-	// Exceptian had already been raised, possibly blocked.
+	GuExnState old_state = err->state;
 	err->state = GU_EXN_RAISED;
+	if (old_state == GU_EXN_OK) {
+		err->caught = type;
+		if (err->data.pool) {
+			return &err->data;
+		}
+	}
+	// Exceptian had already been raised, possibly blocked, or no
+	// exception value is required.
 	return NULL;
 }
 

@@ -28,39 +28,39 @@
 #include <gu/defs.h>
 #include <gu/fun.h>
 
-/** @defgroup GuPool Memory pools
- * @{ 
- */
+/** @defgroup GuPool Memory pools */
+//@{ 
 
+
+/// A memory pool.
 typedef struct GuPool GuPool;
-/**< A memory pool. */
 
-/** @name Creating a pool 
- * @{
- */
+/// @name Creating a pool 
+//@{
 
+
+/// Create a new memory pool.
 GU_ONLY GuPool*
 gu_new_pool(void);
 
-/**< Create a new memory pool.
- *
+/**< 
  * @return A new memory pool.
  */
 
 
+//@private
 GuPool*
 gu_local_pool_(uint8_t* init_buf, size_t sz);
-///< @private
 
+//@private
 #define GU_LOCAL_POOL_INIT_SIZE (16 * sizeof(GuWord))
-///< @private
 
+
+/// Create a stack-allocated memory pool.
 #define gu_local_pool()				\
 	gu_local_pool_(gu_alloca(GU_LOCAL_POOL_INIT_SIZE),	\
 		       GU_LOCAL_POOL_INIT_SIZE)
-
-/**< Create a stack-allocated memory pool.
- * 
+/**<
  * @return A memory pool whose first chunk is allocated directly from
  * the stack. This makes its creation faster, and more suitable for
  * functions that usually allocate only a little memory from the pool
@@ -75,54 +75,45 @@ gu_local_pool_(uint8_t* init_buf, size_t sz);
  */
 
 
-/** @}
- * @name Destroying a pool
- * @{
- */
+//@}
+/// @name Destroying a pool
+//@{
 
+
+/// Free a memory pool and all objects allocated from it.
 void
 gu_pool_free(GU_ONLY GuPool* pool);
-
-/**< Free a memory pool and all objects allocated from it.
- *
+/**<
  * When the pool is freed, all finalizers registered by
  * #gu_pool_finally on \p pool are invoked in reverse order of
  * registration.
  * 
  * @note After the pool is freed, all objects allocated from it become
- * invalid and may no longer be used.
- */
+ * invalid and may no longer be used. */
 
+//@}
+/// @name Allocating from a pool
+//@{
+ 
 
-/** @}
- * @name Allocating from a pool
- * @{
- */
-
+/// Allocate memory with a specified alignment.
 void* 
 gu_malloc_aligned(GuPool* pool, size_t size, size_t alignment); 
-
-/**< Allocate memory with a specified alignment.
- *
- */
 
 void*
 gu_malloc_prefixed(GuPool* pool, size_t pre_align, size_t pre_size,
 		   size_t align, size_t size);
 
-
+/// Allocate memory from a pool.
 inline void*
 gu_malloc(GuPool* pool, size_t size) {
 	return gu_malloc_aligned(pool, size, 0);
 }
-/**< Allocate memory.
- *
- */
-
 
 #include <string.h>
 
-inline void* 
+//@private
+static inline void*
 gu_malloc_init_aligned(GuPool* pool, size_t size, size_t alignment, 
 		       const void* init)
 {
@@ -130,20 +121,22 @@ gu_malloc_init_aligned(GuPool* pool, size_t size, size_t alignment,
 	memcpy(p, init, size);
 	return p;
 }
-/**< @private */
 
+//@private
 static inline void*
 gu_malloc_init(GuPool* pool, size_t size, const void* init)
 {
 	return gu_malloc_init_aligned(pool, size, 0, init);
 }
-/**< @private */
 
+
+/** Allocate memory to store an array of objects of a given type. */
 
 #define gu_new_n(type, n, pool)						\
-	((type*)gu_malloc_aligned((pool), sizeof(type) * (n), gu_alignof(type)))
-/**< Allocate memory to store an array of objects of a given type.
- *
+	((type*)gu_malloc_aligned((pool),				\
+				  sizeof(type) * (n),			\
+				  gu_alignof(type)))
+/**< 
  * @param type  The C type of the objects to allocate.
  *
  * @param n     The number of objects to allocate.
@@ -151,14 +144,15 @@ gu_malloc_init(GuPool* pool, size_t size, const void* init)
  * @param pool  The memory pool to allocate from.
  *
  * @return A pointer to a heap-allocated array of \p n uninitialized
- * objects of type \p type.
- */
+ * objects of type \p type. 
+ */ 
 
+
+/** Allocate memory to store an object of a given type. */
 
 #define gu_new(type, pool) \
 	gu_new_n(type, 1, pool)
-/**< Allocate memory to store an object of a given type.
- *
+/**< 
  * @param type  The C type of the object to allocate.
  *
  * @param pool  The memory pool to allocate from.
@@ -213,10 +207,10 @@ gu_malloc_init(GuPool* pool, size_t size, const void* init)
 		gu_flex_alignof(type_)))
 
 
-/** @}
- * @name Finalizers
- * @{
- */
+//@}
+/// @name Finalizers
+//@{
+
 
 typedef struct GuFinalizer GuFinalizer;
 
@@ -225,7 +219,7 @@ struct GuFinalizer {
 	///< @param self A pointer to this finalizer.
 };
 
-
+/// Register a finalizer.
 void gu_pool_finally(GuPool* pool, GuFinalizer* fini);
 
 /**< Register \p fini to be called when \p pool is destroyed. The
@@ -233,9 +227,10 @@ void gu_pool_finally(GuPool* pool, GuFinalizer* fini);
  */
 
 
-/** @}
- * @}
- * @defgroup GuMemBuf Memory buffers
+//@}
+//@}
+
+/** @defgroup GuMemBuf Memory buffers
  *
  * Resizable blocks of heap-allocated memory. These operations differ
  * from standard \c malloc, \c realloc and \c free -functions in that
@@ -243,15 +238,15 @@ void gu_pool_finally(GuPool* pool, GuFinalizer* fini);
  * size is requested, and the returned buffer may be larger. This
  * gives the memory allocator more flexibility when the client code
  * can make use of larger buffers than requested.
- * 
- * @{
- */
+ * */
 
+//@{
+
+
+/// Allocate a new memory buffer.
 GU_ONLY void*
 gu_mem_buf_alloc(size_t min_size, size_t* real_size);
-
-/**< Allocate a new memory buffer.
- *
+/**<
  * @param min_size The minimum acceptable size for a returned memory block.
  *
  * @param[out] real_size The actual size of the returned memory
@@ -260,24 +255,22 @@ gu_mem_buf_alloc(size_t min_size, size_t* real_size);
  * @return A pointer to the memory buffer.
  */
 
+
+/// Allocate a new memory buffer to replace an old one.
 GU_ONLY void*
 gu_mem_buf_realloc(
 	GU_NULL GU_ONLY GU_RETURNED
 	void* buf,
 	size_t min_size,
 	size_t* real_size_out);
-/**< Allocate a new memory buffer to replace an old one.
- */
 
+
+/// Free a memory buffer.
 void
 gu_mem_buf_free(GU_ONLY void* buf);
 
-/**< Free a memory buffer.
- */
 
-/// @}
-
-
+//@}
 
 
 #endif // GU_MEM_H_

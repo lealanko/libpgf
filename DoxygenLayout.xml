@@ -107,23 +107,23 @@
     <includegraph visible="$INCLUDE_GRAPH"/>
     <includedbygraph visible="$INCLUDED_BY_GRAPH"/>
     <sourcelink visible="yes"/>
-    <memberdecl>
-      <classes visible="yes" title=""/>
-      <namespaces visible="yes" title=""/>
-      <defines title=""/>
-      <typedefs title=""/>
-      <enums title=""/>
-      <functions title=""/>
-      <variables title=""/>
-      <membergroups visible="yes"/>
-    </memberdecl>
     <detaileddescription title=""/>
-    <memberdef>
-      <inlineclasses title=""/>
-      <defines title=""/>
-      <typedefs title=""/>
+    <memberdecl>
+      <membergroups visible="yes"/>
+      <namespaces visible="yes" title=""/>
       <enums title=""/>
+      <classes visible="yes" title=""/>
+      <typedefs title=""/>
       <functions title=""/>
+      <defines title=""/>
+      <variables title=""/>
+    </memberdecl>
+    <memberdef>
+      <enums title=""/>
+      <inlineclasses title=""/>
+      <typedefs title=""/>
+      <functions title=""/>
+      <defines title=""/>
       <variables title=""/>
     </memberdef>
     <authorsection/>
@@ -133,16 +133,18 @@
   <group>
     <briefdescription visible="yes"/>
     <groupgraph visible="$GROUP_GRAPHS"/>
+    <detaileddescription title=""/>
     <memberdecl>
+      <membergroups visible="yes"/>
+      <enums title=""/>
+      <enumvalues title=""/>
       <classes visible="yes" title=""/>
       <namespaces visible="yes" title=""/>
       <dirs visible="yes" title=""/>
       <nestedgroups visible="yes" title=""/>
       <files visible="yes" title=""/>
-      <defines title=""/>
       <typedefs title=""/>
-      <enums title=""/>
-      <enumvalues title=""/>
+      <defines title=""/>
       <functions title=""/>
       <variables title=""/>
       <signals title=""/>
@@ -152,17 +154,15 @@
       <events title=""/>
       <properties title=""/>
       <friends title=""/>
-      <membergroups visible="yes"/>
     </memberdecl>
-    <detaileddescription title=""/>
     <memberdef>
       <pagedocs/>
-      <inlineclasses title=""/>
-      <defines title=""/>
-      <typedefs title=""/>
       <enums title=""/>
       <enumvalues title=""/>
+      <inlineclasses title=""/>
+      <typedefs title=""/>
       <functions title=""/>
+      <defines title=""/>
       <variables title=""/>
       <signals title=""/>
       <publicslots title=""/>

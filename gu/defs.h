@@ -168,6 +168,10 @@ typedef union {
 #define gu_alloca(N)				\
 	(((union { GuMaxAlign align_; uint8_t buf_[N]; }){{0}}).buf_)
 
+
+// For Doxygen
+#define GU_PRIVATE /** @private */
+
 #ifdef GU_GNUC
 # define GU_LIKELY(EXPR) __builtin_expect(EXPR, 1)
 # define GU_UNLIKELY(EXPR) __builtin_expect(EXPR, 0)

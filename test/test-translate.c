@@ -91,14 +91,14 @@ int main(int argc, char* argv[]) {
 			putchar(' ');
 			pgf_expr_print(expr, wtr, err);
 			putchar('\n');
-			PgfLzn* lzn = pgf_new_lzn(lzr, expr, ppool);
+			PgfCncTrees* cts = pgf_lzr_concretize(lzr, expr, ppool);
 			while (true) {
-				PgfLinForm form = pgf_lzn_next_form(lzn, ppool);
-				if (gu_variant_is_null(form)) {
+				PgfCncTree ctree = pgf_cnc_trees_next(cts, ppool);
+				if (gu_variant_is_null(ctree)) {
 					break;
 				}
 				fputs("  ", stdout);
-				pgf_lzr_linearize_simple(lzr, form, lin_idx,
+				pgf_lzr_linearize_simple(lzr, ctree, lin_idx,
 							 wtr, err);
 				fputc('\n', stdout);
 				fflush(stdout);

@@ -1,5 +1,5 @@
 /* 
- * Copyright 2010 University of Helsinki.
+ * Copyright 2010-2011 University of Helsinki.
  *   
  * This file is part of libpgf.
  * 
@@ -21,22 +21,107 @@
 #include <gu/dump.h>
 #include <pgf/data.h>
 
-typedef struct PgfLzr PgfLzr;
+/// PGF linearization.
+/// @file
 
+/** @name Linearizers
+ *
+ * Linearization begins by choosing a PGF grammar (#PgfPGF) and a
+ * concrete category in that grammar (#PgfConcr), and creating a new
+ * linearizer (#PgfLzr) which can then be used to linearize abstract
+ * syntax trees (#PgfExpr) of that grammar into the given concrete
+ * category.
+ *
+ * @{
+ */
+
+
+/// A linearizer.
+typedef struct PgfLzr PgfLzr;
+/**<
+ *
+ * A #PgfLzr object transforms abstract syntax trees of a PGF grammar
+ * into sequences of token events for a single concrete category of
+ * that grammar.
+ * 
+ */
 GU_DECLARE_TYPE(PgfLzr, struct);
 
-typedef struct PgfLzn PgfLzn;
 
-typedef GuVariant PgfLinForm;
+/// Create a new linearizer.
+PgfLzr*
+pgf_new_lzr(PgfPGF* pgf, PgfConcr* cnc, GuPool* pool);
+/**<
+ * @param pgf The PGF grammar
+ *
+ * @param cnc The concrete category to linearize to. This category must
+ * belong to \p pgf.
+ *
+ * @pool
+ *
+ * @return A new linearizer.
+ */
 
+/** @}
+ *
+ * @name Enumerating concrete syntax trees
+ *
+ * Because of the \c variants construct in GF, there may be several
+ * possible concrete syntax trees that correspond to a given abstract
+ * syntax tree. These can be enumerated with #pgf_lzr_concretize and
+ * #pgf_cnc_trees_next.
+ *
+ * @{
+ */
+
+
+/// A concrete syntax tree
+typedef GuVariant PgfCncTree;
+
+/// An enumeration of #PgfCncTree trees.
+typedef struct PgfCncTrees PgfCncTrees;
+
+/// Begin enumerating concrete syntax variants.
+PgfCncTrees*
+pgf_lzr_concretize(PgfLzr* lzr, PgfExpr expr, GuPool* pool);
+
+/// Get the next concrete syntax variant.
+PgfCncTree
+pgf_cnc_trees_next(PgfCncTrees* ctrees, GuPool* pool);
+
+/** @}
+ *
+ * @name Linearizing concrete syntax trees
+ *
+ * An individual concrete syntax tree has several different
+ * linearizations, corresponding to the various fields and cases of
+ * corresponding GF values. The number of these linearizations, called
+ * the \e dimension of the tree, can be retrieved with
+ * #pgf_cnc_tree_dimension.
+ *  
+ * A single linearization of a concrete syntax tree is performed by
+ * #pgf_lzr_linearize. The linearization is realized as a sequence of
+ * events that are notified by calling the functions of a #PgfLinFuncs
+ * structure that the client provides.
+ *
+ * @{
+ */
+
+/// Callback functions for linearization.
 typedef struct PgfLinFuncs PgfLinFuncs;
 
-struct PgfLinFuncs {
+struct PgfLinFuncs
+{
+	/// Output tokens
 	void (*symbol_tokens)(PgfLinFuncs** self, PgfTokens toks);
+
 	void (*symbol_expr)(PgfLinFuncs** self, 
 			    int argno, PgfExpr expr, int lin_idx);
 
-	void (*expr_apply)(PgfLinFuncs** self, PgfCId cid, int n_symbols);
+	/// Begin application
+	void (*expr_apply)(PgfLinFuncs** self, PgfCId cid, int n_args);
+
+	/// Output literal
 	void (*expr_literal)(PgfLinFuncs** self, PgfLiteral lit);
 
 	void (*abort)(PgfLinFuncs** self);
@@ -44,24 +129,32 @@ struct PgfLinFuncs {
 };
 
 
-PgfLzr*
-pgf_new_lzr(PgfPGF* pgf, PgfConcr* cnc, GuPool* pool);
 
+
+
+/// Linearize a concrete syntax tree.
 void
-pgf_lzr_linearize(PgfLzr* lzr, PgfLinForm form, int lin_idx, PgfLinFuncs** fnsp);
+pgf_lzr_linearize(PgfLzr* lzr, PgfCncTree ctree, int lin_idx, PgfLinFuncs** fnsp);
 
-int
-pgf_lin_form_n_fields(PgfLinForm form);
 
+/// Linearize a concrete syntax tree as space-separated tokens.
 void
-pgf_lzr_linearize_simple(PgfLzr* lzr, PgfLinForm form,
+pgf_lzr_linearize_simple(PgfLzr* lzr, PgfCncTree ctree,
 			 int lin_idx, GuWriter* wtr, GuExn* err);
 
-PgfLzn*
-pgf_new_lzn(PgfLzr* lzr, PgfExpr expr, GuPool* pool);
 
-PgfLinForm
-pgf_lzn_next_form(PgfLzn* lzn, GuPool* pool);
+/// Return the dimension of a concrete syntax tree.
+int
+pgf_cnc_tree_dimension(PgfCncTree ctree);
+/**<
+ * @param ctree A concrete syntax tree.
+ *
+ * @return The dimension of the tree, i.e. the number of different
+ * linearizations the tree has.
+ */
+
+//@}
+
 
 
 extern GuTypeTable
