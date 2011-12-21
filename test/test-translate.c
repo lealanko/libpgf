@@ -52,7 +52,7 @@ int main(int argc, char* argv[]) {
 	PgfParser* parser =
 		pgf_new_parser(from_concr, pool);
 	PgfLzr* lzr =
-		pgf_new_lzr(pgf, to_concr, pool);
+		pgf_new_lzr(to_concr, pool);
 	int lin_idx = 0;
 
 	GuOut* out = gu_file_out(stdout, pool);

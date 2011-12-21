@@ -27,11 +27,10 @@
 
 /** @name Linearizers
  *
- * Linearization begins by choosing a PGF grammar (#PgfPGF) and a
- * concrete category in that grammar (#PgfConcr), and creating a new
- * linearizer (#PgfLzr) which can then be used to linearize abstract
- * syntax trees (#PgfExpr) of that grammar into the given concrete
- * category.
+ * Linearization begins by choosing a concrete category (#PgfConcr) for some
+ * grammar, and creating a new linearizer (#PgfLzr) which can then be used to
+ * linearize abstract syntax trees (#PgfExpr) of that grammar into the given
+ * concrete category.
  *
  * @{
  */
@@ -51,12 +50,9 @@ GU_DECLARE_TYPE(PgfLzr, struct);
 
 /// Create a new linearizer.
 PgfLzr*
-pgf_new_lzr(PgfPGF* pgf, PgfConcr* cnc, GuPool* pool);
+pgf_new_lzr(PgfConcr* cnc, GuPool* pool);
 /**<
- * @param pgf The PGF grammar
- *
- * @param cnc The concrete category to linearize to. This category must
- * belong to \p pgf.
+ * @param cnc The concrete category to linearize to. 
  *
  * @pool
  *

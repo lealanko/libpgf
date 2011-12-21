@@ -118,7 +118,6 @@ static GU_DEFINE_TYPE(PgfCoerceIdx, GuMap,
 		      gu_ptr_type(PgfCCatBuf), &gu_null_struct);
 
 struct PgfLzr {
-	PgfPGF* pgf;
 	PgfConcr* cnc;
 	GuPool* pool;
 	PgfFunIndices* fun_indices;
@@ -127,7 +126,6 @@ struct PgfLzr {
 
 GU_DEFINE_TYPE(
 	PgfLzr, struct,
-	GU_MEMBER_P(PgfLzr, pgf, PgfPGF),
 	GU_MEMBER_P(PgfLzr, cnc, PgfConcr),
 	GU_MEMBER_P(PgfLzr, fun_indices, PgfFunIndices),
 	GU_MEMBER_P(PgfLzr, coerce_idx, PgfCoerceIdx));
@@ -249,10 +247,9 @@ pgf_lzr_index_cnccat_cb(GuMapItor* fn, const void* key, void* value,
 
 
 PgfLzr*
-pgf_new_lzr(PgfPGF* pgf, PgfConcr* cnc, GuPool* pool)
+pgf_new_lzr(PgfConcr* cnc, GuPool* pool)
 {
 	PgfLzr* lzr = gu_new(PgfLzr, pool);
-	lzr->pgf = pgf;
 	lzr->cnc = cnc;
 	lzr->pool = pool;
 	lzr->fun_indices = gu_map_type_new(PgfFunIndices, pool);
