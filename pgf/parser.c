@@ -20,13 +20,9 @@ typedef GuMap PgfTransitions;
 
 typedef GuBuf PgfCCatBuf;
 
-typedef struct PgfParser PgfParser;
-
 struct PgfParser {
 	PgfConcr* concr;
 };
-
-typedef struct PgfParse PgfParse;
 
 struct PgfParse {
 	PgfParser* parser;
