@@ -1,4 +1,4 @@
-AC_INIT(Portable Grammar Format library, 0.0, 
+AC_INIT(Portable Grammar Format library, 0.1.pre, 
 		 https://code.google.com/p/grammatical-framework/, 
 		 libpgf)
 AC_PREREQ(2.58)
@@ -53,7 +53,8 @@ DX_ARG_ABLE(dev, [include internal development documentation],
 	    [DX_ENV_APPEND(DEVDOC, YES)]
 	    [DX_ENV_APPEND(INPUT, $srcdir)],
 	    [DX_ENV_APPEND(DEVDOC, NO)
-	     DX_ENV_APPEND(INPUT, \$(include_HEADERS))])
+	     DX_ENV_APPEND(INPUT, 
+	     [\$(guinclude_HEADERS) \$(pgfinclude_HEADERS)])])
 DX_INIT_DOXYGEN(libpgf)
 
 

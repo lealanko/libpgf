@@ -49,8 +49,6 @@ pgfinclude_HEADERS = \
 	pgf/parser.h \
 	pgf/pgf.h 
 
-include_HEADERS = $(guinclude_HEADERS) $(pgfinclude_HEADERS)
-
 libgu_la_SOURCES = \
 	gu/assert.c \
 	gu/bits.c \
@@ -101,36 +99,6 @@ utils_pgf2yaml_LDADD = libpgf.la libgu.la
 
 utils_pgf_translate_SOURCES = utils/pgf-translate.c
 utils_pgf_translate_LDADD = libpgf.la libgu.la
-
-noinst_PROGRAMS = \
-	test/test_type1 \
-	test/test-hash \
-	test/test-prime \
-	test/test-ieee754
-
-#	test/test-lin1 \
-#	test/test-parse1 \
-#	test/test-yaml1 \
-#	test/test-dump1 \
-#	test/test-seq \
-#
-
-test_test_type1_SOURCES = test/test_type1.c
-
-#test_test_lin1_SOURCES = test/test-lin1.c
-#test_test_lin1_LDADD = libpgf.la libgu.la
-
-#test_test_parse1_SOURCES = test/test-parse1.c
-#test_test_parse1_LDADD = libpgf.la libgu.la
-
-#test_test_yaml1_SOURCES = test/test-yaml1.c
-#test_test_dump1_SOURCES = test/test-dump1.c
-#test_test_seq_SOURCES = test/test-seq.c
-test_test_hash_SOURCES = test/test-hash.c
-test_test_prime_SOURCES = test/test-prime.c
-test_test_ieee754_SOURCES = test/test-ieee754.c
-
-
 
 AUTOMAKE_OPTIONS = foreign subdir-objects dist-bzip2
 ACLOCAL_AMFLAGS = -I m4
