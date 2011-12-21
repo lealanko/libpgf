@@ -22,7 +22,7 @@
 #include <gu/enum.h>
 #include <pgf/data.h>
 
-/// PGF linearization.
+/// Linearization of abstract syntax trees.
 /// @file
 
 /** @name Linearizers

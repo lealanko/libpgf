@@ -106,6 +106,7 @@ include doxygen.am
 
 EXTRA_DIST = \
 	Doxyfile \
+	DoxygenLayout.xml \
 	libgu.pc.in \
 	libpgf.pc.in \
 	guconfig.h.in
