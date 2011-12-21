@@ -6,7 +6,14 @@
 #include <pgf/expr.h>
 
 /// Parsing
-/// @file
+/** @file
+ *
+ *  @todo Querying the parser for expected continuations
+ *
+ *  @todo Literals and custom categories
+ *  
+ *  @todo HOAS, dependent types...
+ */
 
 typedef struct PgfParse PgfParse;
 
@@ -75,7 +82,7 @@ pgf_parse_token(PgfParse* parse, PgfToken tok, GuPool* pool);
  * @pool
  *
  * @return A new parse state obtained by feeding \p tok as an input to \p
- * parse.
+ * parse, or \c NULL if the token was unexpected.
  *
  * @note The new parse state partially depends on the old one, so it doesn't
  * make sense to use a \p pool argument with a longer lifetime than that of
