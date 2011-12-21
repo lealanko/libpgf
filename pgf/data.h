@@ -135,7 +135,7 @@ struct PgfCatFun {
 struct PgfCat {
 	// TODO: Add cid here
 	PgfHypos context;
-	int n_functions;
+	GuLength n_functions;
 	PgfCatFun functions[]; // XXX: resolve to PgfFunDecl*?
 };
 
@@ -157,7 +157,7 @@ struct PgfCncCat {
 
 struct PgfCncFun {
 	PgfCId fun; // XXX: resolve to PgfFunDecl*?
-	int n_lins;
+	GuLength n_lins;
 	PgfSeqId lins[];
 };
 
@@ -219,7 +219,7 @@ typedef struct PgfSymbolKP
 	/**< Default form that this symbol takes if none of of the
 	 * variant forms is triggered. */
 
-	int n_forms;
+	GuLength n_forms;
 	PgfAlternative forms[]; 
 	/**< Variant forms whose choise depends on the following
 	 * symbol. */
@@ -264,7 +264,7 @@ typedef struct PgfProductionCoerce
 
 typedef struct {
 	PgfExpr expr; // XXX
-	int n_toks;
+	GuLength n_toks;
 	GuString toks[]; // XXX
 } PgfProductionConst;
 
@@ -292,7 +292,7 @@ typedef enum {
 
 typedef	struct {
 	PgfCId ctor;
-	int n_args;
+	GuLength n_args;
 	PgfPatt args[];
 } PgfPattApp;
 
@@ -321,7 +321,7 @@ typedef struct {
 
 struct PgfEquation {
 	PgfExpr body;
-	int n_patts;
+	GuLength n_patts;
 	PgfPatt patts[];
 };
 

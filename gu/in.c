@@ -255,15 +255,24 @@ gu_in_fini(GuFinalizer* fin)
 	gu_pool_free(pool);
 }
 
+GuIn
+gu_init_in(GuInStream* stream)
+{
+	return (GuIn) {
+		.buf_end = NULL,
+		.buf_curr = 0,
+		.buf_size = 0,
+		.stream = stream,
+		.fini.fn = gu_in_fini
+	};
+}
+
 GuIn*
 gu_new_in(GuInStream* stream, GuPool* pool)
 {
-	return gu_new_s(pool, GuIn,
-			.buf_end = NULL,
-			.buf_curr = 0,
-			.buf_size = 0,
-			.stream = stream,
-			.fini.fn = gu_in_fini);
+	GuIn* in = gu_new(GuIn, pool);
+	*in = gu_init_in(stream);
+	return in;
 }
 
 
@@ -295,16 +304,15 @@ gu_proxy_in_input(GuInStream* self, uint8_t* dst, size_t sz, GuExn* err)
 	return gu_in_some(pis->real_in, dst, sz, err);
 }
 
-GuIn*
-gu_proxy_in(GuIn* in, GuPool* pool)
+GuInStream*
+gu_in_proxy_stream(GuIn* in, GuPool* pool)
 {
-	GuProxyInStream* pis = gu_new_s(
+	return &gu_new_s(
 		pool, GuProxyInStream,
 		.stream.begin_buffer = gu_proxy_in_begin_buffer,
 		.stream.end_buffer = gu_proxy_in_end_buffer,
 		.stream.input = gu_proxy_in_input,
-		.real_in = in);
-	return gu_new_in(&pis->stream, pool);
+		.real_in = in)->stream;
 }
 
 enum {
@@ -356,8 +364,6 @@ gu_buffered_in_input(GuInStream* self, uint8_t* dst, size_t sz, GuExn* err)
 GuIn*
 gu_buffered_in(GuIn* in, size_t buf_sz, GuPool* pool)
 {
-	uint8_t* buf = gu_malloc(pool, buf_sz);
-	
 	GuBufferedInStream* bis = gu_new_flex(pool, GuBufferedInStream,
 					      buf, buf_sz);
 	bis->stream = (GuInStream) {

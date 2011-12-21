@@ -508,7 +508,7 @@ pgf_cnc_tree_dimension(PgfCncTree ctree)
 }
 
 void
-pgf_lzr_linearize(PgfLzr* lzr, PgfCncTree ctree, int lin_idx, PgfLinFuncs** fnsp)
+pgf_lzr_linearize(PgfLzr* lzr, PgfCncTree ctree, size_t lin_idx, PgfLinFuncs** fnsp)
 {
 	PgfLinFuncs* fns = *fnsp;
 	GuVariantInfo cti = gu_variant_open(ctree);
@@ -540,7 +540,7 @@ pgf_lzr_linearize(PgfLzr* lzr, PgfCncTree ctree, int lin_idx, PgfLinFuncs** fnsp
 			case PGF_SYMBOL_VAR:
 			case PGF_SYMBOL_LIT: {
 				PgfSymbolIdx* sidx = sym_i.data;
-				gu_assert(sidx->d < fapp->n_args);
+				gu_assert((unsigned) sidx->d < fapp->n_args);
 				PgfCncTree argf = fapp->args[sidx->d];
 				pgf_lzr_linearize(lzr, argf, sidx->r, fnsp);
 				break;
@@ -603,7 +603,7 @@ static PgfLinFuncs pgf_file_lin_funcs = {
 
 void
 pgf_lzr_linearize_simple(PgfLzr* lzr, PgfCncTree ctree,
-			 int lin_idx, GuWriter* wtr, GuExn* err)
+			 size_t lin_idx, GuWriter* wtr, GuExn* err)
 {
 	PgfSimpleLin flin = {
 		.funcs = &pgf_file_lin_funcs,

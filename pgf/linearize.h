@@ -127,13 +127,14 @@ struct PgfLinFuncs
 
 /// Linearize a concrete syntax tree.
 void
-pgf_lzr_linearize(PgfLzr* lzr, PgfCncTree ctree, int lin_idx, PgfLinFuncs** fnsp);
+pgf_lzr_linearize(PgfLzr* lzr, PgfCncTree ctree, size_t lin_idx,
+		  PgfLinFuncs** fnsp);
 
 
 /// Linearize a concrete syntax tree as space-separated tokens.
 void
 pgf_lzr_linearize_simple(PgfLzr* lzr, PgfCncTree ctree,
-			 int lin_idx, GuWriter* wtr, GuExn* err);
+			 size_t lin_idx, GuWriter* wtr, GuExn* err);
 
 
 /// Return the dimension of a concrete syntax tree.

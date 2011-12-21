@@ -57,7 +57,7 @@ pgf_new_parser(PgfConcr* concr, GuPool* pool);
 
 /// Begin parsing
 PgfParse*
-pgf_parser_parse(PgfParser* parser, PgfCId cat, int lin_idx, GuPool* pool);
+pgf_parser_parse(PgfParser* parser, PgfCId cat, size_t lin_idx, GuPool* pool);
 /**<
  * @param parser The parser to use
  *

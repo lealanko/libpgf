@@ -6,9 +6,9 @@ GuExn*
 gu_new_exn(GuExn* parent, GuKind* catch, GuPool* pool)
 {
 	return gu_new_s(pool, GuExn,
+			.state = GU_EXN_OK,
 			.parent = parent,
 			.catch = catch,
-			.state = GU_EXN_OK,
 			.caught = NULL,
 			.data.pool = pool,
 			.data.data = NULL);

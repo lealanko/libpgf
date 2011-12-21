@@ -45,7 +45,7 @@ struct GuExnData
 };
 
 struct GuExn {
-/// @privatesection
+	/// @privatesection
 	GuExnState state;
 	GuExn* parent;
 	GuKind* catch;
@@ -60,9 +60,9 @@ struct GuExn {
 
 /// Allocate a new local exception frame.
 #define gu_exn(parent_, catch_, pool_) &(GuExn){	\
+	.state = GU_EXN_OK,	\
 	.parent = parent_,	\
 	.catch = gu_kind(catch_),	\
-	.state = GU_EXN_OK,	\
 	.caught = NULL,	\
 	.data.pool = pool_,		\
 	.data.data = NULL \

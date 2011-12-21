@@ -113,8 +113,7 @@ pgf_read_len(PgfReader* rdr)
 			   .type = gu_type(GuLength), .tag = len);
 		return 0;
 	}
-	// XXX: check that len fits in GuLength (= int)
-	return len;
+	return (GuLength) len;
 }
 
 typedef const struct PgfReadToFn PgfReadToFn;
@@ -160,7 +159,8 @@ pgf_read_struct(GuStructRepr* stype, PgfReader* rdr, void* to,
 {
 	GuTypeRepr* repr = gu_type_cast((GuType*)stype, repr);
 	size_t size = repr->size;
-	GuLength length = -1;
+	GuLength length = 0;
+	bool have_length = false;
 	uint8_t* p = NULL;
 	uint8_t* bto = to;
 	gu_enter("-> struct %s", stype->name);
@@ -169,12 +169,12 @@ pgf_read_struct(GuStructRepr* stype, PgfReader* rdr, void* to,
 		const GuMember* m = &stype->members.elems[i];
 		gu_enter("-> %s.%s", stype->name, m->name);
 		if (m->is_flex) {
-			gu_assert(length >= 0 && p == NULL && pool != NULL);
+			gu_assert(have_length && p == NULL && pool != NULL);
 			size_t m_size = gu_type_size(m->type);
 			size = gu_flex_size(size, m->offset,
 					    length, m_size);
 			p = gu_malloc_aligned(pool, size, repr->align);
-			for (int j = 0; j < length; j++) {
+			for (size_t j = 0; j < length; j++) {
 				pgf_read_to(rdr, m->type, 
 					    &p[m->offset + j * m_size]);
 				gu_return_on_exn(rdr->err, NULL);
@@ -184,7 +184,8 @@ pgf_read_struct(GuStructRepr* stype, PgfReader* rdr, void* to,
 			gu_return_on_exn(rdr->err, NULL);
 		}
 		if (m->type == gu_type(GuLength)) {
-			gu_assert(length == -1);
+			gu_assert(!have_length);
+			have_length = true;
 			length = gu_member(GuLength, to, m->offset);
 		}
 		gu_exit("<- %s.%s", stype->name, m->name);
@@ -339,14 +340,12 @@ pgf_read_into_map(GuMapType* mtype, PgfReader* rdr, GuMap* map, GuPool* pool)
 	(void) pool;
 	GuPool* tmp_pool = gu_new_pool();
 	void* key = NULL;
-	void* value = NULL;
 	GuLength len = pgf_read_len(rdr);
 	gu_return_on_exn(rdr->err, );
 	if (mtype->hasher) {
 		key = gu_type_malloc(mtype->key_type, tmp_pool);
 	}
-	value = gu_type_malloc(mtype->value_type, tmp_pool);
-	for (int i = 0; i < len; i++) {
+	for (size_t i = 0; i < len; i++) {
 		if (mtype->hasher) {
 			pgf_read_to(rdr, mtype->key_type, key);
 		} else {
@@ -390,7 +389,7 @@ pgf_read_to_GuString(GuType* type, PgfReader* rdr, void* to)
 
 	GuLength len = pgf_read_len(rdr);
 
-	for (int i = 0; i < len; i++) {
+	for (size_t i = 0; i < len; i++) {
 		GuUCS ucs = gu_in_utf8(rdr->in, rdr->err);
 		gu_ucs_write(ucs, wtr, rdr->err);
 	}
@@ -415,7 +414,7 @@ pgf_read_to_PgfCId(GuType* type, PgfReader* rdr, void* to)
 
 	GuLength len = pgf_read_len(rdr);
 
-	for (int i = 0; i < len; i++) {
+	for (size_t i = 0; i < len; i++) {
 		// CIds are in latin-1
 		GuUCS ucs = gu_in_u8(rdr->in, rdr->err);
 		gu_ucs_write(ucs, wtr, rdr->err);
@@ -488,7 +487,7 @@ pgf_read_new_GuList(GuType* type, PgfReader* rdr, GuPool* pool, size_t* size_out
 	GuLength length = pgf_read_len(rdr);
 	gu_return_on_exn(rdr->err, NULL);
 	void* list = gu_list_type_alloc(ltype, length, pool);
-	for (int i = 0; i < length; i++) {
+	for (size_t i = 0; i < length; i++) {
 		void* elem = gu_list_type_index(ltype, list, i);
 		pgf_read_to(rdr, ltype->elem_type, elem);
 		gu_return_on_exn(rdr->err, NULL);
@@ -509,7 +508,7 @@ pgf_read_to_GuSeq(GuType* type, PgfReader* rdr, void* to)
 	gu_return_on_exn(rdr->err, );
 	GuSeq seq = gu_make_seq(repr->size, length, rdr->opool);
 	uint8_t* data = gu_seq_data(seq);
-	for (int i = 0; i < length; i++) {
+	for (size_t i = 0; i < length; i++) {
 		void* elem = &data[i * repr->size];
 		pgf_read_to(rdr, stype->elem_type, elem);
 		gu_return_on_exn(rdr->err, );
@@ -522,7 +521,6 @@ pgf_read_to_GuSeq(GuType* type, PgfReader* rdr, void* to)
 static void
 pgf_read_to_maybe_seq(GuType* type, PgfReader* rdr, void* to)
 {
-	GuSeqType* stype = gu_type_cast(type, GuSeq);
 	GuSeq* sto = to;
 	uint8_t tag = pgf_read_u8(rdr);
 	gu_return_on_exn(rdr->err,);
@@ -702,8 +700,8 @@ pgf_ccat_n_lins(PgfCCat* cat, int* n_lins) {
 		case PGF_PRODUCTION_APPLY: {
 			PgfProductionApply* papp = i.data;
 			if (*n_lins == -1) {
-				*n_lins = papp->fun->n_lins;
-			} else if (*n_lins != papp->fun->n_lins) {
+				*n_lins = (int) papp->fun->n_lins;
+			} else if (*n_lins != (int) papp->fun->n_lins) {
 				// Inconsistent n_lins for different productions!
 				return false;
 			}

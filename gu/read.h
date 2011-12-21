@@ -25,6 +25,7 @@ gu_getc(GuReader* rdr, GuExn* err)
 
 GuReader*
 gu_new_utf8_reader(GuIn* utf8_in, GuPool* pool);
-
+/**< @todo Implement. */
+   
 
 #endif // GU_READ_H_

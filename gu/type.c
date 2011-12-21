@@ -56,7 +56,7 @@ GU_DEFINE_TYPE(uint64_t, unsigned, _);
 GU_DEFINE_TYPE(uintmax_t, unsigned, _);
 GU_DEFINE_TYPE(size_t, unsigned, _);
 
-GU_DEFINE_TYPE(GuLength, signed, _);
+GU_DEFINE_TYPE(GuLength, unsigned, _);
 
 GU_DEFINE_KIND(GuFloating, primitive);
 GU_DEFINE_TYPE(float, GuFloating, _);

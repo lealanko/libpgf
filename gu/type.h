@@ -335,8 +335,8 @@ extern GU_DECLARE_TYPE(uint64_t, unsigned);
 extern GU_DECLARE_TYPE(uintmax_t, unsigned);
 extern GU_DECLARE_TYPE(size_t, unsigned);
 
-typedef ptrdiff_t GuLength;
-extern GU_DECLARE_TYPE(GuLength, signed); // TODO: get rid
+typedef size_t GuLength;
+extern GU_DECLARE_TYPE(GuLength, unsigned); // TODO: get rid
 
 
 #define GU_TYPE_INIT_GuFloating GU_TYPE_INIT_primitive

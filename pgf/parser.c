@@ -48,7 +48,7 @@ struct PgfItemBase {
 	PgfItemBuf* conts;
 	PgfCCat* ccat;
 	PgfProduction prod;
-	short lin_idx;
+	unsigned short lin_idx;
 };
 
 struct PgfItem {
@@ -105,9 +105,9 @@ pgf_parsing_get_contss(PgfParsing* parsing, PgfCCat* cat)
 {
 	PgfItemBufs* contss = gu_map_get(parsing->conts_map, cat, PgfItemBufs*);
 	if (!contss) {
-		int n_lins = cat->cnccat->n_lins;
+		size_t n_lins = cat->cnccat->n_lins;
 		contss = gu_new_list(PgfItemBufs, parsing->pool, n_lins);
-		for (int i = 0; i < n_lins; i++) {
+		for (size_t i = 0; i < n_lins; i++) {
 			gu_list_index(contss, i) = NULL;
 		}
 		gu_map_put(parsing->conts_map, cat, PgfItemBufs*, contss);
@@ -117,7 +117,7 @@ pgf_parsing_get_contss(PgfParsing* parsing, PgfCCat* cat)
 
 
 static PgfItemBuf*
-pgf_parsing_get_conts(PgfParsing* parsing, PgfCCat* cat, int lin_idx)
+pgf_parsing_get_conts(PgfParsing* parsing, PgfCCat* cat, size_t lin_idx)
 {
 	gu_require(lin_idx < cat->cnccat->n_lins);
 	PgfItemBufs* contss = pgf_parsing_get_contss(parsing, cat);
@@ -251,7 +251,7 @@ pgf_parsing_combine(PgfParsing* parsing, PgfItem* cont, PgfCCat* cat)
 }
 
 static void
-pgf_parsing_production(PgfParsing* parsing, PgfCCat* cat, int lin_idx,
+pgf_parsing_production(PgfParsing* parsing, PgfCCat* cat, size_t lin_idx,
 		       PgfProduction prod, PgfItemBuf* conts)
 {
 	PgfItemBase* base = gu_new(PgfItemBase, parsing->pool);
@@ -298,8 +298,8 @@ pgf_parsing_complete(PgfParsing* parsing, PgfItem* item)
 		// The category has already been created. If it has also been
 		// predicted already, then process a new item for this production.
 		PgfItemBufs* contss = pgf_parsing_get_contss(parsing, cat);
-		int n_contss = gu_list_length(contss);
-		for (int i = 0; i < n_contss; i++) {
+		size_t n_contss = gu_list_length(contss);
+		for (size_t i = 0; i < n_contss; i++) {
 			PgfItemBuf* conts2 = gu_list_index(contss, i);
 			/* If there are continuations for
 			 * linearization index i, then (cat, i) has
@@ -327,7 +327,7 @@ pgf_parsing_complete(PgfParsing* parsing, PgfItem* item)
 
 static void
 pgf_parsing_predict(PgfParsing* parsing, PgfItem* item, 
-		    PgfCCat* cat, int lin_idx)
+		    PgfCCat* cat, size_t lin_idx)
 {
 	gu_enter("-> cat: %d", cat->fid);
 	if (gu_seq_is_null(cat->prods)) {
@@ -380,7 +380,7 @@ pgf_parsing_symbol(PgfParsing* parsing, PgfItem* item, PgfSymbol sym) {
 	case PGF_SYMBOL_KP: {
 		PgfSymbolKP* skp = gu_variant_data(sym);
 		size_t idx = item->tok_idx;
-		size_t alt = item->alt;
+		uint8_t alt = item->alt;
 		gu_assert(idx < gu_seq_length(skp->default_form));
 		if (idx == 0) {
 			PgfToken tok = gu_seq_get(skp->default_form, PgfToken, 0);
@@ -496,11 +496,11 @@ pgf_parsing_scan(PgfParsing* parsing, PgfItem* item, PgfToken tok)
 	}
 	case PGF_SYMBOL_KP: {
 		PgfSymbolKP* kp = i.data;
-		int alt = item->alt;
+		size_t alt = item->alt;
 		if (item->tok_idx == 0) {
 			succ = pgf_parsing_scan_toks(parsing, item, tok, 0, 
 						      kp->default_form);
-			for (int i = 0; i < kp->n_forms; i++) {
+			for (size_t i = 0; i < kp->n_forms; i++) {
 				// XXX: do nubbing properly
 				PgfTokens toks = kp->forms[i].form;
 				PgfTokens toks2 = kp->default_form;
@@ -668,7 +668,7 @@ pgf_parse_result(PgfParse* parse, GuPool* pool)
 
 // TODO: s/CId/Cat, add the cid to Cat, make Cat the key to CncCat
 PgfParse*
-pgf_parser_parse(PgfParser* parser, PgfCId cat, int lin_idx, GuPool* pool)
+pgf_parser_parse(PgfParser* parser, PgfCId cat, size_t lin_idx, GuPool* pool)
 {
 	PgfParse* parse = pgf_new_parse(parser, pool);
 	GuPool* tmp_pool = gu_new_pool();
@@ -679,9 +679,9 @@ pgf_parser_parse(PgfParser* parser, PgfCId cat, int lin_idx, GuPool* pool)
 		// error ...
 		gu_impossible();
 	}
-	gu_assert(lin_idx == -1 || lin_idx < cnccat->n_lins);
-	int n_ccats = gu_list_length(cnccat->cats);
-	for (int i = 0; i < n_ccats; i++) {
+	gu_assert(lin_idx < cnccat->n_lins);
+	size_t n_ccats = gu_list_length(cnccat->cats);
+	for (size_t i = 0; i < n_ccats; i++) {
 		PgfCCat* ccat = gu_list_index(cnccat->cats, i);
 		if (ccat != NULL) {
 			pgf_parsing_predict(parsing, NULL, ccat, lin_idx);
