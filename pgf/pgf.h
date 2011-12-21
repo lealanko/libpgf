@@ -29,6 +29,10 @@
 #include <gu/mem.h>
 #include <gu/in.h>
 
+
+/// A single lexical token			      
+typedef GuString PgfToken;			      
+
 /// @name PGF Grammar objects
 /// @{
 

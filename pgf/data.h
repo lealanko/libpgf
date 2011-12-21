@@ -27,6 +27,7 @@
 #include <gu/type.h>
 #include <gu/seq.h>
 #include <pgf/pgf.h>
+#include <pgf/expr.h>
 
 typedef GuString PgfCId;
 
@@ -63,7 +64,7 @@ extern GU_DECLARE_TYPE(PgfFunIds, GuList);
 #define PgfCIdMap GuStringMap			 
 typedef PgfCIdMap PgfFlags; // PgfCId -> PgfLiteral
 extern GU_DECLARE_TYPE(PgfFlags, GuMap);
-typedef GuVariant PgfExpr;
+
 typedef struct PgfHypo PgfHypo;
 typedef struct PgfType PgfType;
 extern GU_DECLARE_TYPE(PgfType, struct);
@@ -77,7 +78,7 @@ typedef struct PgfCatFun PgfCatFun;
 typedef struct PgfCncCat PgfCncCat;
 extern GU_DECLARE_TYPE(PgfCncCat, struct);
 typedef GuVariant PgfPatt;
-typedef GuString PgfToken;			      
+
 typedef GuList(GuString) GuStringL;
 extern GU_DECLARE_TYPE(GuStringL, GuList);
 typedef GuSeq PgfTokens;  // -> PgfToken

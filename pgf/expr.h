@@ -1,9 +1,14 @@
 #ifndef EXPR_H_
 #define EXPR_H_
 
-#include <pgf/data.h>
 #include <gu/read.h>
 #include <gu/write.h>
+
+/// Abstract syntax trees
+/// @file
+
+/// An abstract syntax tree
+typedef GuVariant PgfExpr;
 
 GU_DECLARE_TYPE(PgfExpr, GuVariant);
 
