@@ -92,15 +92,20 @@ libpgf_la_SOURCES = \
 	pgf/reader.c \
 	pgf/linearize.c
 
-bin_PROGRAMS = utils/pgf2yaml
+bin_PROGRAMS = \
+	utils/pgf2yaml \
+	utils/pgf-translate
+
 utils_pgf2yaml_SOURCES = utils/pgf2yaml.c
 utils_pgf2yaml_LDADD = libpgf.la libgu.la 
+
+utils_pgf_translate_SOURCES = utils/pgf-translate.c
+utils_pgf_translate_LDADD = libpgf.la libgu.la
 
 noinst_PROGRAMS = \
 	test/test_type1 \
 	test/test-hash \
 	test/test-prime \
-	test/test-translate \
 	test/test-ieee754
 
 #	test/test-lin1 \
@@ -117,9 +122,6 @@ test_test_type1_SOURCES = test/test_type1.c
 
 #test_test_parse1_SOURCES = test/test-parse1.c
 #test_test_parse1_LDADD = libpgf.la libgu.la
-
-test_test_translate_SOURCES = test/test-translate.c
-test_test_translate_LDADD = libpgf.la libgu.la
 
 #test_test_yaml1_SOURCES = test/test-yaml1.c
 #test_test_dump1_SOURCES = test/test-dump1.c
