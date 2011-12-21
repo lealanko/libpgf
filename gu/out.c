@@ -19,7 +19,7 @@ gu_init_out(GuOutStream* stream)
 static bool
 gu_out_is_buffering(GuOut* out)
 {
-	return out->buf_end;
+	return !!out->buf_end;
 }
 
 

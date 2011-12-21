@@ -1,6 +1,6 @@
 #include <gu/assert.h>
 #include <gu/utf8.h>
-#include "config.h"
+#include <guconfig.h>
 
 GuUCS
 gu_utf8_decode(const uint8_t** src_inout)

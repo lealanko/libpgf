@@ -28,7 +28,7 @@ gu_enum_next_(GuEnum* en, void* to, GuPool* pool)
 	return to;
 }
 #define gu_next(ENUM, T, POOL)			\
-	(*(T*)gu_enum_next_((ENUM), &(T){0}, (POOL))
+	(*(T*)gu_enum_next_((ENUM), &(T){0}, (POOL)))
 
 #endif
 

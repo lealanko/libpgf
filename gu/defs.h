@@ -75,6 +75,20 @@
 
 #define GU_ARRAY_LEN(t,a) (sizeof((const t[])a) / sizeof(t))
 
+#define GU_ID(...) __VA_ARGS__
+
+// This trick is by Laurent Deniau <laurent.deniau@cern.ch>
+#define GU_N_ARGS(...)				\
+	GU_N_ARGS_(__VA_ARGS__,						\
+		   31,30,29,28,27,26,25,24,				\
+		   23,22,21,20,19,18,17,16,				\
+		   15,14,13,12,11,10,9,8,				\
+		   7,6,5,4,3,2,1,0)					
+#define GU_N_ARGS_(...) GU_N_ARGS__(__VA_ARGS__)
+#define GU_N_ARGS__(a,b,c,d,e,f,g,h,i,j,k,l,m,n,o,p,			\
+		    q,r,s,t,u,v,w,x,y,z,aa,ab,ac,ad,ae,N,...)		\
+	N
+
 #define GU_ARG1(a1, ...) a1
 #define GU_ARG2(a1, a2, ...) a2
 

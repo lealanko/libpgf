@@ -208,7 +208,7 @@ gu_dump_struct(GuDumpFn* dumper, GuType* type, const void* p,
 	gu_yaml_begin_mapping(ctx->yaml);
 	const uint8_t* data = p;
 	GuLength* old_lenp = gu_map_get(ctx->data, gu_dump_length_key, void*);
-	GuLength len = -1;
+	GuLength len = (GuLength)-1;
 	gu_map_put(ctx->data, gu_dump_length_key, void*, &len);
 
 	for (int i = 0; i < srepr->members.len; i++) {

@@ -1,6 +1,6 @@
 #include <gu/ucs.h>
 #include <gu/assert.h>
-#include "config.h"
+#include <guconfig.h>
 
 GU_DEFINE_TYPE(GuUCSExn, abstract, _);
 

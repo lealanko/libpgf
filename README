@@ -10,17 +10,34 @@ developers who are interested in using libpgf, and who wish to
 contribute to its design.
 
 
+PREREQUISITES
+-------------
+
+This is a self-contained library: only a C99-conformant C compiler is
+needed. The code is mostly portable C, although it makes some very
+general assumptions about the architecture (mostly regarding the
+representation of addresses) that should hold on modern systems. Still,
+the code has only been tested on Linux-x86(-64) so far. Reports of
+porting problems on other platforms are appreciated.
+
+Although the code "only" requires C99-conformance, it seems that many
+compilers fail at it subtly. In particular:
+
+- Clang does not currently support "extern inline" properly.
+
+- Sun C 5.9 apparently has a bug in its treatment of sizeof on compound
+  array literals.
+
+As a consequence, these compilers cannot be used in the current state of
+the code. Modern versions of GCC, on the other hand, seem to work fine.
+
+
 INSTALLING
 ----------
 
 This is a standard GNU Autotools package. Read the attached INSTALL file
 for generic installation instructions. There are currently no
 interesting special configuration options.
-
-This is a self-contained library: only a C99-conformant C compiler is
-needed. Modern versions of GCC work fine. Note that as of writing this,
-Clang has a small bug with "extern inline" which prevents it from being
-used.
 
 Pkg-config configuration files for the library are also provided.
 

@@ -90,7 +90,7 @@ typedef GuList(int) GuInts;
 
 #define GU_SLIST(t, ...)						\
 	{								\
-		.len = sizeof((t[]){__VA_ARGS__}) / sizeof(t),	\
+		.len = GU_ARRAY_LEN(t,GU_ID({__VA_ARGS__})),		\
 		.elems = ((t[]){__VA_ARGS__})			\
 	}
 
