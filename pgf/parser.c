@@ -1,5 +1,4 @@
-#include <pgf/data.h>
-#include <pgf/expr.h>
+#include <pgf/parser.h>
 #include <gu/choice.h>
 #include <gu/seq.h>
 #include <gu/assert.h>
@@ -40,6 +39,7 @@ typedef struct PgfParseResult PgfParseResult;
 struct PgfParseResult {
 	PgfCCatBuf* completed;
 	GuChoice* choice;
+	PgfExprEnum en;
 };
 
 typedef struct PgfItemBase PgfItemBase;
@@ -627,7 +627,7 @@ pgf_cat_to_expr(PgfCCat* cat, GuChoice* choice, GuPool* pool)
 }
 
 
-PgfExpr
+static PgfExpr
 pgf_parse_result_next(PgfParseResult* pr, GuPool* pool)
 {
 	if (pr->choice == NULL) {
@@ -648,12 +648,20 @@ pgf_parse_result_next(PgfParseResult* pr, GuPool* pool)
 	return ret;
 }
 
-PgfParseResult*
+static void
+pgf_parse_result_enum_next(GuEnum* self, void* to, GuPool* pool)
+{
+	PgfParseResult* pr = gu_container(self, PgfParseResult, en);
+	*(PgfExpr*)to = pgf_parse_result_next(pr, pool);
+}
+
+PgfExprEnum*
 pgf_parse_result(PgfParse* parse, GuPool* pool)
 {
-	return gu_new_s(pool, PgfParseResult,
-			.completed = parse->completed,
-			.choice = gu_new_choice(pool));
+	return &gu_new_i(pool, PgfParseResult,
+			 .completed = parse->completed,
+			 .choice = gu_new_choice(pool),
+			 .en.next = pgf_parse_result_enum_next)->en;
 }
 
 

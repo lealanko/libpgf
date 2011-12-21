@@ -16,6 +16,7 @@ guinclude_HEADERS = \
 	gu/choice.h \
 	gu/defs.h \
 	gu/dump.h \
+	gu/enum.h \
 	gu/exn.h \
 	gu/file.h \
 	gu/fun.h \
@@ -57,6 +58,7 @@ libgu_la_SOURCES = \
 	gu/defs.c \
 	gu/seq.c \
 	gu/dump.c \
+	gu/enum.c \
 	gu/exn.c \
 	gu/file.c \
 	gu/fun.c \

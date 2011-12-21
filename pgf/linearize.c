@@ -268,13 +268,15 @@ pgf_new_lzr(PgfPGF* pgf, PgfConcr* cnc, GuPool* pool)
 	return lzr;
 }
 
-struct PgfCncTrees {
+typedef struct PgfLzn PgfLzn;
+
+struct PgfLzn {
 	PgfLzr* lzr;
 	GuChoice* ch;
 	PgfExpr expr;
+	GuEnum en;
 };
 
-typedef struct PgfCncTrees PgfLzn;
 
 //
 // PgfCncTree
@@ -443,18 +445,9 @@ pgf_lzn_infer(PgfLzn* lzn, PgfExpr expr, GuPool* pool, PgfCncTree* ctree_out)
 	return ret;
 }
 
-PgfLzn*
-pgf_lzr_concretize(PgfLzr* lzr, PgfExpr expr, GuPool* pool)
-{
-	PgfLzn* lzn = gu_new(PgfLzn, pool);
-	lzn->lzr = lzr;
-	lzn->expr = expr;
-	lzn->ch = gu_new_choice(pool);
-	return lzn;
-}
 
-PgfCncTree
-pgf_cnc_trees_next(PgfLzn* lzn, GuPool* pool)
+static PgfCncTree
+pgf_lzn_next(PgfLzn* lzn, GuPool* pool)
 {
 	// XXX: rewrite this whole mess
 	PgfCncTree ctree = gu_null_variant;
@@ -478,6 +471,25 @@ pgf_cnc_trees_next(PgfLzn* lzn, GuPool* pool)
 		}
 	}
 	return ctree;
+}
+
+static void
+pgf_cnc_tree_enum_next(GuEnum* self, void* to, GuPool* pool)
+{
+	PgfLzn* lzn = gu_container(self, PgfLzn, en);
+	PgfCncTree* toc = to;
+	*toc = pgf_lzn_next(lzn, pool);
+}
+
+PgfCncTreeEnum*
+pgf_lzr_concretize(PgfLzr* lzr, PgfExpr expr, GuPool* pool)
+{
+	PgfLzn* lzn = gu_new(PgfLzn, pool);
+	lzn->lzr = lzr;
+	lzn->expr = expr;
+	lzn->ch = gu_new_choice(pool);
+	lzn->en.next = pgf_cnc_tree_enum_next;
+	return &lzn->en;
 }
 
 

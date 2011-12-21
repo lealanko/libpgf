@@ -2,6 +2,7 @@
 #include <gu/map.h>
 #include <gu/dump.h>
 #include <gu/log.h>
+#include <gu/enum.h>
 #include <gu/file.h>
 #include <pgf/pgf.h>
 #include <pgf/data.h>
@@ -64,8 +65,10 @@ int main(int argc, char* argv[]) {
 		char buf[4096];
 		char* line = fgets(buf, sizeof(buf), stdin);
 		if (line == NULL) {
-			fprintf(stderr, "Input error");
-			status = EXIT_FAILURE;
+			if (ferror(stdin)) {
+				fprintf(stderr, "Input error\n");
+				status = EXIT_FAILURE;
+			}
 			break;
 		} else if (line[0] == '\0') {
 			break;
@@ -85,15 +88,15 @@ int main(int argc, char* argv[]) {
 			parse = pgf_parse_token(parse, tok_s, ppool);
 			tok = strtok(NULL, " \n");
 		}
-		PgfParseResult* res = pgf_parse_result(parse, ppool);
-		PgfExpr expr = pgf_parse_result_next(res, ppool);
+		GuEnum* result = pgf_parse_result(parse, ppool);
+		PgfExpr expr = gu_next(result, PgfExpr, ppool);
 		while (!gu_variant_is_null(expr)) {
 			putchar(' ');
 			pgf_expr_print(expr, wtr, err);
 			putchar('\n');
-			PgfCncTrees* cts = pgf_lzr_concretize(lzr, expr, ppool);
+			GuEnum* cts = pgf_lzr_concretize(lzr, expr, ppool);
 			while (true) {
-				PgfCncTree ctree = pgf_cnc_trees_next(cts, ppool);
+				PgfCncTree ctree = gu_next(cts, PgfCncTree, ppool);
 				if (gu_variant_is_null(ctree)) {
 					break;
 				}
@@ -103,7 +106,7 @@ int main(int argc, char* argv[]) {
 				fputc('\n', stdout);
 				fflush(stdout);
 			}
-			expr = pgf_parse_result_next(res, ppool);
+			expr = gu_next(result, PgfExpr, ppool);
 		}
 		gu_pool_free(ppool);
 	}

@@ -19,6 +19,7 @@
 
 #include <gu/type.h>
 #include <gu/dump.h>
+#include <gu/enum.h>
 #include <pgf/data.h>
 
 /// PGF linearization.
@@ -79,15 +80,11 @@ pgf_new_lzr(PgfPGF* pgf, PgfConcr* cnc, GuPool* pool);
 typedef GuVariant PgfCncTree;
 
 /// An enumeration of #PgfCncTree trees.
-typedef struct PgfCncTrees PgfCncTrees;
+typedef GuEnum PgfCncTreeEnum;
 
 /// Begin enumerating concrete syntax variants.
-PgfCncTrees*
+PgfCncTreeEnum*
 pgf_lzr_concretize(PgfLzr* lzr, PgfExpr expr, GuPool* pool);
-
-/// Get the next concrete syntax variant.
-PgfCncTree
-pgf_cnc_trees_next(PgfCncTrees* ctrees, GuPool* pool);
 
 /** @}
  *

@@ -1,6 +1,7 @@
 #ifndef PGF_PARSER_H_
 #define PGF_PARSER_H_
 
+#include <gu/enum.h>
 #include <pgf/data.h>
 #include <pgf/expr.h>
 
@@ -17,12 +18,10 @@ pgf_parser_parse(PgfParser* parser, PgfCId cat, int lin_idx, GuPool* pool);
 PgfParse*
 pgf_parse_token(PgfParse* parse, PgfToken tok, GuPool* pool);
 
-PgfParseResult*
+typedef GuEnum PgfExprEnum;
+
+PgfExprEnum*
 pgf_parse_result(PgfParse* parse, GuPool* pool);
-
-PgfExpr
-pgf_parse_result_next(PgfParseResult* pr, GuPool* pool);
-
 
 
 #endif // PGF_PARSER_H_
