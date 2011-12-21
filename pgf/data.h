@@ -29,10 +29,6 @@
 #include <pgf/pgf.h>
 #include <pgf/expr.h>
 
-typedef GuString PgfCId;
-
-extern GU_DECLARE_TYPE(PgfCId, typedef);
-
 typedef struct PgfCCat PgfCCat;
 typedef PgfCCat* PgfCCatId;
 extern GU_DECLARE_TYPE(PgfCCat, struct);
@@ -65,8 +61,6 @@ extern GU_DECLARE_TYPE(PgfFunIds, GuList);
 typedef PgfCIdMap PgfFlags; // PgfCId -> PgfLiteral
 extern GU_DECLARE_TYPE(PgfFlags, GuMap);
 
-typedef struct PgfHypo PgfHypo;
-typedef struct PgfType PgfType;
 extern GU_DECLARE_TYPE(PgfType, struct);
 typedef GuVariant PgfProduction;
 typedef GuList(PgfProduction) PgfProductions;
@@ -88,36 +82,6 @@ bool
 pgf_tokens_equal(PgfTokens t1, PgfTokens t2);
 
 
-typedef enum {
-	PGF_BIND_TYPE_EXPLICIT,
-	PGF_BIND_TYPE_IMPLICIT
-} PgfBindType;
-
-extern GU_DECLARE_TYPE(PgfBindType, enum);
-
-struct PgfHypo {
-	PgfBindType bindtype;
-
-	PgfCId cid;
-	/**< Locally scoped name for the parameter if dependent types
-	 * are used. "_" for normal parameters. */
-
-	PgfType* type;
-};
-
-typedef GuSeq PgfHypos;
-
-struct PgfType {
-	PgfHypos hypos;
-	PgfCId cid; /// XXX: resolve to PgfCat*?
-	int n_exprs;
-	PgfExpr exprs[];
-};
-
-
-
-
-typedef int PgfMetaId;
 
 typedef PgfExpr PgfTree;
 
@@ -125,8 +89,6 @@ typedef struct PgfEquation PgfEquation;
 typedef GuSeq PgfEquations;
 typedef PgfEquations PgfEquationsM; // can be null
 extern GU_DECLARE_TYPE(PgfEquationsM, GuSeq);
-typedef GuList(PgfCId) PgfCIds;
-
 typedef struct PgfCat PgfCat;
 
 typedef PgfSequence PgfSeqId; // shared reference
@@ -307,33 +269,10 @@ typedef struct {
 } PgfProductionConst;
 
 
-GU_DECLARE_TYPE(PgfProduction, GuVariant);
-
-
-// PgfLiteral
-
-typedef GuVariant PgfLiteral;
-
+extern GU_DECLARE_TYPE(PgfProduction, GuVariant);
+extern GU_DECLARE_TYPE(PgfBindType, enum);
 extern GU_DECLARE_TYPE(PgfLiteral, GuVariant);
 
-typedef enum {
-	PGF_LITERAL_STR,
-	PGF_LITERAL_INT,
-	PGF_LITERAL_FLT,
-	PGF_LITERAL_NUM_TAGS
-} PgfLiteralTag;
-
-typedef struct {
-	GuStr val;
-} PgfLiteralStr;
-
-typedef struct {
-	int val;
-} PgfLiteralInt;
-
-typedef struct {
-	double val;
-} PgfLiteralFlt;
 
 PgfCCatId
 pgf_literal_cat(PgfLiteral lit);

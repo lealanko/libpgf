@@ -3,6 +3,9 @@
 
 #include <gu/read.h>
 #include <gu/write.h>
+#include <gu/variant.h>
+#include <gu/seq.h>
+#include <pgf/pgf.h>
 
 /// Abstract syntax trees
 /// @file
@@ -14,7 +17,63 @@ GU_DECLARE_TYPE(PgfExpr, GuVariant);
 
 typedef GuList(PgfExpr) PgfExprs;
 
+typedef struct PgfHypo PgfHypo;
+typedef struct PgfType PgfType;
 
+typedef int PgfMetaId;
+
+typedef enum {
+	PGF_BIND_TYPE_EXPLICIT,
+	PGF_BIND_TYPE_IMPLICIT
+} PgfBindType;
+
+// PgfLiteral
+
+typedef GuVariant PgfLiteral;
+
+
+typedef enum {
+	PGF_LITERAL_STR,
+	PGF_LITERAL_INT,
+	PGF_LITERAL_FLT,
+	PGF_LITERAL_NUM_TAGS
+} PgfLiteralTag;
+
+typedef struct {
+	GuStr val;
+} PgfLiteralStr;
+
+typedef struct {
+	int val;
+} PgfLiteralInt;
+
+typedef struct {
+	double val;
+} PgfLiteralFlt;
+
+
+
+struct PgfHypo {
+	PgfBindType bindtype;
+
+	PgfCId cid;
+	/**< Locally scoped name for the parameter if dependent types
+	 * are used. "_" for normal parameters. */
+
+	PgfType* type;
+};
+
+typedef GuSeq PgfHypos;
+extern GU_DECLARE_TYPE(PgfHypos, GuSeq);
+
+struct PgfType {
+	PgfHypos hypos;
+	PgfCId cid; /// XXX: resolve to PgfCat*?
+	int n_exprs;
+	PgfExpr exprs[];
+};
+
+			
 typedef enum {
 	PGF_EXPR_ABS,
 	PGF_EXPR_APP,

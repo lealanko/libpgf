@@ -1,8 +1,8 @@
 #include "expr.h"
 #include <gu/intern.h>
-#include <gu/seq.h>
 #include <gu/assert.h>
 #include <ctype.h>
+
 
 PgfExpr
 pgf_expr_unwrap(PgfExpr expr)
@@ -71,6 +71,32 @@ pgf_expr_unapply(PgfExpr expr, GuPool* pool)
 	return appl;
 }
 
+GU_DEFINE_TYPE(PgfBindType, enum,
+	       GU_ENUM_C(PgfBindType, PGF_BIND_TYPE_EXPLICIT),
+	       GU_ENUM_C(PgfBindType, PGF_BIND_TYPE_IMPLICIT));
+
+GU_DEFINE_TYPE(PgfLiteral, GuVariant,
+	       GU_CONSTRUCTOR_S(PGF_LITERAL_STR, PgfLiteralStr,
+				GU_MEMBER(PgfLiteralStr, val, GuString)),
+	       GU_CONSTRUCTOR_S(PGF_LITERAL_INT, PgfLiteralInt,
+				GU_MEMBER(PgfLiteralInt, val, int)),
+	       GU_CONSTRUCTOR_S(PGF_LITERAL_FLT, PgfLiteralFlt,
+				GU_MEMBER(PgfLiteralFlt, val, double)));
+
+GU_DECLARE_TYPE(PgfType, struct);
+
+GU_DEFINE_TYPE(PgfHypo, struct,
+	       GU_MEMBER(PgfHypo, bindtype, PgfBindType),
+	       GU_MEMBER(PgfHypo, cid, PgfCId),
+	       GU_MEMBER_P(PgfHypo, type, PgfType));
+
+GU_DEFINE_TYPE(PgfHypos, GuSeq, gu_type(PgfHypo));
+
+GU_DEFINE_TYPE(PgfType, struct,
+	       GU_MEMBER(PgfType, hypos, PgfHypos),
+	       GU_MEMBER(PgfType, cid, PgfCId),
+	       GU_MEMBER(PgfType, n_exprs, GuLength),
+	       GU_FLEX_MEMBER(PgfType, exprs, PgfExpr));
 
 GU_DEFINE_TYPE(
 	PgfExpr, GuVariant,

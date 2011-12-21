@@ -28,6 +28,11 @@
 #include <gu/exn.h>
 #include <gu/mem.h>
 #include <gu/in.h>
+#include <gu/string.h>
+
+
+typedef GuString PgfCId;
+extern GU_DECLARE_TYPE(PgfCId, typedef);
 
 
 /// A single lexical token			      

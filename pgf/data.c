@@ -57,33 +57,6 @@ GU_DEFINE_TYPE(GuStringL, GuList, gu_type(GuString));
 typedef GuType_GuStringMap GuType_PgfCIdMap;
 #define GU_TYPE_INIT_PgfCIdMap GU_TYPE_INIT_GuStringMap
 
-GU_DEFINE_TYPE(PgfLiteral, GuVariant,
-	       GU_CONSTRUCTOR_S(PGF_LITERAL_STR, PgfLiteralStr,
-				GU_MEMBER(PgfLiteralStr, val, GuString)),
-	       GU_CONSTRUCTOR_S(PGF_LITERAL_INT, PgfLiteralInt,
-				GU_MEMBER(PgfLiteralInt, val, int)),
-	       GU_CONSTRUCTOR_S(PGF_LITERAL_FLT, PgfLiteralFlt,
-				GU_MEMBER(PgfLiteralFlt, val, double)));
-
-GU_DEFINE_TYPE(PgfBindType, enum,
-	       GU_ENUM_C(PgfBindType, PGF_BIND_TYPE_EXPLICIT),
-	       GU_ENUM_C(PgfBindType, PGF_BIND_TYPE_IMPLICIT));
-
-GU_DECLARE_TYPE(PgfType, struct);
-
-GU_DEFINE_TYPE(PgfHypo, struct,
-	       GU_MEMBER(PgfHypo, bindtype, PgfBindType),
-	       GU_MEMBER(PgfHypo, cid, PgfCId),
-	       GU_MEMBER_P(PgfHypo, type, PgfType));
-
-GU_DEFINE_TYPE(PgfHypos, GuSeq, gu_type(PgfHypo));
-
-GU_DEFINE_TYPE(PgfType, struct,
-	       GU_MEMBER(PgfType, hypos, PgfHypos),
-	       GU_MEMBER(PgfType, cid, PgfCId),
-	       GU_MEMBER(PgfType, n_exprs, GuLength),
-	       GU_FLEX_MEMBER(PgfType, exprs, PgfExpr));
-
 GU_DEFINE_TYPE(PgfCCat, struct,
 	       GU_MEMBER_S(PgfCCat, cnccat, PgfCncCat),
 	       GU_MEMBER(PgfCCat, prods, PgfProductionSeq));
