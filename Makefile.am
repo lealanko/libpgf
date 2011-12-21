@@ -132,7 +132,7 @@ test_test_ieee754_SOURCES = test/test-ieee754.c
 
 
 
-AUTOMAKE_OPTIONS = foreign
+AUTOMAKE_OPTIONS = foreign subdir-objects dist-bzip2
 ACLOCAL_AMFLAGS = -I m4
 include doxygen.am
 

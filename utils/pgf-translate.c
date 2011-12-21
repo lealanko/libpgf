@@ -23,7 +23,7 @@ int main(int argc, char* argv[]) {
 	GuPool* pool = gu_new_pool();
 	int status = EXIT_SUCCESS;
 	if (argc != 5) {
-		fputs("usage: test-translate pgf cat from_lang to_lang\n", stderr);
+		fprintf(stderr, "usage: %s pgf cat from_lang to_lang\n", argv[0]);
 		status = EXIT_FAILURE;
 		goto fail;
 	}
