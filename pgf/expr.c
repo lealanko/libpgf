@@ -55,13 +55,13 @@ pgf_expr_unapply(PgfExpr expr, GuPool* pool)
 	if (arity < 0) {
 		return NULL;
 	}
-	PgfApplication* appl = gu_new_flex(pool, PgfApplication, args, arity);
-	appl->n_args = arity;
+	PgfApplication* appl = gu_new(PgfApplication, pool);
+	appl->args = gu_new_seq(PgfExpr, arity, pool);
 	for (int n = arity - 1; n >= 0; n--) {
 		PgfExpr e = pgf_expr_unwrap(expr);
 		gu_assert(gu_variant_tag(e) == PGF_EXPR_APP);
 		PgfExprApp* app = gu_variant_data(e);
-		appl->args[n] = app->arg;
+		gu_seq_set(appl->args, PgfExpr, n, app->arg);
 		expr = app->fun;
 	}
 	PgfExpr e = pgf_expr_unwrap(expr);
@@ -92,11 +92,12 @@ GU_DEFINE_TYPE(PgfHypo, struct,
 
 GU_DEFINE_TYPE(PgfHypos, GuSeq, gu_type(PgfHypo));
 
+GU_DEFINE_TYPE(PgfExprs, GuSeq, gu_type(PgfExpr));
+
 GU_DEFINE_TYPE(PgfType, struct,
 	       GU_MEMBER(PgfType, hypos, PgfHypos),
 	       GU_MEMBER(PgfType, cid, PgfCId),
-	       GU_MEMBER(PgfType, n_exprs, GuLength),
-	       GU_FLEX_MEMBER(PgfType, exprs, PgfExpr));
+	       GU_MEMBER(PgfType, exprs, PgfExprs));
 
 GU_DEFINE_TYPE(
 	PgfExpr, GuVariant,

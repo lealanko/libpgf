@@ -444,6 +444,8 @@ pgf_read_to_PgfCCatId(GuType* type, PgfReader* rdr, void* to)
 		locs = gu_new_buf(PgfCCat**, rdr->pool);
 		gu_map_put(rdr->ccat_locs, &fid, GuBuf*, locs);
 	}
+	*pto = NULL;
+	gu_debug("Registering location %p for cat %d", pto, fid);
 	gu_buf_push(locs, PgfCCat**, pto);
 }
 
@@ -462,6 +464,9 @@ pgf_read_to_PgfCCat(GuType* type, PgfReader* rdr, void* to)
 		size_t len = gu_buf_length(locs_buf);
 		PgfCCat*** locs = gu_buf_data(locs_buf);
 		for (size_t n = 0; n < len; n++) {
+			gu_assert(!*(locs[n]));
+			gu_debug("placing ccat %d to location %p",
+				 cat->fid, locs[n]);
 			*(locs[n]) = cat;
 		}
 	}
@@ -699,9 +704,10 @@ pgf_ccat_n_lins(PgfCCat* cat, int* n_lins) {
 		switch (i.tag) {
 		case PGF_PRODUCTION_APPLY: {
 			PgfProductionApply* papp = i.data;
+			int old_n_lins = (int) gu_seq_length(papp->fun->lins);
 			if (*n_lins == -1) {
-				*n_lins = (int) papp->fun->n_lins;
-			} else if (*n_lins != (int) papp->fun->n_lins) {
+				*n_lins = old_n_lins;
+			} else if (*n_lins != old_n_lins) {
 				// Inconsistent n_lins for different productions!
 				return false;
 			}

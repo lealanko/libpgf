@@ -71,6 +71,8 @@ GU_DEFINE_TYPE(PgfAlternative, struct,
 	       GU_MEMBER(PgfAlternative, form, PgfTokens),
 	       GU_MEMBER_P(PgfAlternative, prefixes, GuStringL));
 
+GU_DEFINE_TYPE(PgfAlternatives, GuSeq, gu_type(PgfAlternative));
+
 
 GU_DEFINE_TYPE(
 	PgfSymbol, GuVariant,
@@ -92,8 +94,7 @@ GU_DEFINE_TYPE(
 	GU_CONSTRUCTOR_S(
 		PGF_SYMBOL_KP, PgfSymbolKP,
 		GU_MEMBER(PgfSymbolKP, default_form, PgfTokens),
-		GU_MEMBER(PgfSymbolKP, n_forms, GuLength),
-		GU_FLEX_MEMBER(PgfSymbolKP, forms, PgfAlternative)));
+		GU_MEMBER(PgfSymbolKP, alts, PgfAlternatives)));
 
 GU_DEFINE_TYPE(
 	PgfCncCat, struct,
@@ -117,11 +118,12 @@ GU_DEFINE_TYPE(PgfSequences, GuList, gu_type(PgfSequence));
 
 GU_DEFINE_TYPE(PgfSeqId, typedef, gu_type(PgfSequence));
 
+GU_DEFINE_TYPE(PgfSeqIds, GuSeq, gu_type(PgfSeqId));
+
 GU_DEFINE_TYPE(
 	PgfCncFun, struct,
 	GU_MEMBER(PgfCncFun, fun, PgfCId),
-	GU_MEMBER(PgfCncFun, n_lins, GuLength),
-	GU_FLEX_MEMBER(PgfCncFun, lins, PgfSeqId));
+	GU_MEMBER(PgfCncFun, lins, PgfSeqIds));
 
 GU_DEFINE_TYPE(PgfCncFuns, GuList, 
 	       GU_TYPE_LIT(referenced, _, gu_ptr_type(PgfCncFun)));
@@ -145,23 +147,22 @@ GU_DEFINE_TYPE(
 		GU_MEMBER(PgfProductionApply, args, PgfPArgs)),
 	GU_CONSTRUCTOR_S(
 		PGF_PRODUCTION_COERCE, PgfProductionCoerce,
-		GU_MEMBER(PgfProductionCoerce, coerce, PgfCCatId)),
-	GU_CONSTRUCTOR_S(
-		PGF_PRODUCTION_CONST, PgfProductionConst,
-		GU_MEMBER(PgfProductionConst, expr, PgfExpr),
-		GU_MEMBER(PgfProductionConst, n_toks, GuLength),
-		GU_FLEX_MEMBER(PgfProductionConst, toks, GuString)));
+		GU_MEMBER(PgfProductionCoerce, coerce, PgfCCatId)));
 
 GU_DEFINE_TYPE(PgfProductions, GuList, gu_type(PgfProduction));
 GU_DEFINE_TYPE(PgfProductionSeq, GuSeq, gu_type(PgfProduction));
+
+
+extern GU_DECLARE_TYPE(PgfPatt, GuVariant);
+
+GU_DEFINE_TYPE(PgfPatts, GuSeq, gu_type(PgfPatt));
 
 GU_DEFINE_TYPE(
 	PgfPatt, GuVariant, 
 	GU_CONSTRUCTOR_S(
 		PGF_PATT_APP, PgfPattApp,
 		GU_MEMBER(PgfPattApp, ctor, PgfCId),
-		GU_MEMBER(PgfPattApp, n_args, GuLength),
-		GU_MEMBER(PgfPattApp, args, PgfPatt)),
+		GU_MEMBER(PgfPattApp, args, PgfPatts)),
 	GU_CONSTRUCTOR_S(
 		PGF_PATT_LIT, PgfPattLit,
 		GU_MEMBER(PgfPattLit, lit, PgfLiteral)),
@@ -184,8 +185,7 @@ GU_DEFINE_TYPE(
 GU_DEFINE_TYPE(
 	PgfEquation, struct, 
 	GU_MEMBER(PgfEquation, body, PgfExpr),
-	GU_MEMBER(PgfEquation, n_patts, GuLength),
-	GU_MEMBER(PgfEquation, patts, PgfPatt));
+	GU_MEMBER(PgfEquation, patts, PgfPatts));
 
 // Distinct type so we can give it special treatment in the reader
 GU_DEFINE_TYPE(PgfEquationsM, GuSeq, gu_type(PgfEquation));
@@ -202,11 +202,13 @@ GU_DEFINE_TYPE(
 	GU_MEMBER(PgfCatFun, prob, double),
 	GU_MEMBER(PgfCatFun, fun, PgfCId));
 
+GU_DEFINE_TYPE(PgfCatFuns, GuSeq, gu_type(PgfCatFun));
+
+
 GU_DEFINE_TYPE(
 	PgfCat, struct, 
 	GU_MEMBER(PgfCat, context, PgfHypos),
-	GU_MEMBER(PgfCat, n_functions, GuLength),
-	GU_FLEX_MEMBER(PgfCat, functions, PgfCatFun));
+	GU_MEMBER(PgfCat, functions, PgfCatFuns));
 
 
 GU_DEFINE_TYPE(

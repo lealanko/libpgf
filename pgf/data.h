@@ -45,6 +45,7 @@ typedef struct PgfConcr PgfConcr;
 typedef int PgfLength;
 typedef struct GuVariant PgfSymbol;
 typedef struct PgfAlternative PgfAlternative;
+typedef GuSeq PgfAlternatives;
 typedef struct PgfCncFun PgfCncFun;
 
 
@@ -69,10 +70,12 @@ typedef GuSeq PgfProductionSeq;
 extern GU_DECLARE_TYPE(PgfProductionSeq, GuSeq);
 
 typedef struct PgfCatFun PgfCatFun;
+typedef GuSeq PgfCatFuns;			      
 typedef struct PgfCncCat PgfCncCat;
 extern GU_DECLARE_TYPE(PgfCncCat, struct);
 typedef GuVariant PgfPatt;
-
+typedef GuSeq PgfPatts;
+			      
 typedef GuList(GuString) GuStringL;
 extern GU_DECLARE_TYPE(GuStringL, GuList);
 typedef GuSeq PgfTokens;  // -> PgfToken
@@ -92,7 +95,7 @@ extern GU_DECLARE_TYPE(PgfEquationsM, GuSeq);
 typedef struct PgfCat PgfCat;
 
 typedef PgfSequence PgfSeqId; // shared reference
-
+typedef GuSeq PgfSeqIds;
 extern GU_DECLARE_TYPE(PgfSeqId, typedef);
 
 typedef GuList(PgfSequence) PgfSequences;
@@ -129,14 +132,13 @@ struct PgfFunDecl {
 
 struct PgfCatFun {
 	double prob;
-	PgfCId fun;
+	PgfCId fun; // XXX: resolve to PgfFunDecl*?
 };
 
 struct PgfCat {
 	// TODO: Add cid here
 	PgfHypos context;
-	GuLength n_functions;
-	PgfCatFun functions[]; // XXX: resolve to PgfFunDecl*?
+	PgfCatFuns functions;  
 };
 
 
@@ -157,8 +159,7 @@ struct PgfCncCat {
 
 struct PgfCncFun {
 	PgfCId fun; // XXX: resolve to PgfFunDecl*?
-	GuLength n_lins;
-	PgfSeqId lins[];
+	PgfSeqIds lins;
 };
 
 struct PgfAlternative {
@@ -219,8 +220,7 @@ typedef struct PgfSymbolKP
 	/**< Default form that this symbol takes if none of of the
 	 * variant forms is triggered. */
 
-	GuLength n_forms;
-	PgfAlternative forms[]; 
+	PgfAlternatives alts;
 	/**< Variant forms whose choise depends on the following
 	 * symbol. */
 } PgfSymbolKP;
@@ -233,7 +233,6 @@ typedef struct PgfSymbolKP
 typedef enum {
 	PGF_PRODUCTION_APPLY,
 	PGF_PRODUCTION_COERCE,
-	PGF_PRODUCTION_CONST
 } PgfProductionTag;
 
 typedef struct PgfPArg PgfPArg;
@@ -262,13 +261,6 @@ typedef struct PgfProductionCoerce
 	PgfCCatId coerce;
 } PgfProductionCoerce;
 
-typedef struct {
-	PgfExpr expr; // XXX
-	GuLength n_toks;
-	GuString toks[]; // XXX
-} PgfProductionConst;
-
-
 extern GU_DECLARE_TYPE(PgfProduction, GuVariant);
 extern GU_DECLARE_TYPE(PgfBindType, enum);
 extern GU_DECLARE_TYPE(PgfLiteral, GuVariant);
@@ -292,8 +284,7 @@ typedef enum {
 
 typedef	struct {
 	PgfCId ctor;
-	GuLength n_args;
-	PgfPatt args[];
+	PgfPatts args;
 } PgfPattApp;
 
 typedef struct {
@@ -321,8 +312,7 @@ typedef struct {
 
 struct PgfEquation {
 	PgfExpr body;
-	GuLength n_patts;
-	PgfPatt patts[];
+	PgfPatts patts;
 };
 
 

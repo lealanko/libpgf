@@ -151,8 +151,8 @@ pgf_item_base_symbol(PgfItemBase* ibase, size_t seq_idx, GuPool* pool)
 	case PGF_PRODUCTION_APPLY: {
 		PgfProductionApply* papp = i.data;
 		PgfCncFun* fun = papp->fun;
-		gu_assert(ibase->lin_idx < fun->n_lins);
-		PgfSequence seq = fun->lins[ibase->lin_idx];
+		PgfSequence seq =
+			gu_seq_get(fun->lins, PgfSequence, ibase->lin_idx);
 		gu_assert(seq_idx <= gu_seq_length(seq));
 		if (seq_idx == gu_seq_length(seq)) {
 			return gu_null_variant;
@@ -367,7 +367,6 @@ pgf_parsing_symbol(PgfParsing* parsing, PgfItem* item, PgfSymbol sym) {
 	}
 	case PGF_SYMBOL_KS: {
 		PgfSymbolKS* sks = gu_variant_data(sym);
-		gu_assert(item->tok_idx < gu_seq_length(sks->tokens));
 		PgfToken tok = 
 			gu_seq_get(sks->tokens, PgfToken, item->tok_idx);
 		pgf_parsing_add_transition(parsing, tok, item);
@@ -377,17 +376,18 @@ pgf_parsing_symbol(PgfParsing* parsing, PgfItem* item, PgfSymbol sym) {
 		PgfSymbolKP* skp = gu_variant_data(sym);
 		size_t idx = item->tok_idx;
 		uint8_t alt = item->alt;
-		gu_assert(idx < gu_seq_length(skp->default_form));
+		size_t n_alts = gu_seq_length(skp->alts);
+		PgfAlternative* alts = gu_seq_data(skp->alts);
 		if (idx == 0) {
 			PgfToken tok = gu_seq_get(skp->default_form, PgfToken, 0);
 			pgf_parsing_add_transition(parsing, tok, item);
-			for (size_t i = 0; i < skp->n_forms; i++) {
-				PgfTokens toks = skp->forms[i].form;
+			for (size_t i = 0; i < n_alts; i++) {
+				PgfTokens toks = alts[i].form;
 				PgfTokens toks2 = skp->default_form;
 				// XXX: do nubbing properly
 				bool skip = pgf_tokens_equal(toks, toks2);
 				for (size_t j = 0; j < i; j++) {
-					PgfTokens toks2 = skp->forms[j].form;
+					PgfTokens toks2 = alts[j].form;
 					skip |= pgf_tokens_equal(toks, toks2);
 				}
 				if (skip) {
@@ -401,8 +401,8 @@ pgf_parsing_symbol(PgfParsing* parsing, PgfItem* item, PgfSymbol sym) {
 				gu_seq_get(skp->default_form, PgfToken, idx);
 			pgf_parsing_add_transition(parsing, tok, item);
 		} else {
-			gu_assert(alt <= skp->n_forms);
-			PgfToken tok = gu_seq_get(skp->forms[alt - 1].form, 
+			gu_assert(alt <= n_alts);
+			PgfToken tok = gu_seq_get(alts[alt - 1].form, 
 						  PgfToken, idx);
 			pgf_parsing_add_transition(parsing, tok, item);
 		}
@@ -427,7 +427,8 @@ pgf_parsing_item(PgfParsing* parsing, PgfItem* item)
 	case PGF_PRODUCTION_APPLY: {
 		PgfProductionApply* papp = i.data;
 		PgfCncFun* fun = papp->fun;
-		PgfSequence seq = fun->lins[item->base->lin_idx];
+		PgfSequence seq = gu_seq_get(fun->lins, PgfSequence,
+					     item->base->lin_idx);
 		if (item->seq_idx == gu_seq_length(seq)) {
 			pgf_parsing_complete(parsing, item);
 		} else  {
@@ -462,7 +463,6 @@ static bool
 pgf_parsing_scan_toks(PgfParsing* parsing, PgfItem* old_item, 
 		      PgfToken tok, int alt, PgfTokens toks)
 {
-	gu_assert(old_item->tok_idx < gu_seq_length(toks));
 	if (!gu_string_eq(gu_seq_get(toks, PgfToken, old_item->tok_idx), 
 			  tok)) {
 		return false;
@@ -493,31 +493,33 @@ pgf_parsing_scan(PgfParsing* parsing, PgfItem* item, PgfToken tok)
 	case PGF_SYMBOL_KP: {
 		PgfSymbolKP* kp = i.data;
 		size_t alt = item->alt;
+		size_t n_alts = gu_seq_length(kp->alts);
+		PgfAlternative* alts = gu_seq_data(kp->alts);
 		if (item->tok_idx == 0) {
 			succ = pgf_parsing_scan_toks(parsing, item, tok, 0, 
 						      kp->default_form);
-			for (size_t i = 0; i < kp->n_forms; i++) {
+			for (size_t i = 0; i < n_alts; i++) {
 				// XXX: do nubbing properly
-				PgfTokens toks = kp->forms[i].form;
+				PgfTokens toks = alts[i].form;
 				PgfTokens toks2 = kp->default_form;
 				bool skip = pgf_tokens_equal(toks, toks2);
 				for (size_t j = 0; j < i; j++) {
-					PgfTokens toks2 = kp->forms[j].form;
+					PgfTokens toks2 = alts[j].form;
 					skip |= pgf_tokens_equal(toks, toks2);
 				}
 				if (!skip) {
 					succ |= pgf_parsing_scan_toks(
 						parsing, item, tok, i + 1,
-						kp->forms[i].form);
+						alts[i].form);
 				}
 			}
 		} else if (alt == 0) {
 			succ = pgf_parsing_scan_toks(parsing, item, tok, 0, 
 						      kp->default_form);
 		} else {
-			gu_assert(alt <= kp->n_forms);
+			gu_assert(alt <= n_alts);
 			succ = pgf_parsing_scan_toks(parsing, item, tok, 
-						     alt, kp->forms[alt - 1].form);
+						     alt, alts[alt - 1].form);
 		}
 		break;
 	}

@@ -278,6 +278,8 @@ struct PgfLzn {
 // PgfCncTree
 //
 
+typedef GuSeq PgfCncTrees;
+
 typedef enum {
 	PGF_CNC_TREE_APP,
 	PGF_CNC_TREE_LIT,
@@ -286,8 +288,7 @@ typedef enum {
 typedef struct PgfCncTreeApp PgfCncTreeApp;
 struct PgfCncTreeApp {
 	PgfCncFun* fun;
-	GuLength n_args;
-	PgfCncTree args[];
+	PgfCncTrees args;
 };
 
 typedef struct PgfCncTreeLit PgfCncTreeLit;
@@ -330,10 +331,13 @@ pgf_lzn_infer_apply_try(PgfLzn* lzn, PgfApplication* appl,
 	gu_enter("f: %s, *ip: %d, n_args: %d", appl->fun, *ip, n_args);
 	PgfCCat* ret = NULL;
 	while (*ip < n_args) {
-		PgfCncTree* arg_treep = 
-			(app_out == NULL ? NULL : &app_out->args[*ip]);
-		PgfCCat* arg_i = 
-			pgf_lzn_infer(lzn, appl->args[*ip], pool, arg_treep);
+		PgfCncTree* arg_treep = NULL;
+		if (app_out) {
+			arg_treep = gu_seq_index(app_out->args, PgfCncTree, *ip);
+		}
+		PgfExpr arg_expr = gu_seq_get(appl->args, PgfExpr, *ip);
+		PgfCCat* arg_i =
+			pgf_lzn_infer(lzn, arg_expr, pool, arg_treep);
 		if (arg_i == NULL) {
 			goto finish;
 		}
@@ -368,31 +372,32 @@ pgf_lzn_infer_application(PgfLzn* lzn, PgfApplication* appl,
 {
 	PgfInferMap* infer =
 		gu_map_get(lzn->lzr->fun_indices, &appl->fun, PgfInferMap*);
-	gu_enter("-> f: %s, n_args: %d", appl->fun, appl->n_args);
+	size_t n_args = gu_seq_length(appl->args);
+	gu_enter("-> f: %s, n_args: %d", appl->fun, n_args);
 	if (infer == NULL) {
 		gu_exit("<- couldn't find f");
 		return NULL;
 	}
 	GuPool* tmp_pool = gu_new_pool();
 	PgfCCat* ret = NULL;
-	int n = appl->n_args;
-	PgfCCatIds* arg_cats = gu_new_list(PgfCCatIds, tmp_pool, n);
+	PgfCCatIds* arg_cats = gu_new_list(PgfCCatIds, tmp_pool, n_args);
 
 	PgfCncTreeApp* appt = NULL;
 	if (ctree_out) {
-		appt = gu_new_flex_variant(PGF_CNC_TREE_APP, PgfCncTreeApp, 
-					   args, n, ctree_out, pool);
-		appt->n_args = n;
+		appt = gu_new_variant(PGF_CNC_TREE_APP, PgfCncTreeApp, 
+				      ctree_out, pool);
+		appt->args = gu_new_seq(PgfCncTree, n_args, pool);
 	}
 
-	PgfChoiceMarks* marksl = gu_new_list(PgfChoiceMarks, tmp_pool, n + 1);
+	PgfChoiceMarks* marksl =
+		gu_new_list(PgfChoiceMarks, tmp_pool, n_args + 1);
 	GuChoiceMark* marks = gu_list_elems(marksl);
 	int i = 0;
 	marks[i] = gu_choice_mark(lzn->ch);
 	while (true) {
 		ret = pgf_lzn_infer_apply_try(lzn, appl, infer,
 					      marks, arg_cats,
-					      &i, n, pool, appt);
+					      &i, n_args, pool, appt);
 		if (ret != NULL) {
 			break;
 		}
@@ -498,7 +503,7 @@ pgf_cnc_tree_dimension(PgfCncTree ctree)
 		return 1;
 	case PGF_CNC_TREE_APP: {
 		PgfCncTreeApp* fapp = cti.data;
-		return fapp->fun->n_lins;
+		return gu_seq_length(fapp->fun->lins);
 	}
 	default:
 		gu_impossible();
@@ -524,11 +529,11 @@ pgf_lzr_linearize(PgfLzr* lzr, PgfCncTree ctree, size_t lin_idx, PgfLinFuncs** f
 	case PGF_CNC_TREE_APP: {
 		PgfCncTreeApp* fapp = cti.data;
 		PgfCncFun* fun = fapp->fun;
+		size_t n_args = gu_seq_length(fapp->args);
 		if (fns->expr_apply) {
-			fns->expr_apply(fnsp, fun->fun, fapp->n_args);
+			fns->expr_apply(fnsp, fun->fun, n_args);
 		}
-		gu_require(lin_idx < fun->n_lins);
-		PgfSequence seq = fun->lins[lin_idx];
+		PgfSequence seq = gu_seq_get(fun->lins, PgfSequence, lin_idx);
 		size_t nsyms = gu_seq_length(seq);
 		PgfSymbol* syms = gu_seq_data(seq);
 		for (size_t i = 0; i < nsyms; i++) {
@@ -539,8 +544,9 @@ pgf_lzr_linearize(PgfLzr* lzr, PgfCncTree ctree, size_t lin_idx, PgfLinFuncs** f
 			case PGF_SYMBOL_VAR:
 			case PGF_SYMBOL_LIT: {
 				PgfSymbolIdx* sidx = sym_i.data;
-				gu_assert((unsigned) sidx->d < fapp->n_args);
-				PgfCncTree argf = fapp->args[sidx->d];
+				PgfCncTree argf = gu_seq_get(fapp->args,
+							     PgfCncTree,
+							     sidx->d);
 				pgf_lzr_linearize(lzr, argf, sidx->r, fnsp);
 				break;
 			}

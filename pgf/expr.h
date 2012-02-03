@@ -15,7 +15,7 @@ typedef GuVariant PgfExpr;
 
 GU_DECLARE_TYPE(PgfExpr, GuVariant);
 
-typedef GuList(PgfExpr) PgfExprs;
+typedef GuSeq PgfExprs;
 
 typedef struct PgfHypo PgfHypo;
 typedef struct PgfType PgfType;
@@ -69,8 +69,7 @@ extern GU_DECLARE_TYPE(PgfHypos, GuSeq);
 struct PgfType {
 	PgfHypos hypos;
 	PgfCId cid; /// XXX: resolve to PgfCat*?
-	int n_exprs;
-	PgfExpr exprs[];
+	PgfExprs exprs;
 };
 
 			
@@ -135,8 +134,7 @@ typedef struct PgfApplication PgfApplication;
 
 struct PgfApplication {
 	PgfCId fun;
-	int n_args;
-	PgfExpr args[];
+	PgfExprs args;
 };
 
 PgfApplication*
