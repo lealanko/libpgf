@@ -27,6 +27,12 @@ gu_seq_length(GuSeq seq)
 	return tag;
 }
 
+static inline bool
+gu_seq_is_empty(GuSeq seq)
+{
+	return gu_seq_length(seq) == 0;
+}
+
 static inline void*
 gu_seq_data(GuSeq seq)
 {
@@ -139,6 +145,13 @@ GuSeq
 gu_buf_freeze(GuBuf* buf, GuPool* pool);
 
 extern const GuSeq gu_null_seq;
+
+static inline GuSeq
+gu_empty_seq(void) {
+	extern const GuWord gu_empty_seq_[];
+	return (GuSeq) { gu_tagged((void*)&gu_empty_seq_[1], 0) };
+}
+
 
 #define GU_NULL_SEQ { .w_ = (GuWord)(void*)NULL }
 

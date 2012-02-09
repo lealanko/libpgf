@@ -50,8 +50,6 @@ GU_DEFINE_TYPE(PgfTokens, GuSeq, gu_type(GuString));
 
 GU_DEFINE_TYPE(PgfCId, typedef, gu_type(GuString));
 
-GU_DEFINE_TYPE(GuStringL, GuList, gu_type(GuString));
-
 
 #define gu_type__PgfCIdMap gu_type__GuStringMap
 typedef GuType_GuStringMap GuType_PgfCIdMap;
@@ -59,17 +57,17 @@ typedef GuType_GuStringMap GuType_PgfCIdMap;
 
 GU_DEFINE_TYPE(PgfCCat, struct,
 	       GU_MEMBER_S(PgfCCat, cnccat, PgfCncCat),
-	       GU_MEMBER(PgfCCat, prods, PgfProductionSeq));
+	       GU_MEMBER(PgfCCat, prods, PgfProductions));
 
 GU_DEFINE_TYPE(PgfCCatId, shared, gu_type(PgfCCat));
 
-GU_DEFINE_TYPE(PgfCCatIds, GuList, gu_type(PgfCCatId));
+GU_DEFINE_TYPE(PgfCCatIds, GuSeq, gu_type(PgfCCatId));
 
-GU_DEFINE_TYPE(PgfCCatSeq, GuSeq, gu_type(PgfCCatId));
+GU_DEFINE_TYPE(PgfCCats, GuSeq, gu_type(PgfCCatId));
 
 GU_DEFINE_TYPE(PgfAlternative, struct,
 	       GU_MEMBER(PgfAlternative, form, PgfTokens),
-	       GU_MEMBER_P(PgfAlternative, prefixes, GuStringL));
+	       GU_MEMBER(PgfAlternative, prefixes, GuStrings));
 
 GU_DEFINE_TYPE(PgfAlternatives, GuSeq, gu_type(PgfAlternative));
 
@@ -99,10 +97,10 @@ GU_DEFINE_TYPE(
 GU_DEFINE_TYPE(
 	PgfCncCat, struct,
 	GU_MEMBER(PgfCncCat, cid, PgfCId),
-	GU_MEMBER_P(PgfCncCat, cats, PgfCCatIds),
+	GU_MEMBER(PgfCncCat, cats, PgfCCatIds),
 	GU_MEMBER(PgfCncCat, n_lins, size_t),
-	GU_MEMBER_P(PgfCncCat, lindefs, PgfFunIds),
-	GU_MEMBER_P(PgfCncCat, labels, GuStringL));
+	GU_MEMBER(PgfCncCat, lindefs, PgfFunIds),
+	GU_MEMBER(PgfCncCat, labels, GuStrings));
 
 // GU_DEFINE_TYPE(PgfSequence, GuList, gu_ptr_type(PgfSymbol));
 // GU_DEFINE_TYPE(PgfSequence, GuList, gu_type(PgfSymbol));
@@ -114,7 +112,7 @@ typedef PgfFlags* PgfFlagsP;
 
 GU_DEFINE_TYPE(PgfFlagsP, pointer, gu_type(PgfFlags));
 
-GU_DEFINE_TYPE(PgfSequences, GuList, gu_type(PgfSequence));
+GU_DEFINE_TYPE(PgfSequences, GuSeq, gu_type(PgfSequence));
 
 GU_DEFINE_TYPE(PgfSeqId, typedef, gu_type(PgfSequence));
 
@@ -125,16 +123,16 @@ GU_DEFINE_TYPE(
 	GU_MEMBER(PgfCncFun, fun, PgfCId),
 	GU_MEMBER(PgfCncFun, lins, PgfSeqIds));
 
-GU_DEFINE_TYPE(PgfCncFuns, GuList, 
+GU_DEFINE_TYPE(PgfCncFuns, GuSeq, 
 	       GU_TYPE_LIT(referenced, _, gu_ptr_type(PgfCncFun)));
 
 GU_DEFINE_TYPE(PgfFunId, shared, gu_type(PgfCncFun));
 
-GU_DEFINE_TYPE(PgfFunIds, GuList, gu_type(PgfFunId));
+GU_DEFINE_TYPE(PgfFunIds, GuSeq, gu_type(PgfFunId));
 
 GU_DEFINE_TYPE(
 	PgfPArg, struct,
-	GU_MEMBER_P(PgfPArg, hypos, PgfCCatIds),
+	GU_MEMBER(PgfPArg, hypos, PgfCCatIds),
 	GU_MEMBER(PgfPArg, ccat, PgfCCatId));
 
 GU_DEFINE_TYPE(PgfPArgs, GuSeq, gu_type(PgfPArg));
@@ -149,8 +147,7 @@ GU_DEFINE_TYPE(
 		PGF_PRODUCTION_COERCE, PgfProductionCoerce,
 		GU_MEMBER(PgfProductionCoerce, coerce, PgfCCatId)));
 
-GU_DEFINE_TYPE(PgfProductions, GuList, gu_type(PgfProduction));
-GU_DEFINE_TYPE(PgfProductionSeq, GuSeq, gu_type(PgfProduction));
+GU_DEFINE_TYPE(PgfProductions, GuSeq, gu_type(PgfProduction));
 
 
 extern GU_DECLARE_TYPE(PgfPatt, GuVariant);

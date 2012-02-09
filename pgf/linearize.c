@@ -62,11 +62,11 @@ static GuHash
 pgf_lzr_cats_hash_fn(GuHasher* self, const void* p)
 {
 	(void) self;
-	PgfCCatIds* cats = *(PgfCCatIds* const*)p;
-	size_t len = gu_list_length(cats);
+	PgfCCatIds cats = *(PgfCCatIds const*)p;
+	size_t len = gu_seq_length(cats);
 	uintptr_t h = 0;
 	for (size_t i = 0; i < len; i++) {
-		h = 101 * h + (uintptr_t) gu_list_index(cats, i);
+		h = 101 * h + (uintptr_t) gu_seq_get(cats, PgfCCatId, i);
 	}
 	return h;
 }
@@ -75,15 +75,15 @@ static bool
 pgf_lzr_cats_eq_fn(GuEquality* self, const void* p1, const void* p2)
 {
 	(void) self;
-	PgfCCatIds* cats1 = *(PgfCCatIds* const*) p1;
-	PgfCCatIds* cats2 = *(PgfCCatIds* const*) p2;
-	int len = gu_list_length(cats1);
-	if (gu_list_length(cats2) != len) {
+	PgfCCatIds cats1 = *(PgfCCatIds const*) p1;
+	PgfCCatIds cats2 = *(PgfCCatIds const*) p2;
+	size_t len = gu_seq_length(cats1);
+	if (gu_seq_length(cats2) != len) {
 		return false;
 	}
-	for (int i = 0; i < len; i++) {
-		PgfCCat* cat1 = gu_list_index(cats1, i);
-		PgfCCat* cat2 = gu_list_index(cats2, i);
+	for (size_t i = 0; i < len; i++) {
+		PgfCCat* cat1 = gu_seq_get(cats1, PgfCCatId, i);
+		PgfCCat* cat2 = gu_seq_get(cats2, PgfCCatId, i);
 		if (cat1 != cat2) {
 			return false;
 		}
@@ -140,15 +140,15 @@ pgf_lzr_add_infer_entry(PgfLzr* lzr,
 {
 	PgfPArgs args = papply->args;
 	size_t n_args = gu_seq_length(args);
-	PgfCCatIds* arg_cats = gu_new_list(PgfCCatIds, lzr->pool, n_args);
+	PgfCCatIds arg_cats = gu_new_seq(PgfCCatId, n_args, lzr->pool);
 	for (size_t i = 0; i < n_args; i++) {
 		// XXX: What about the hypos in the args?
-		gu_list_index(arg_cats, i) = gu_seq_get(args, PgfPArg, i).ccat;
+		gu_seq_set(arg_cats, PgfCCatId, i, gu_seq_get(args, PgfPArg, i).ccat);
 	}
 	gu_debug("%d,%d,%d -> %d, %s",
-		 n_args > 0 ? gu_list_index(arg_cats, 0)->fid : -1,
-		 n_args > 1 ? gu_list_index(arg_cats, 1)->fid : -1,
-		 n_args > 2 ? gu_list_index(arg_cats, 2)->fid : -1,
+		 n_args > 0 ? gu_seq_get(arg_cats, PgfCCatId, 0)->fid : -1,
+		 n_args > 1 ? gu_seq_get(arg_cats, PgfCCatId, 1)->fid : -1,
+		 n_args > 2 ? gu_seq_get(arg_cats, PgfCCatId, 2)->fid : -1,
 		 cat->fid, papply->fun->fun);
 	PgfLinInfers* entries =
 		gu_map_get(infer_table, &arg_cats, PgfLinInfers*);
@@ -234,9 +234,9 @@ pgf_lzr_index_cnccat_cb(GuMapItor* fn, const void* key, void* value,
 	PgfCncCat** cnccatp = value;
 	PgfCncCat* cnccat = *cnccatp;
 	gu_enter("-> cnccat: %s", cnccat->cid);
-	int n_ccats = gu_list_length(cnccat->cats);
-	for (int i = 0; i < n_ccats; i++) {
-		PgfCCat* cat = gu_list_index(cnccat->cats, i);
+	size_t n_ccats = gu_seq_length(cnccat->cats);
+	for (size_t i = 0; i < n_ccats; i++) {
+		PgfCCat* cat = gu_seq_get(cnccat->cats, PgfCCatId, i);
 		if (cat) {
 			pgf_lzr_index_ccat(clo->lzr, cat);
 		}
@@ -325,7 +325,7 @@ pgf_lzn_infer(PgfLzn* lzn, PgfExpr expr, GuPool* pool, PgfCncTree* ctree_out);
 static PgfCCat*
 pgf_lzn_infer_apply_try(PgfLzn* lzn, PgfApplication* appl,
 			PgfInferMap* infer, GuChoiceMark* marks,
-			PgfCCatIds* arg_cats, int* ip, int n_args, 
+			PgfCCatIds arg_cats, int* ip, int n_args, 
 			GuPool* pool, PgfCncTreeApp* app_out)
 {
 	gu_enter("f: %s, *ip: %d, n_args: %d", appl->fun, *ip, n_args);
@@ -342,7 +342,7 @@ pgf_lzn_infer_apply_try(PgfLzn* lzn, PgfApplication* appl,
 			goto finish;
 		}
 		arg_i = pgf_lzn_pick_supercat(lzn, arg_i);
-		gu_list_index(arg_cats, *ip) = arg_i;
+		gu_seq_set(arg_cats, PgfCCatId, *ip, arg_i);
 		marks[++*ip] = gu_choice_mark(lzn->ch);
 	}
 	PgfLinInfers* entries = gu_map_get(infer, &arg_cats, PgfLinInfers*);
@@ -364,7 +364,7 @@ finish:
 	gu_exit("fid: %d", ret ? ret->fid : -1);
 	return ret;
 }
-typedef GuList(GuChoiceMark) PgfChoiceMarks;
+typedef GuSeq PgfChoiceMarks;
 
 static PgfCCat*
 pgf_lzn_infer_application(PgfLzn* lzn, PgfApplication* appl, 
@@ -380,7 +380,7 @@ pgf_lzn_infer_application(PgfLzn* lzn, PgfApplication* appl,
 	}
 	GuPool* tmp_pool = gu_new_pool();
 	PgfCCat* ret = NULL;
-	PgfCCatIds* arg_cats = gu_new_list(PgfCCatIds, tmp_pool, n_args);
+	PgfCCatIds arg_cats = gu_new_seq(PgfCCatId, n_args, tmp_pool);
 
 	PgfCncTreeApp* appt = NULL;
 	if (ctree_out) {
@@ -389,14 +389,14 @@ pgf_lzn_infer_application(PgfLzn* lzn, PgfApplication* appl,
 		appt->args = gu_new_seq(PgfCncTree, n_args, pool);
 	}
 
-	PgfChoiceMarks* marksl =
-		gu_new_list(PgfChoiceMarks, tmp_pool, n_args + 1);
-	GuChoiceMark* marks = gu_list_elems(marksl);
+	PgfChoiceMarks marks =
+		gu_new_seq(GuChoiceMark, n_args + 1, tmp_pool);
+	GuChoiceMark* markdata = gu_seq_data(marks);
 	int i = 0;
-	marks[i] = gu_choice_mark(lzn->ch);
+	markdata[i] = gu_choice_mark(lzn->ch);
 	while (true) {
 		ret = pgf_lzn_infer_apply_try(lzn, appl, infer,
-					      marks, arg_cats,
+					      markdata, arg_cats,
 					      &i, n_args, pool, appt);
 		if (ret != NULL) {
 			break;
@@ -407,7 +407,7 @@ pgf_lzn_infer_application(PgfLzn* lzn, PgfApplication* appl,
 			if (i < 0) {
 				goto finish;
 			}
-			gu_choice_reset(lzn->ch, marks[i]);
+			gu_choice_reset(lzn->ch, markdata[i]);
 		} while (!gu_choice_advance(lzn->ch));
 	}
 finish:

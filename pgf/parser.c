@@ -11,7 +11,7 @@ enum {
 };
 
 typedef GuBuf PgfItemBuf;
-typedef GuList(PgfItemBuf*) PgfItemBufs;
+typedef GuSeq PgfItemBufs;
 
 
 
@@ -59,11 +59,11 @@ struct PgfItem {
 typedef GuMap PgfContsMap;
 
 
-static GU_DEFINE_TYPE(PgfItemBuf, abstract, _);
-static GU_DEFINE_TYPE(PgfItemBufs, abstract, _);
+static GU_DEFINE_TYPE(PgfItemBuf,abstract, _);
+static GU_DEFINE_TYPE(PgfItemBufs, GuSeq, gu_ptr_type(PgfItemBuf));
 static GU_DEFINE_TYPE(PgfContsMap, GuMap,
 		      gu_type(PgfCCat), NULL,
-		      gu_ptr_type(PgfItemBufs), &gu_null_struct);
+		      gu_type(PgfItemBufs), &gu_null_seq);
 
 static GU_DEFINE_TYPE(PgfGenCatMap, GuMap,
 		      gu_type(PgfItemBuf), NULL,
@@ -96,17 +96,17 @@ pgf_parsing_add_transition(PgfParsing* parsing, PgfToken tok, PgfItem* item)
 	gu_buf_push(items, PgfItem*, item);
 }
 
-static PgfItemBufs*
+static PgfItemBufs
 pgf_parsing_get_contss(PgfParsing* parsing, PgfCCat* cat)
 {
-	PgfItemBufs* contss = gu_map_get(parsing->conts_map, cat, PgfItemBufs*);
-	if (!contss) {
+	PgfItemBufs contss = gu_map_get(parsing->conts_map, cat, PgfItemBufs);
+	if (gu_seq_is_null(contss)) {
 		size_t n_lins = cat->cnccat->n_lins;
-		contss = gu_new_list(PgfItemBufs, parsing->pool, n_lins);
+		contss = gu_new_seq(PgfItemBuf*, n_lins, parsing->pool);
 		for (size_t i = 0; i < n_lins; i++) {
-			gu_list_index(contss, i) = NULL;
+			gu_seq_set(contss, PgfItemBuf*, i, NULL);
 		}
-		gu_map_put(parsing->conts_map, cat, PgfItemBufs*, contss);
+		gu_map_put(parsing->conts_map, cat, PgfItemBufs, contss);
 	}
 	return contss;
 }
@@ -116,11 +116,11 @@ static PgfItemBuf*
 pgf_parsing_get_conts(PgfParsing* parsing, PgfCCat* cat, size_t lin_idx)
 {
 	gu_require(lin_idx < cat->cnccat->n_lins);
-	PgfItemBufs* contss = pgf_parsing_get_contss(parsing, cat);
-	PgfItemBuf* conts = gu_list_index(contss, lin_idx);
+	PgfItemBufs contss = pgf_parsing_get_contss(parsing, cat);
+	PgfItemBuf* conts = gu_seq_get(contss, PgfItemBuf*, lin_idx);
 	if (!conts) {
 		conts = gu_new_buf(PgfItem*, parsing->pool);
-		gu_list_index(contss, lin_idx) = conts;
+		gu_seq_set(contss, PgfItemBuf*, lin_idx, conts);
 	}
 	return conts;
 }
@@ -193,7 +193,7 @@ pgf_new_item(PgfItemBase* base, GuPool* pool)
 		PgfProductionCoerce* pcoerce = pi.data;
 		item->args = gu_new_seq(PgfPArg, 1, pool);
 		PgfPArg* parg = gu_seq_index(item->args, PgfPArg, 0);
-		parg->hypos = NULL;
+		parg->hypos = gu_empty_seq();
 		parg->ccat = pcoerce->coerce;
 		break;
 	}
@@ -241,7 +241,7 @@ pgf_parsing_combine(PgfParsing* parsing, PgfItem* cont, PgfCCat* cat)
 	gu_assert(gu_variant_tag(item->curr_sym) == PGF_SYMBOL_CAT);
 	PgfSymbolCat* pcat = gu_variant_data(cont->curr_sym);
 	gu_seq_set(item->args, PgfPArg, pcat->d,
-		   ((PgfPArg) { .hypos = NULL, .ccat = cat }));
+		   ((PgfPArg) { .hypos = gu_empty_seq(), .ccat = cat }));
 	pgf_item_advance(item, parsing->pool);
 	pgf_parsing_item(parsing, item);
 }
@@ -281,7 +281,7 @@ pgf_parsing_complete(PgfParsing* parsing, PgfItem* item)
 				       PgfProductionCoerce,
 				       &prod, parsing->pool);
 		PgfPArg* parg = gu_seq_index(item->args, PgfPArg, 0);
-		gu_assert(!parg->hypos || !parg->hypos->len);
+		gu_assert(gu_seq_is_empty(parg->hypos));
 		new_pcoerce->coerce = parg->ccat;
 		break;
 	}
@@ -292,11 +292,13 @@ pgf_parsing_complete(PgfParsing* parsing, PgfItem* item)
 	PgfCCat* cat = pgf_parsing_get_completed(parsing, conts);
 	if (cat != NULL) {
 		// The category has already been created. If it has also been
-		// predicted already, then process a new item for this production.
-		PgfItemBufs* contss = pgf_parsing_get_contss(parsing, cat);
-		size_t n_contss = gu_list_length(contss);
+		// predicted already, then process a new item for this
+		// production.
+		PgfItemBufs contss = pgf_parsing_get_contss(parsing, cat);
+		size_t n_contss = gu_seq_length(contss);
 		for (size_t i = 0; i < n_contss; i++) {
-			PgfItemBuf* conts2 = gu_list_index(contss, i);
+			PgfItemBuf* conts2 =
+				gu_seq_get(contss, PgfItemBuf*, i);
 			/* If there are continuations for
 			 * linearization index i, then (cat, i) has
 			 * already been predicted. Add the new
@@ -336,7 +338,7 @@ pgf_parsing_predict(PgfParsing* parsing, PgfItem* item,
 		/* First time we encounter this linearization
 		 * of this category at the current position,
 		 * so predict it. */
-		PgfProductionSeq prods = cat->prods;
+		PgfProductions prods = cat->prods;
 		size_t n_prods = gu_seq_length(prods);
 		for (size_t i = 0; i < n_prods; i++) {
 			PgfProduction prod =
@@ -361,7 +363,7 @@ pgf_parsing_symbol(PgfParsing* parsing, PgfItem* item, PgfSymbol sym) {
 	case PGF_SYMBOL_CAT: {
 		PgfSymbolCat* scat = gu_variant_data(sym);
 		PgfPArg* parg = gu_seq_index(item->args, PgfPArg, scat->d);
-		gu_assert(!parg->hypos || !parg->hypos->len);
+		gu_assert(gu_seq_is_empty(parg->hypos));
 		pgf_parsing_predict(parsing, item, parg->ccat, scat->r);
 		break;
 	}
@@ -587,7 +589,7 @@ pgf_production_to_expr(PgfProduction prod, GuChoice* choice, GuPool* pool)
 		size_t n_args = gu_seq_length(papp->args);
 		for (size_t i = 0; i < n_args; i++) {
 			PgfPArg* parg = gu_seq_index(papp->args, PgfPArg, i);
-			gu_assert(!parg->hypos || !parg->hypos->len);
+			gu_assert(gu_seq_is_empty(parg->hypos));
 			PgfExpr earg = pgf_cat_to_expr(parg->ccat, choice, pool);
 			expr = gu_new_variant_i(pool, PGF_EXPR_APP,
 						PgfExprApp,
@@ -678,9 +680,9 @@ pgf_parser_parse(PgfParser* parser, PgfCId cat, size_t lin_idx, GuPool* pool)
 		gu_impossible();
 	}
 	gu_assert(lin_idx < cnccat->n_lins);
-	size_t n_ccats = gu_list_length(cnccat->cats);
+	size_t n_ccats = gu_seq_length(cnccat->cats);
 	for (size_t i = 0; i < n_ccats; i++) {
-		PgfCCat* ccat = gu_list_index(cnccat->cats, i);
+		PgfCCat* ccat = gu_seq_get(cnccat->cats, PgfCCat*, i);
 		if (ccat != NULL) {
 			pgf_parsing_predict(parsing, NULL, ccat, lin_idx);
 		}
