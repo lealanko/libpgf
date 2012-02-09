@@ -130,100 +130,40 @@ pgf_read_to(PgfReader* rdr, GuType* type, void* to) {
 
 typedef const struct PgfReadNewFn PgfReadNewFn;
 struct PgfReadNewFn {
-	void* (*fn)(GuType* type, PgfReader* rdr, GuPool* pool, 
-		    size_t* size_out);
+	void* (*fn)(GuType* type, PgfReader* rdr, GuPool* pool);
 };
 
 static void*
-pgf_read_new(PgfReader* rdr, GuType* type, GuPool* pool, size_t* size_out)
+pgf_read_new(PgfReader* rdr, GuType* type, GuPool* pool)
 {
-	size_t size = 0;
 	PgfReadNewFn* fn = gu_type_map_get(rdr->read_new_map, type);
-	return fn->fn(type, rdr, pool, size_out ? size_out : &size);
+	return fn->fn(type, rdr, pool);
 }
 
 static void*
-pgf_read_new_type(GuType* type, PgfReader* rdr, GuPool* pool, 
-		  size_t* size_out)
+pgf_read_new_type(GuType* type, PgfReader* rdr, GuPool* pool)
 {
 	GuTypeRepr* repr = gu_type_repr(type);
 	void* to = gu_malloc_aligned(pool, repr->size, repr->align);
 	pgf_read_to(rdr, type, to);
-	*size_out = repr->size;
 	return to;
-}
-
-static void*
-pgf_read_struct(GuStructRepr* stype, PgfReader* rdr, void* to, 
-		GuPool* pool, size_t* size_out)
-{
-	GuTypeRepr* repr = gu_type_cast((GuType*)stype, repr);
-	size_t size = repr->size;
-	GuLength length = 0;
-	bool have_length = false;
-	uint8_t* p = NULL;
-	uint8_t* bto = to;
-	gu_enter("-> struct %s", stype->name);
-
-	for (int i = 0; i < stype->members.len; i++) {
-		const GuMember* m = &stype->members.elems[i];
-		gu_enter("-> %s.%s", stype->name, m->name);
-		if (m->is_flex) {
-			gu_assert(have_length && p == NULL && pool != NULL);
-			size_t m_size = gu_type_size(m->type);
-			size = gu_flex_size(size, m->offset,
-					    length, m_size);
-			p = gu_malloc_aligned(pool, size, repr->align);
-			for (size_t j = 0; j < length; j++) {
-				pgf_read_to(rdr, m->type, 
-					    &p[m->offset + j * m_size]);
-				gu_return_on_exn(rdr->err, NULL);
-			}
-		} else {
-			pgf_read_to(rdr, m->type, &bto[m->offset]);
-			gu_return_on_exn(rdr->err, NULL);
-		}
-		if (m->type == gu_type(GuLength)) {
-			gu_assert(!have_length);
-			have_length = true;
-			length = gu_member(GuLength, to, m->offset);
-		}
-		gu_exit("<- %s.%s", stype->name, m->name);
-	}
-	if (p) {
-		memcpy(p, to, repr->size);
-	}
-	if (size_out) {
-		*size_out = size;
-	}
-	gu_exit("<- struct %s", stype->name);
-	return p;
 }
 
 static void
 pgf_read_to_struct(GuType* type, PgfReader* rdr, void* to)
 {
 	GuStructRepr* stype = gu_type_cast(type, struct);
-	pgf_read_struct(stype, rdr, to, NULL, NULL);
-}
+	uint8_t* bto = to;
+	gu_enter("-> struct %s", stype->name);
 
-static void*
-pgf_read_new_struct(GuType* type, PgfReader* rdr, 
-		    GuPool* pool, size_t* size_out)
-{
-	GuStructRepr* stype = gu_type_cast(type, struct);
-	if (gu_struct_has_flex(stype)) {
-		GuPool* tmp_pool = gu_new_pool();
-		void* to = gu_type_malloc(type, tmp_pool);
-		void* p = pgf_read_struct(stype, rdr, to, pool, size_out);
-		gu_pool_free(tmp_pool);
-		gu_assert(p);
-		return p;
-	} else {
-		void* to = gu_type_malloc(type, pool);
-		pgf_read_struct(stype, rdr, to, NULL, NULL);
-		return to;
+	for (int i = 0; i < stype->members.len; i++) {
+		const GuMember* m = &stype->members.elems[i];
+		gu_enter("-> %s.%s", stype->name, m->name);
+		pgf_read_to(rdr, m->type, &bto[m->offset]);
+		gu_return_on_exn(rdr->err,);
+		gu_exit("<- %s.%s", stype->name, m->name);
 	}
+	gu_exit("<- struct %s", stype->name);
 }
 
 
@@ -235,14 +175,13 @@ pgf_read_to_pointer(GuType* type, PgfReader* rdr, void* to)
 	gu_require(gu_type_has_kind(pointed, gu_kind(struct)) ||
 		   gu_type_has_kind(pointed, gu_kind(abstract)));
 	GuStruct** sto = to;
-	*sto = pgf_read_new(rdr, pointed, rdr->opool, NULL);
+	*sto = pgf_read_new(rdr, pointed, rdr->opool);
 }
 
 static void
 pgf_read_to_GuVariant(GuType* type, PgfReader* rdr, void* to)
 {
 	GuVariantType* vtype = (GuVariantType*) type;
-	GuVariant* vto = to;
 
 	uint8_t btag = pgf_read_u8(rdr);
 	gu_return_on_exn(rdr->err,);
@@ -253,12 +192,10 @@ pgf_read_to_GuVariant(GuType* type, PgfReader* rdr, void* to)
 	}
 	GuConstructor* ctor = &vtype->ctors.elems[btag];
 	gu_enter("-> variant %s", ctor->c_name);
-	GuPool* tmp_pool = gu_new_pool();
 	GuTypeRepr* repr = gu_type_repr(ctor->type);
-	size_t size = repr->size;
-	void* init = pgf_read_new(rdr, ctor->type, tmp_pool, &size);
-	*vto = gu_make_variant(btag, size, repr->align, init, rdr->opool);
-	gu_pool_free(tmp_pool);
+	void* value = gu_alloc_variant(btag, repr->size, repr->align, to,
+				       rdr->opool);
+	pgf_read_to(rdr, ctor->type, value);
 	gu_exit("<- variant %s", ctor->c_name);
 }
 
@@ -350,7 +287,7 @@ pgf_read_into_map(GuMapType* mtype, PgfReader* rdr, GuMap* map, GuPool* pool)
 			pgf_read_to(rdr, mtype->key_type, key);
 		} else {
 			key = pgf_read_new(rdr, mtype->key_type, 
-					   rdr->opool, NULL);
+					   rdr->opool);
 		}
 		gu_return_on_exn(rdr->err, );
 		rdr->curr_key = key;
@@ -366,9 +303,8 @@ pgf_read_into_map(GuMapType* mtype, PgfReader* rdr, GuMap* map, GuPool* pool)
 }
 
 static void*
-pgf_read_new_GuMap(GuType* type, PgfReader* rdr, GuPool* pool, size_t* size_out)
+pgf_read_new_GuMap(GuType* type, PgfReader* rdr, GuPool* pool)
 {
-	(void) size_out;
 	GuMapType* mtype = (GuMapType*) type;
 	GuMap* map = gu_map_type_make(mtype, pool);
 	pgf_read_into_map(mtype, rdr, map, pool);
@@ -476,31 +412,11 @@ pgf_read_to_PgfCCat(GuType* type, PgfReader* rdr, void* to)
 // This is only needed because new_struct would otherwise override.
 // TODO: get rid of new_struct and all the FAM mess
 static void*
-pgf_read_new_PgfCCat(GuType* type, PgfReader* rdr, GuPool* pool,
-		     size_t* size_out)
+pgf_read_new_PgfCCat(GuType* type, PgfReader* rdr, GuPool* pool)
 {
 	PgfCCat* ccat = gu_new(PgfCCat, pool);
 	pgf_read_to_PgfCCat(type, rdr, ccat);
-	*size_out = sizeof(PgfCCat);
 	return ccat;
-}
-
-static void*
-pgf_read_new_GuList(GuType* type, PgfReader* rdr, GuPool* pool, size_t* size_out)
-{
-	GuListType* ltype = gu_type_cast(type, GuList);
-	GuLength length = pgf_read_len(rdr);
-	gu_return_on_exn(rdr->err, NULL);
-	void* list = gu_list_type_alloc(ltype, length, pool);
-	for (size_t i = 0; i < length; i++) {
-		void* elem = gu_list_type_index(ltype, list, i);
-		pgf_read_to(rdr, ltype->elem_type, elem);
-		gu_return_on_exn(rdr->err, NULL);
-	}
-	*size_out = gu_flex_size(ltype->size, ltype->elems_offset,
-				 length, 
-				 gu_type_size(ltype->elem_type));
-	return list;
 }
 
 static void
@@ -650,10 +566,9 @@ pgf_read_ccat_cb(GuMapItor* fn, const void* key, void* value, GuExn* err)
 }
 
 static void*
-pgf_read_new_PgfConcr(GuType* type, PgfReader* rdr, GuPool* pool,
-		       size_t* size_out)
+pgf_read_new_PgfConcr(GuType* type, PgfReader* rdr, GuPool* pool)
 {
-	(void) (type && size_out);
+	(void) (type);
 	/* We allocate indices from a temporary pool. The actual data
 	 * is allocated from rdr->opool. Once everything is resolved
 	 * and indices aren't needed, the temporary pool can be
@@ -662,9 +577,9 @@ pgf_read_new_PgfConcr(GuType* type, PgfReader* rdr, GuPool* pool,
 	rdr->curr_pool = tmp_pool;
 	PgfConcr* concr = gu_new(PgfConcr, pool);;
 	concr->cflags = 
-		pgf_read_new(rdr, gu_type(PgfFlags), pool, NULL);
+		pgf_read_new(rdr, gu_type(PgfFlags), pool);
 	concr->printnames = 
-		pgf_read_new(rdr, gu_type(PgfPrintNames), pool, NULL);
+		pgf_read_new(rdr, gu_type(PgfPrintNames), pool);
 	pgf_read_to(rdr, gu_type(PgfSequences), &rdr->curr_sequences);
 	pgf_read_to(rdr, gu_type(PgfCncFuns), &rdr->curr_cncfuns);
 	GuMapType* lindefs_t = gu_type_cast(gu_type(PgfLinDefs), GuMap);
@@ -676,8 +591,8 @@ pgf_read_new_PgfConcr(GuType* type, PgfReader* rdr, GuPool* pool,
 	rdr->ccat_locs =
 		gu_new_int_map(GuBuf*, &gu_null_struct, tmp_pool);
 	pgf_read_into_map(ccats_t, rdr, rdr->curr_ccats, rdr->opool);
-	concr->cnccats = pgf_read_new(rdr, gu_type(PgfCncCatMap), 
-				      rdr->opool, NULL);
+	concr->cnccats =
+		pgf_read_new(rdr, gu_type(PgfCncCatMap), rdr->opool);
 
 	GuBuf* extra_ccats = gu_new_buf(PgfCCat*, tmp_pool);
 	PgfCCatCbCtx ctx = { { pgf_read_ccat_cb }, extra_ccats };
@@ -726,12 +641,11 @@ pgf_ccat_n_lins(PgfCCat* cat, int* n_lins) {
 }
 
 static void*
-pgf_read_new_PgfCncCat(GuType* type, PgfReader* rdr, GuPool* pool,
-		       size_t* size_out)
+pgf_read_new_PgfCncCat(GuType* type, PgfReader* rdr, GuPool* pool)
 {
 	PgfCId cid = *(PgfCId*) rdr->curr_key;
 	gu_enter("-> cid");
-	(void) (type && size_out);
+	(void) (type);
 	PgfCncCat* cnccat = gu_new(PgfCncCat, pool);
 	cnccat->cid = cid;
 	int first = pgf_read_int(rdr);
@@ -808,9 +722,7 @@ static GuTypeTable
 pgf_read_new_table = GU_TYPETABLE(
 	GU_SLIST_0,
 	PGF_READ_NEW(type),
-	PGF_READ_NEW(struct),
 	PGF_READ_NEW(GuMap),
-	PGF_READ_NEW(GuList),
 	PGF_READ_NEW(PgfCCat),
 	PGF_READ_NEW(PgfCncCat),
 	PGF_READ_NEW(PgfConcr),
@@ -838,7 +750,7 @@ pgf_read(GuIn* in, GuPool* pool, GuExn* err)
 {
 	GuPool* tmp_pool = gu_new_pool();
 	PgfReader* rdr = pgf_new_reader(in, pool, tmp_pool, err);
-	PgfPGF* pgf = pgf_read_new(rdr, gu_type(PgfPGF), pool, NULL);
+	PgfPGF* pgf = pgf_read_new(rdr, gu_type(PgfPGF), pool);
 	gu_pool_free(tmp_pool);
 	gu_return_on_exn(err, NULL);
 	return pgf;
