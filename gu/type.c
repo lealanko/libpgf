@@ -199,6 +199,14 @@ gu_type_malloc(GuType* type, GuPool* pool)
 	return gu_malloc_aligned(pool, repr->size, repr->align);
 }
 
+void
+gu_type_memcpy(void* to, const void* from, GuType* type)
+{
+	GuTypeRepr* repr = gu_type_repr(type);
+	gu_assert(repr);
+	memcpy(to, from, repr->size);
+}
+
 #if 0
 
 typedef const struct GuPtrConvFns GuPtrConvFns;

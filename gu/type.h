@@ -444,6 +444,7 @@ gu_type_dyn_cast(GuType* t, GuKind* k);
 #endif
 
 void* gu_type_malloc(GuType* type, GuPool* pool);
+void gu_type_memcpy(void* to, const void* from, GuType* type);
 
 #if 0
 void* gu_type_ptr_get(GuType* type, const void* pp);

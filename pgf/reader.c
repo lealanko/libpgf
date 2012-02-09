@@ -49,7 +49,6 @@ struct PgfReader {
 	PgfSequences curr_sequences;
 	PgfCncFuns curr_cncfuns;
 	GuMap* curr_ccats;
-	GuMap* ccat_locs;
 	GuMap* curr_lindefs;
 	GuMap* curr_coercions;
 	GuTypeMap* read_to_map;
@@ -277,11 +276,13 @@ pgf_read_into_map(GuMapType* mtype, PgfReader* rdr, GuMap* map, GuPool* pool)
 	(void) pool;
 	GuPool* tmp_pool = gu_new_pool();
 	void* key = NULL;
+	void* value = NULL;
 	GuLength len = pgf_read_len(rdr);
 	gu_return_on_exn(rdr->err, );
 	if (mtype->hasher) {
 		key = gu_type_malloc(mtype->key_type, tmp_pool);
 	}
+	value = gu_type_malloc(mtype->value_type, tmp_pool);
 	for (size_t i = 0; i < len; i++) {
 		if (mtype->hasher) {
 			pgf_read_to(rdr, mtype->key_type, key);
@@ -291,13 +292,10 @@ pgf_read_into_map(GuMapType* mtype, PgfReader* rdr, GuMap* map, GuPool* pool)
 		}
 		gu_return_on_exn(rdr->err, );
 		rdr->curr_key = key;
-		/* If an old value already exists, read into
-		   it. This allows us to create the value
-		   object and point into it before we read the
-		   content. */
-		void* valp = gu_map_insert(map, key);
-		pgf_read_to(rdr, mtype->value_type, valp);
+		pgf_read_to(rdr, mtype->value_type, value);
 		gu_return_on_exn(rdr->err, );
+		void* valp = gu_map_insert(map, key);
+		gu_type_memcpy(valp, value, mtype->value_type);       
 	}
 	gu_pool_free(tmp_pool);
 }
@@ -363,6 +361,21 @@ pgf_read_to_PgfCId(GuType* type, PgfReader* rdr, void* to)
 	*sp = sym;
 }
 
+static PgfCCat*
+pgf_reader_intern_ccat(PgfReader* rdr, int fid)
+{
+	PgfCCat** ccatp = gu_map_insert(rdr->curr_ccats, &fid);
+	if (!*ccatp) {
+		*ccatp = gu_new_i(rdr->opool, PgfCCat,
+				  .cnccat = NULL,
+				  .prods = gu_null_seq,
+				  .fid = fid);
+		gu_debug("interned ccat %d@%p (into map loc %p)",
+			 fid, *ccatp, ccatp);
+	}
+	return *ccatp;
+}
+
 static void
 pgf_read_to_PgfCCatId(GuType* type, PgfReader* rdr, void* to)
 {
@@ -370,43 +383,7 @@ pgf_read_to_PgfCCatId(GuType* type, PgfReader* rdr, void* to)
 	PgfCCat** pto = to;
 	int fid = pgf_read_int(rdr);
 	gu_return_on_exn(rdr->err,);
-	PgfCCat* ccat = gu_map_get(rdr->curr_ccats, &fid, PgfCCat*);
-	if (ccat) {
-		*pto = ccat;
-		return;
-	}
-	GuBuf* locs = gu_map_get(rdr->ccat_locs, &fid, GuBuf*);
-	if (!locs) {
-		locs = gu_new_buf(PgfCCat**, rdr->pool);
-		gu_map_put(rdr->ccat_locs, &fid, GuBuf*, locs);
-	}
-	*pto = NULL;
-	gu_debug("Registering location %p for cat %d", pto, fid);
-	gu_buf_push(locs, PgfCCat**, pto);
-}
-
-static void
-pgf_read_to_PgfCCat(GuType* type, PgfReader* rdr, void* to)
-{
-	(void) type;
-	gu_enter("->");
-	PgfCCat* cat = to;
-	cat->cnccat = NULL;
-	pgf_read_to(rdr, gu_type(PgfProductions), &cat->prods);
-	int* fidp = rdr->curr_key;
-	cat->fid = *fidp;
-	GuBuf* locs_buf = gu_map_get(rdr->ccat_locs, fidp, GuBuf*);
-	if (locs_buf) {
-		size_t len = gu_buf_length(locs_buf);
-		PgfCCat*** locs = gu_buf_data(locs_buf);
-		for (size_t n = 0; n < len; n++) {
-			gu_assert(!*(locs[n]));
-			gu_debug("placing ccat %d to location %p",
-				 cat->fid, locs[n]);
-			*(locs[n]) = cat;
-		}
-	}
-	gu_exit("<-");
+	*pto = pgf_reader_intern_ccat(rdr, fid);
 }
 
 // This is only needed because new_struct would otherwise override.
@@ -414,8 +391,9 @@ pgf_read_to_PgfCCat(GuType* type, PgfReader* rdr, void* to)
 static void*
 pgf_read_new_PgfCCat(GuType* type, PgfReader* rdr, GuPool* pool)
 {
-	PgfCCat* ccat = gu_new(PgfCCat, pool);
-	pgf_read_to_PgfCCat(type, rdr, ccat);
+	int* fidp = rdr->curr_key;
+	PgfCCat* ccat = pgf_reader_intern_ccat(rdr, *fidp);
+	pgf_read_to(rdr, gu_type(PgfProductions), &ccat->prods);
 	return ccat;
 }
 
@@ -588,8 +566,6 @@ pgf_read_new_PgfConcr(GuType* type, PgfReader* rdr, GuPool* pool)
 	GuMapType* ccats_t = gu_type_cast(gu_type(PgfCCatMap), GuMap);
 	rdr->curr_ccats =
 		gu_new_int_map(PgfCCat*, &gu_null_struct, tmp_pool);
-	rdr->ccat_locs =
-		gu_new_int_map(GuBuf*, &gu_null_struct, tmp_pool);
 	pgf_read_into_map(ccats_t, rdr, rdr->curr_ccats, rdr->opool);
 	concr->cnccats =
 		pgf_read_new(rdr, gu_type(PgfCncCatMap), rdr->opool);
@@ -705,7 +681,6 @@ pgf_read_to_table = GU_TYPETABLE(
 	PGF_READ_TO_FN(PgfEquationsM, pgf_read_to_maybe_seq),
 	PGF_READ_TO(GuSeq),
 	PGF_READ_TO(PgfCCatId),
-	PGF_READ_TO(PgfCCat),
 	PGF_READ_TO(PgfSeqId),
 	PGF_READ_TO(PgfFunId),
 	PGF_READ_TO(alias),
