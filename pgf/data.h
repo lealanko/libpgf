@@ -307,8 +307,8 @@ typedef struct {
 } PgfPattTilde;
 
 struct PgfEquation {
-	PgfExpr body;
 	PgfPatts patts;
+	PgfExpr body;
 };
 
 

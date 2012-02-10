@@ -104,7 +104,7 @@ GU_DEFINE_TYPE(
 	GU_CONSTRUCTOR_S(
 		PGF_EXPR_ABS, PgfExprAbs,
 		GU_MEMBER(PgfExprAbs, bind_type, PgfBindType),
-		GU_MEMBER(PgfExprAbs, id, GuStr),
+		GU_MEMBER(PgfExprAbs, id, PgfCId),
 		GU_MEMBER(PgfExprAbs, body, PgfExpr)),
 	GU_CONSTRUCTOR_S(
 		PGF_EXPR_APP, PgfExprApp,
@@ -118,7 +118,7 @@ GU_DEFINE_TYPE(
 		GU_MEMBER(PgfExprMeta, id, int)),
 	GU_CONSTRUCTOR_S(
 		PGF_EXPR_FUN, PgfExprFun,
-		GU_MEMBER(PgfExprFun, fun, GuStr)),
+		GU_MEMBER(PgfExprFun, fun, PgfCId)),
 	GU_CONSTRUCTOR_S(
 		PGF_EXPR_VAR, PgfExprVar,
 		GU_MEMBER(PgfExprVar, var, int)),

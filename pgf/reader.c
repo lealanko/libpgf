@@ -68,6 +68,12 @@ static GU_DEFINE_TYPE(PgfReadTagExn, abstract, _);
 
 static GU_DEFINE_TYPE(PgfReadExn, abstract, _);
 
+static void
+pgf_reader_tell(PgfReader* rdr)
+{
+	gu_debug("stream_pos: %zx", gu_in_tell(rdr->in));
+}
+
 static uint8_t
 pgf_read_u8(PgfReader* rdr)
 {
@@ -315,6 +321,7 @@ pgf_read_to_GuString(GuType* type, PgfReader* rdr, void* to)
 {
 	(void) (type);
 	gu_enter("-> GuString");
+	pgf_reader_tell(rdr);
 	GuString* sp = to;
 	
 	GuPool* tmp_pool = gu_new_pool();
@@ -340,6 +347,8 @@ pgf_read_to_PgfCId(GuType* type, PgfReader* rdr, void* to)
 {
 	(void) (type);
 	gu_enter("-> PgfCId");
+	pgf_reader_tell(rdr);
+	
 	PgfCId* sp = to;
 	
 	GuPool* tmp_pool = gu_new_pool();

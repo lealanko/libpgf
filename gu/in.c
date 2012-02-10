@@ -17,10 +17,11 @@ gu_in_end_buffering(GuIn* in, GuExn* err)
 	if (!gu_in_is_buffering(in)) {
 		return;
 	}
+	size_t len = ((ptrdiff_t) in->buf_size) + in->buf_curr;
 	if (in->stream->end_buffer) {
-		size_t len = ((ptrdiff_t) in->buf_size) + in->buf_curr;
 		in->stream->end_buffer(in->stream, len, err);
 	}
+	in->stream_pos += len;
 	in->buf_curr = 0;
 	in->buf_size = 0;
 	in->buf_end = NULL;
@@ -64,7 +65,9 @@ gu_in_input(GuIn* in, uint8_t* dst, size_t sz, GuExn* err)
 	}
 	GuInStream* stream = in->stream;
 	if (stream->input) {
-		return stream->input(stream, dst, sz, err);
+		size_t len = stream->input(stream, dst, sz, err);
+		in->stream_pos += len;
+		return len;
 	}
 	gu_raise(err, GuEOF);
 	return 0;
@@ -263,6 +266,7 @@ gu_init_in(GuInStream* stream)
 		.buf_curr = 0,
 		.buf_size = 0,
 		.stream = stream,
+		.stream_pos = 0,	
 		.fini.fn = gu_in_fini
 	};
 }
@@ -273,6 +277,12 @@ gu_new_in(GuInStream* stream, GuPool* pool)
 	GuIn* in = gu_new(GuIn, pool);
 	*in = gu_init_in(stream);
 	return in;
+}
+
+size_t
+gu_in_tell(GuIn* in)
+{
+	return in->stream_pos + in->buf_size + in->buf_curr;
 }
 
 
