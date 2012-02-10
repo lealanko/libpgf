@@ -181,8 +181,8 @@ GU_DEFINE_TYPE(
 
 GU_DEFINE_TYPE(
 	PgfEquation, struct, 
-	GU_MEMBER(PgfEquation, body, PgfExpr),
-	GU_MEMBER(PgfEquation, patts, PgfPatts));
+	GU_MEMBER(PgfEquation, patts, PgfPatts),
+	GU_MEMBER(PgfEquation, body, PgfExpr));
 
 // Distinct type so we can give it special treatment in the reader
 GU_DEFINE_TYPE(PgfEquationsM, GuSeq, gu_type(PgfEquation));
