@@ -14,6 +14,7 @@ struct GuDump {
 	GuMap* data;
 	GuTypeMap* dumpers;
 	bool print_address;
+	bool print_shared;
 };
 
 typedef void (*GuDumpFn)(GuFn* self, GuType* type, const void* value, GuDump* ctx);

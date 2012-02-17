@@ -22,8 +22,8 @@ int main(int argc, char* argv[]) {
 	// Create the pool that is used to allocate everything
 	GuPool* pool = gu_new_pool();
 	int status = EXIT_SUCCESS;
-	if (argc != 5) {
-		fprintf(stderr, "usage: %s pgf cat from_lang to_lang\n", argv[0]);
+	if (argc != 6) {
+		fprintf(stderr, "usage: %s pgf cat lin from_lang to_lang\n", argv[0]);
 		status = EXIT_FAILURE;
 		goto fail;
 	}
@@ -31,8 +31,16 @@ int main(int argc, char* argv[]) {
 
 	// Transform C strings to libgu strings
 	GuString cat = gu_str_string(argv[2], pool);
-	GuString from_lang = gu_str_string(argv[3], pool);
-	GuString to_lang = gu_str_string(argv[4], pool);
+	char* start = argv[3];
+	char* end = NULL;
+	long lin_idx = strtol(start, &end, 10);
+	if (!*start || *end) {
+		fprintf(stderr, "bad linearization index: %s", start);
+		status = EXIT_FAILURE;
+		goto fail;
+	}
+	GuString from_lang = gu_str_string(argv[4], pool);
+	GuString to_lang = gu_str_string(argv[5], pool);
 	
 	FILE* infile = fopen(filename, "r");
 	if (infile == NULL) {
@@ -73,10 +81,6 @@ int main(int argc, char* argv[]) {
 
 	// Create a linearizer for the destination category
 	PgfLzr* lzr = pgf_new_lzr(to_concr, pool);
-
-	// Arbitrarily choose linearization index 0. Usually the initial
-	// categories we are interested in only have one field.
-	int lin_idx = 0;
 
 	// Create an output stream for stdout
 	GuOut* out = gu_file_out(stdout, pool);

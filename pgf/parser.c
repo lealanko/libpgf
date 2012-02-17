@@ -56,11 +56,32 @@ struct PgfItem {
 	uint8_t alt;
 };
 
+#if 0
+static void
+pgf_item_print(PgfItem* item, GuOut* out, GuExn* exn)
+{
+	GuVariantInfo i = gu_variant_open(item->base->prod);
+	switch (i.tag) {
+	case PGF_PRODUCTION_APPLY: {
+		PgfProductionApply* papp = i.data;
+		PgfSeqId sequence =
+			gu_seq_get(papp->fun->lins, item->base->lin_idx);
+		size_t len = gu_seq_len(sequence);
+		for (size_t n = 0; n < len; n++) {
+			PgfSymbol sym = gu_seq_get(sequence, n);
+			
+		}
+	}
+}
+#endif
+
+
 typedef GuMap PgfContsMap;
 
 
 static GU_DEFINE_TYPE(PgfItemBuf,abstract, _);
 static GU_DEFINE_TYPE(PgfItemBufs, GuSeq, gu_ptr_type(PgfItemBuf));
+
 static GU_DEFINE_TYPE(PgfContsMap, GuMap,
 		      gu_type(PgfCCat), NULL,
 		      gu_type(PgfItemBufs), &gu_null_seq);
@@ -82,6 +103,7 @@ struct PgfParsing {
 	PgfContsMap* conts_map;
 	PgfGenCatMap* generated_cats;
 };
+
 
 static void
 pgf_parsing_add_transition(PgfParsing* parsing, PgfToken tok, PgfItem* item)
@@ -333,8 +355,16 @@ pgf_parsing_predict(PgfParsing* parsing, PgfItem* item,
 		return;
 	}
 	PgfItemBuf* conts = pgf_parsing_get_conts(parsing, cat, lin_idx);
-	gu_buf_push(conts, PgfItem*, item);
-	if (gu_buf_length(conts) == 1) {
+	size_t n_conts = gu_buf_length(conts);
+	bool have_already = false;
+	for (size_t i = 0; i < n_conts; i++) {
+		if (gu_buf_get(conts, PgfItem*, i) == item) {
+			have_already = true;
+			break;
+		}
+	}
+	if (!have_already) {
+		gu_buf_push(conts, PgfItem*, item);
 		/* First time we encounter this linearization
 		 * of this category at the current position,
 		 * so predict it. */
@@ -346,14 +376,14 @@ pgf_parsing_predict(PgfParsing* parsing, PgfItem* item,
 			pgf_parsing_production(parsing, cat, lin_idx, 
 					       prod, conts);
 		}
-	} else {
+	} //else {
 		/* If it has already been completed, combine. */
 		PgfCCat* completed = 
 			pgf_parsing_get_completed(parsing, conts);
 		if (completed) {
 			pgf_parsing_combine(parsing, item, completed);
 		}
-	}
+		//}
 	gu_exit(NULL);
 }
 

@@ -18,6 +18,7 @@ gu_new_dump(GuWriter* wtr, GuTypeTable* dumpers, GuExn* err, GuPool* pool)
 	ctx->yaml = gu_new_yaml(wtr, err, pool);
 	ctx->data = gu_new_addr_map(void, void*, &gu_null, pool);
 	ctx->print_address = false;
+	ctx->print_shared = true;
 	return ctx;
 }
 
@@ -45,6 +46,8 @@ gu_dump_stderr(GuType* type, const void* value, GuExn* err)
 	GuWriter* wtr = gu_new_utf8_writer(out, pool);
 #endif
 	GuDump* ctx = gu_new_dump(wtr, NULL, err, pool);
+	ctx->print_address = true;
+	ctx->print_shared = false;
 	gu_dump(type, value, ctx);
 	gu_pool_free(pool);
 }
@@ -301,7 +304,7 @@ gu_dump_shared(GuDumpFn* dumper, GuType* type, const void* p,
 {
 	(void) dumper;
 	void* const* pp = p;
-	if (*pp == NULL) {
+	if (*pp == NULL || !ctx->print_shared) {
 		gu_dump_null(ctx);
 	} else {
 		bool created = gu_dump_anchor(ctx, *pp);
