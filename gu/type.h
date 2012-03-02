@@ -333,6 +333,7 @@ extern GU_DECLARE_TYPE(uint16_t, unsigned);
 extern GU_DECLARE_TYPE(uint32_t, unsigned);
 extern GU_DECLARE_TYPE(uint64_t, unsigned);
 extern GU_DECLARE_TYPE(uintmax_t, unsigned);
+extern GU_DECLARE_TYPE(GuWord, unsigned);
 extern GU_DECLARE_TYPE(size_t, unsigned);
 
 typedef size_t GuLength;
@@ -392,11 +393,13 @@ bool gu_type_has_kind(const GuType* type, const GuKind* kind);
 
 
 
+
+
 typedef const struct GuTypeTableEntry GuTypeTableEntry;
 
 struct GuTypeTableEntry {
 	GuKind* kind;
-	void* val;
+	const void* val;
 };
 
 typedef const struct GuTypeTable GuTypeTable;

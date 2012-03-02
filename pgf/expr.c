@@ -316,9 +316,13 @@ pgf_expr_print_with_paren(PgfExpr expr, bool need_paren,
 		}
 		break;
 	}
+	case PGF_EXPR_META: {
+		PgfExprMeta* meta = ei.data;
+		gu_printf(wtr, err, "?%d", meta->id);
+		break;
+	}
 	case PGF_EXPR_ABS:
 	case PGF_EXPR_LIT:
-	case PGF_EXPR_META:
 	case PGF_EXPR_VAR:
 	case PGF_EXPR_TYPED:
 	case PGF_EXPR_IMPL_ARG:

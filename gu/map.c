@@ -81,7 +81,7 @@ gu_map_lookup(GuMap* map, const void* key, size_t* idx_out)
 	case GU_MAP_GENERIC: {
 		GuHasher* hasher = map->hasher;
 		GuEquality* eq = (GuEquality*) hasher;
-		GuHash hash = hasher->hash(hasher, key);
+		GuHash hash = gu_hasher_hash(hasher, key);
 		size_t idx = hash % n;
 		size_t offset = (hash % (n - 2)) + 1;
 		size_t key_size = map->key_size;

@@ -2,6 +2,7 @@
 #define GU_LOG_H_
 
 #include <stdarg.h>
+#include <gu/print.h>
 
 typedef enum GuLogKind {
 	GU_LOG_KIND_ENTER,
@@ -14,11 +15,17 @@ void
 gu_log_full(GuLogKind kind, const char* func, const char* file, int line,
 	    const char* fmt, ...);
 
+void
+gu_plog_full(GuLogKind kind, const char* func, const char* file, int line,
+	     ...);
 
 void
 gu_log_full_v(GuLogKind kind, const char* func, const char* file, int line,
 	      const char* fmt, va_list args);
 
+void
+gu_plog_full_v(GuLogKind kind, const char* func, const char* file, int line,
+	       va_list args);
 
 #ifndef NDEBUG
 
@@ -27,6 +34,9 @@ gu_log_full_v(GuLogKind kind, const char* func, const char* file, int line,
 
 #define gu_log(kind_, ...)			\
 	gu_log_full(kind_, __func__, __FILE__, __LINE__, __VA_ARGS__)
+
+#define gu_plog(kind_, ...)			\
+	gu_plog_full(kind_, __func__, __FILE__, __LINE__, __VA_ARGS__)
 
 #else
 
@@ -45,6 +55,20 @@ gu_log(GuLogKind kind, const char* fmt, ...)
 	(void) fmt;
 }
 
+static inline void
+gu_log(GuLogKind kind, const char* fmt, ...)
+{
+	(void) kind;
+	(void) fmt;
+}
+
+static inline void
+gu_plog(GuLogKind kind, const char* fmt, ...)
+{
+	(void) kind;
+	(void) fmt;
+}
+
 #endif
 
 
@@ -58,6 +82,10 @@ gu_log(GuLogKind kind, const char* fmt, ...)
 
 #define gu_debug(...)				\
 	gu_log(GU_LOG_KIND_DEBUG, __VA_ARGS__)
+
+#define gu_pdebug(...)				\
+	gu_plog(GU_LOG_KIND_DEBUG, __VA_ARGS__)
+
 
 #define gu_debugv(kind_, fmt_, args_) \
 	gu_logv(GU_LOG_KIND_DEBUG, fmt_, args_)

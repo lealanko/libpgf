@@ -127,6 +127,7 @@ gu_list_type_alloc(GuListType* ltype, int n_elems, GuPool* pool);
 void*
 gu_list_type_index(GuListType* ltype, void* list, int i);
 
+#if 0
 #include <gu/str.h>
 
 
@@ -135,6 +136,6 @@ typedef GuStrs* GuStrsP;
 		       
 extern GU_DECLARE_TYPE(GuStrs, GuList);
 extern GU_DECLARE_TYPE(GuStrsP, pointer);
-
+#endif
 
 #endif // GU_LIST_H_

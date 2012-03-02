@@ -54,6 +54,7 @@ GU_DEFINE_TYPE(uint16_t, unsigned, _);
 GU_DEFINE_TYPE(uint32_t, unsigned, _);
 GU_DEFINE_TYPE(uint64_t, unsigned, _);
 GU_DEFINE_TYPE(uintmax_t, unsigned, _);
+GU_DEFINE_TYPE(GuWord, unsigned, _);
 GU_DEFINE_TYPE(size_t, unsigned, _);
 
 GU_DEFINE_TYPE(GuLength, unsigned, _);

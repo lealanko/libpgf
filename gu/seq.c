@@ -234,6 +234,8 @@ GU_DEFINE_KIND(GuBuf, abstract);
 GU_DEFINE_TYPE(GuChars, GuSeq, gu_type(char));
 GU_DEFINE_TYPE(GuBytes, GuSeq, gu_type(uint8_t));
 
+#include <gu/str.h>
+
 char*
 gu_chars_str(GuChars chars, GuPool* pool)
 {

@@ -23,12 +23,14 @@ guinclude_HEADERS = \
 	gu/hash.h \
 	gu/in.h \
 	gu/intern.h \
+	gu/instance.h \
 	gu/list.h \
 	gu/log.h \
 	gu/map.h \
 	gu/mem.h \
 	gu/out.h \
 	gu/prime.h \
+	gu/print.h \
 	gu/read.h \
 	gu/seq.h \
 	gu/str.h \
@@ -62,6 +64,7 @@ libgu_la_SOURCES = \
 	gu/fun.c \
 	gu/hash.c \
 	gu/in.c \
+	gu/instance.c \
 	gu/intern.c \
 	gu/list.c \
 	gu/log.c \
@@ -69,6 +72,7 @@ libgu_la_SOURCES = \
 	gu/mem.c \
 	gu/out.c \
 	gu/prime.c \
+	gu/print.c \
 	gu/read.c \
 	gu/str.c \
 	gu/string.c \

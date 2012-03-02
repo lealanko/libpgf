@@ -261,6 +261,9 @@ extern GU_DECLARE_TYPE(PgfProduction, GuVariant);
 extern GU_DECLARE_TYPE(PgfBindType, enum);
 extern GU_DECLARE_TYPE(PgfLiteral, GuVariant);
 
+bool
+pgf_production_eq(PgfProduction p1, PgfProduction p2);
+
 
 PgfCCatId
 pgf_literal_cat(PgfLiteral lit);

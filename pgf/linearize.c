@@ -58,50 +58,9 @@ static GU_DEFINE_TYPE(PgfLinProds, GuStringMap, gu_ptr_type(PgfCncProds),
 		      &gu_null_struct);
 
 
-static GuHash
-pgf_lzr_cats_hash_fn(GuHasher* self, const void* p)
-{
-	(void) self;
-	PgfCCatIds cats = *(PgfCCatIds const*)p;
-	size_t len = gu_seq_length(cats);
-	uintptr_t h = 0;
-	for (size_t i = 0; i < len; i++) {
-		h = 101 * h + (uintptr_t) gu_seq_get(cats, PgfCCatId, i);
-	}
-	return h;
-}
-
-static bool
-pgf_lzr_cats_eq_fn(GuEquality* self, const void* p1, const void* p2)
-{
-	(void) self;
-	PgfCCatIds cats1 = *(PgfCCatIds const*) p1;
-	PgfCCatIds cats2 = *(PgfCCatIds const*) p2;
-	size_t len = gu_seq_length(cats1);
-	if (gu_seq_length(cats2) != len) {
-		return false;
-	}
-	for (size_t i = 0; i < len; i++) {
-		PgfCCat* cat1 = gu_seq_get(cats1, PgfCCatId, i);
-		PgfCCat* cat2 = gu_seq_get(cats2, PgfCCatId, i);
-		if (cat1 != cat2) {
-			return false;
-		}
-	}
-	return true;
-}
-
-static GuHasher
-pgf_lzr_cats_hasher[1] = {
-	{
-		.eq = { pgf_lzr_cats_eq_fn },
-		.hash = pgf_lzr_cats_hash_fn
-	}
-};
-
 typedef GuMap PgfInferMap;
 static GU_DEFINE_TYPE(PgfInferMap, GuMap,
-		      gu_ptr_type(PgfCCatIds), pgf_lzr_cats_hasher,
+		      gu_type(PgfCCatIds), NULL,
 		      gu_ptr_type(PgfLinInfers), &gu_null_struct);
 
 typedef GuStringMap PgfFunIndices;
@@ -180,7 +139,9 @@ pgf_lzr_index(PgfLzr* lzr, PgfCCat* cat, PgfProduction prod)
 				   PgfInferMap*);
 		gu_debug("index: %s -> %d", papply->fun->fun, cat->fid);
 		if (!infer) {
-			infer = gu_map_type_new(PgfInferMap, lzr->pool);
+			infer = gu_new_map(PgfCCatIds*, lzr->ccat_ids_hasher,
+					   PgfLinInfers*, &gu_null_struct,
+					   lzr->pool);
 			gu_map_put(lzr->fun_indices,
 				   &papply->fun->fun, PgfInferMap*, infer);
 		}
@@ -253,6 +214,13 @@ pgf_new_lzr(PgfConcr* cnc, GuPool* pool)
 	lzr->pool = pool;
 	lzr->fun_indices = gu_map_type_new(PgfFunIndices, pool);
 	lzr->coerce_idx = gu_map_type_new(PgfCoerceIdx, pool);
+
+	// XXX: get maybe instantiate from typetable directly?
+	GuPool* tmp_pool = gu_local_pool();
+	GuTypeMap* imap = gu_new_type_map(gu_hasher_instances, tmp_pool);
+	lzr->ccat_ids_hasher = gu_instantiate(imap, gu_type(PgfCCatIds), pool);
+	gu_pool_free(tmp_pool);
+
 	PgfLzrIndexFn clo = { { pgf_lzr_index_cnccat_cb }, lzr };
 	gu_map_iter(cnc->cnccats, &clo.fn, NULL);
 	size_t n_extras = gu_seq_length(cnc->extra_ccats);

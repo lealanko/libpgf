@@ -14,6 +14,9 @@ struct GuMapItor {
 
 typedef struct GuMap GuMap;
 
+// A GuSet is a map with value_size 0. 
+typedef GuMap GuSet;
+
 GuMap*
 gu_make_map(size_t key_size, GuHasher* hasher,
 	    size_t value_size, const void* default_value,
@@ -25,8 +28,11 @@ gu_make_map(size_t key_size, GuHasher* hasher,
 #define gu_new_set(K, HASHER, POOL)			\
 	(gu_make_map(sizeof(K), (HASHER), 0, NULL, (POOL)))
 
-#define gu_new_addr_map(K, V, DV, POOL)				\
+#define gu_new_addr_map(K, V, DV, POOL)			\
 	(gu_make_map(0, NULL, sizeof(V), (DV), (POOL)))
+
+#define gu_new_addr_set(K, POOL)			\
+	(gu_make_map(0, NULL, 0, NULL, (POOL)))
 
 size_t
 gu_map_count(GuMap* map);
@@ -58,9 +64,22 @@ gu_map_has(GuMap* ht, const void* key)
 	return gu_map_find_key(ht, key) != NULL;
 }
 
+static inline bool
+gu_set_has(GuSet* ht, const void* key)
+{
+	return gu_map_has(ht, key);
+}
+
 
 void*
 gu_map_insert(GuMap* ht, const void* key);
+
+static inline void
+gu_set_insert(GuSet* ht, const void* key)
+{
+	(void) gu_map_insert(ht, key);
+}
+	
 
 #define gu_map_put(MAP, KEYP, V, VAL)				\
 	GU_BEGIN						\
