@@ -1,7 +1,8 @@
 #include <gu/hash.h>
 #include <gu/seq.h>
 #include <gu/variant.h>
-#include <gu/instance.h>
+#include <gu/generic.h>
+#include <gu/string.h>
 
 GuHash
 gu_hash_bytes(GuHash h, const uint8_t* buf, size_t len)
@@ -18,28 +19,36 @@ gu_hash_word(GuHash h, GuWord w)
 	return gu_hash_bytes(h, (void*)&w, sizeof(GuWord));
 }
 
-static bool
-gu_int_eq_fn(GuEquality* self, const void* p1, const void* p2)
-{
-	(void) self;
-	const int* ip1 = p1;
-	const int* ip2 = p2;
-	return *ip1 == *ip2;
+
+#define DEFINE_INTEGER_HASHER(TYPE, NAME)				\
+static bool								\
+gu_##NAME##_eq_fn(GuEquality* self, const void* p1, const void* p2)	\
+{									\
+	(void) self;							\
+	const TYPE* ip1 = p1;						\
+	const TYPE* ip2 = p2;						\
+	return *ip1 == *ip2;						\
+}									\
+									\
+static GuHash								\
+gu_##NAME##_hash_fn(GuHasher* self, GuHash h, const void* p)		\
+{									\
+	(void) self;							\
+	return gu_hash_word(h, (GuWord) *(const TYPE*) p);		\
+}									\
+									\
+GuHasher gu_##NAME##_hasher[1] = {					\
+	{								\
+		{ gu_##NAME##_eq_fn },					\
+		gu_##NAME##_hash_fn					\
+	}								\
 }
 
-static GuHash
-gu_int_hash_fn(GuHasher* self, GuHash h, const void* p)
-{
-	(void) self;
-	return gu_hash_word(h, (GuWord) *(const int*) p);
-}
+DEFINE_INTEGER_HASHER(int, int);
+DEFINE_INTEGER_HASHER(GuWord, word);
+DEFINE_INTEGER_HASHER(uint16_t, uint16);
+DEFINE_INTEGER_HASHER(uint8_t, uint8);
 
-GuHasher gu_int_hasher[1] = {
-	{
-		{ gu_int_eq_fn },
-		gu_int_hash_fn
-	}
-};
 
 static bool
 gu_addr_eq_fn(GuEquality* self, const void* p1, const void* p2)
@@ -63,25 +72,24 @@ GuHasher gu_addr_hasher[1] = {
 };
 
 static bool
-gu_word_eq_fn(GuEquality* self, const void* p1, const void* p2)
+gu_shared_eq_fn(GuEquality* self, const void* p1, const void* p2)
 {
-	(void) self;
-	const GuWord* wp1 = p1;
-	const GuWord* wp2 = p2;
-	return (*wp1 == *wp2);
+	const void* v1 = *(const void* const *) p1;
+	const void* v2 = *(const void* const *) p2;
+	return (v1 == v2);
 }
 
 static GuHash
-gu_word_hash_fn(GuHasher* self, GuWord h, const void* p)
+gu_shared_hash_fn(GuHasher* self, GuHash h, const void* p)
 {
-	(void) self;
-	return gu_hash_bytes(h, p, sizeof(GuWord));
+	const void* v = *(const void* const *) p;
+	return gu_hash_word(h, (GuWord) v);
 }
 
-GuHasher gu_word_hasher[1] = {
+GuHasher gu_shared_hasher[1] = {
 	{
-		{ gu_word_eq_fn },
-		gu_word_hash_fn
+		{ gu_shared_eq_fn },
+		gu_shared_hash_fn
 	}
 };
 
@@ -108,6 +116,9 @@ gu_seq_eq_fn(GuEquality* self, const void* p1, const void* p2)
 	}
 	const uint8_t* d1 = gu_seq_data(s1);
 	const uint8_t* d2 = gu_seq_data(s2);
+	if (d1 == d2) {
+		return true;
+	}
 	for (size_t i = 0; i < len; i++) {
 		const void* ep1 = &d1[i * shasher->elem_size];
 		const void* ep2 = &d2[i * shasher->elem_size];
@@ -135,12 +146,12 @@ gu_seq_hash_fn(GuHasher* self, GuWord h, const void* p)
 }
 
 static const void*
-gu_make_seq_hasher(GuInstance* self, GuInstanceMap* imap,
+gu_make_seq_hasher(GuInstance* self, GuGeneric* gen,
 		   GuType* type, GuPool* pool)
 {
 	(void) self;
 	GuSeqType* stype = gu_type_cast(type, GuSeq);
-	GuHasher* ehasher = gu_instantiate(imap, stype->elem_type, pool);
+	GuHasher* ehasher = gu_specialize(gen, stype->elem_type, pool);
 	size_t esize = gu_type_size(stype->elem_type);
 	return gu_new_i(pool, GuSeqHasher,
 			.hasher.eq.is_equal = gu_seq_eq_fn,
@@ -167,6 +178,9 @@ gu_variant_eq_fn(GuEquality* self, const void* p1, const void* p2)
 	if (i1.tag != i2.tag) {
 		return false;
 	}
+	if (i1.data == i2.data) {
+		return true;
+	}
 	GuHasher* dhasher =
 		gu_seq_get(vhasher->data_hashers, GuHasher*, i1.tag);
 	GuEquality* deq = &dhasher->eq;
@@ -184,7 +198,7 @@ gu_variant_hash_fn(GuHasher* self, GuWord h, const void* p)
 }
 
 static const void*
-gu_make_variant_hasher(GuInstance* self, GuInstanceMap* imap,
+gu_make_variant_hasher(GuInstance* self, GuGeneric* gen,
 		       GuType* type, GuPool* pool)
 {
 	(void) self;
@@ -193,7 +207,7 @@ gu_make_variant_hasher(GuInstance* self, GuInstanceMap* imap,
 	GuSeq dhashers = gu_new_seq(GuHasher*, len, pool);
 	GuHasher** dha = gu_seq_data(dhashers);
 	for (size_t i = 0; i < len; i++) {
-		dha[i] = gu_instantiate(imap, vtype->ctors.elems[i].type,
+		dha[i] = gu_specialize(gen, vtype->ctors.elems[i].type,
 					pool);
 	}
 	return gu_new_i(pool, GuVariantHasher,
@@ -252,7 +266,7 @@ gu_struct_hash_fn(GuHasher* self, GuHash h, const void* p)
 }
 
 static const void*
-gu_make_struct_hasher(GuInstance* self, GuInstanceMap* imap,
+gu_make_struct_hasher(GuInstance* self, GuGeneric* gen,
 		      GuType* type, GuPool* pool)
 {
 	(void) self;
@@ -263,7 +277,7 @@ gu_make_struct_hasher(GuInstance* self, GuInstanceMap* imap,
 	GuHasherMember* hms = gu_seq_data(hmembers);
 	for (size_t i = 0; i < n_members; i++) {
 		hms[i].offset = members[i].offset;
-		hms[i].hasher = gu_instantiate(imap, members[i].type, pool);
+		hms[i].hasher = gu_specialize(gen, members[i].type, pool);
 	}
 	return gu_new_i(pool, GuStructHasher,
 			.hasher.eq.is_equal = gu_struct_eq_fn,
@@ -285,7 +299,7 @@ gu_ptr_eq_fn(GuEquality* self, const void* p1, const void* p2)
 	const void* v1 = *(const void* const *) p1;
 	const void* v2 = *(const void* const *) p2;
 	GuEquality* veq = &phasher->pointed_hasher->eq;
-	return veq->is_equal(veq, v1, v2);
+	return gu_eq(veq, v1, v2);
 }
 
 static GuHash
@@ -298,12 +312,12 @@ gu_ptr_hash_fn(GuHasher* self, GuHash h, const void* p)
 }
 
 static const void*
-gu_make_ptr_hasher(GuInstance* self, GuInstanceMap* imap,
+gu_make_ptr_hasher(GuInstance* self, GuGeneric* gen,
 		   GuType* type, GuPool* pool)
 {
 	GuPointerType* ptype = gu_type_cast(type, pointer);
 	GuHasher* pointed_hasher =
-		gu_instantiate(imap, ptype->pointed_type, pool);
+		gu_specialize(gen, ptype->pointed_type, pool);
 	return gu_new_i(pool, GuPointerHasher,
 			.hasher.eq.is_equal = gu_ptr_eq_fn,
 			.hasher.hash = gu_ptr_hash_fn,
@@ -311,14 +325,21 @@ gu_make_ptr_hasher(GuInstance* self, GuInstanceMap* imap,
 }
 
 
-GuTypeTable gu_hasher_instances = GU_TYPETABLE(
-	GU_SLIST_0,
-	{ gu_kind(int), GU_CONST_INSTANCE(gu_int_hasher) },
-	{ gu_kind(GuWord), GU_CONST_INSTANCE(gu_word_hasher) },
-	{ gu_kind(struct), GU_INSTANCE(gu_make_struct_hasher) },
-	{ gu_kind(GuVariant), GU_INSTANCE(gu_make_variant_hasher) },
-	{ gu_kind(pointer), GU_INSTANCE(gu_make_ptr_hasher) },
-	{ gu_kind(shared), GU_CONST_INSTANCE(gu_addr_hasher) },
-	{ gu_kind(GuSeq), GU_INSTANCE(gu_make_seq_hasher) },
-	);
+GuTypeTable gu_hasher_instances[1] = {
+	GU_TYPETABLE(
+		GU_SLIST_0,
+{ gu_kind(int), GU_CONST_INSTANCE(gu_int_hasher) },
+{ gu_kind(uint16_t), GU_CONST_INSTANCE(gu_uint16_hasher) },
+{ gu_kind(uint8_t), GU_CONST_INSTANCE(gu_uint8_hasher) },
+{ gu_kind(GuWord), GU_CONST_INSTANCE(gu_word_hasher) },
+{ gu_kind(struct), GU_INSTANCE(gu_make_struct_hasher) },
+{ gu_kind(GuVariant), GU_INSTANCE(gu_make_variant_hasher) },
+{ gu_kind(pointer), GU_INSTANCE(gu_make_ptr_hasher) },
+{ gu_kind(shared), GU_CONST_INSTANCE(gu_shared_hasher) },
+{ gu_kind(abstract), GU_CONST_INSTANCE(gu_addr_hasher) },
+{ gu_kind(GuSeq), GU_INSTANCE(gu_make_seq_hasher) },
+{ gu_kind(GuString), GU_CONST_INSTANCE(gu_string_hasher) }
+
+		)
+};
 	

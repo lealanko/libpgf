@@ -1,8 +1,7 @@
 #include <gu/defs.h>
 #include <gu/log.h>
-#include <gu/print.h>
 #include <gu/file.h>
-
+#include <gu/write.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
@@ -97,7 +96,7 @@ gu_plog_full_v(GuLogKind kind, const char* func, const char* file, int line,
 	GuWriter* wtr = gu_new_utf8_writer(errf, pool);
 	GuExn* exn = NULL;
 	gu_printf(wtr, exn, "%-*s: ", indent, func);
-	gu_printv(args, wtr, exn);
+	//gu_printv(args, wtr, exn);
 	gu_putc('\n', wtr, exn);
 	gu_writer_flush(wtr, exn);
 	gu_pool_free(pool);

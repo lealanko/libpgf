@@ -26,6 +26,7 @@
 #include <gu/seq.h>
 #include <gu/string.h>
 #include <gu/assert.h>
+#include <gu/generic.h>
 #include <pgf/expr.h>
 
 typedef GuStringMap PgfLinInfer;
@@ -78,6 +79,7 @@ static GU_DEFINE_TYPE(PgfCoerceIdx, GuMap,
 struct PgfLzr {
 	PgfConcr* cnc;
 	GuPool* pool;
+	GuHasher* ccat_ids_hasher;
 	PgfFunIndices* fun_indices;
 	PgfCoerceIdx* coerce_idx;
 };
@@ -217,8 +219,8 @@ pgf_new_lzr(PgfConcr* cnc, GuPool* pool)
 
 	// XXX: get maybe instantiate from typetable directly?
 	GuPool* tmp_pool = gu_local_pool();
-	GuTypeMap* imap = gu_new_type_map(gu_hasher_instances, tmp_pool);
-	lzr->ccat_ids_hasher = gu_instantiate(imap, gu_type(PgfCCatIds), pool);
+	GuGeneric* genhash = gu_new_generic(gu_hasher_instances, tmp_pool);
+	lzr->ccat_ids_hasher = gu_specialize(genhash, gu_type(PgfCCatIds), pool);
 	gu_pool_free(tmp_pool);
 
 	PgfLzrIndexFn clo = { { pgf_lzr_index_cnccat_cb }, lzr };

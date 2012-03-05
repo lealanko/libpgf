@@ -62,4 +62,10 @@ struct GuEquality {
 	bool (*is_equal)(GuEquality* self, const void* a, const void* b);
 };
 
+static inline bool
+gu_eq(GuEquality* eq, const void* a, const void* b)
+{
+	return (a == b) || eq->is_equal(eq, a, b);
+}
+
 #endif // GU_FUN_H_

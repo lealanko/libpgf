@@ -1,5 +1,5 @@
 #include <gu/write.h>
-
+#include <gu/str.h>
 
 size_t
 gu_utf32_write(const GuUCS* src, size_t len, GuWriter* wtr, GuExn* err)

@@ -92,7 +92,7 @@ gu_type_map_init(GuTypeMap* tmap, GuTypeTable* table)
 	}
 	for (int i = 0; i < table->entries.len; i++) {
 		GuTypeTableEntry* e = &table->entries.elems[i];
-		gu_map_put(tmap->map, e->kind, void*, e->val);
+		gu_map_put(tmap->map, e->kind, const void*, e->val);
 	}
 }
 

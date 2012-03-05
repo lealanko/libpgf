@@ -3,8 +3,11 @@
 #include <gu/seq.h>
 #include <gu/assert.h>
 #include <gu/log.h>
+#include <gu/generic.h>
 
 typedef struct PgfItem PgfItem;
+
+static GU_DECLARE_TYPE(PgfItem, struct);
 
 enum {
 	PGF_FID_SYNTHETIC = -999
@@ -13,6 +16,7 @@ enum {
 typedef GuBuf PgfItemBuf;
 typedef GuSeq PgfItemBufs;
 
+static GU_DEFINE_TYPE(PgfItemBuf, GuBuf, gu_ptr_type(PgfItem));
 
 
 // GuString -> PgfItemBuf*			 
@@ -22,6 +26,8 @@ typedef GuBuf PgfCCatBuf;
 
 struct PgfParser {
 	PgfConcr* concr;
+	GuHasher* item_hasher;
+	GuHasher* tokens_hasher;
 };
 
 struct PgfParse {
@@ -44,8 +50,15 @@ struct PgfItemBase {
 	PgfItemBuf* conts;
 	PgfCCat* ccat;
 	PgfProduction prod;
-	unsigned short lin_idx;
+	GuWord lin_idx;
 };
+
+static GU_DEFINE_TYPE(
+	PgfItemBase, struct,
+	GU_MEMBER_P(PgfItemBase, conts, PgfItemBuf),
+	GU_MEMBER(PgfItemBase, ccat, PgfCCatId),
+	GU_MEMBER(PgfItemBase, prod, PgfProduction),
+	GU_MEMBER(PgfItemBase, lin_idx, GuWord));
 
 struct PgfItem {
 	PgfItemBase* base;
@@ -56,17 +69,14 @@ struct PgfItem {
 	uint8_t alt;
 };
 
-
-static bool
-pgf_item_eq(PgfItem* i1, PgfItem* i2)
-{
-	PgfItemBase* b1 = i1->base;
-	PgfItemBase* b2 = i2->base;
-	return (b1->conts == b2->conts &&
-		pgf_production_eq(b1->prod, b2->prod) &&
-		i1->seq_idx == i2->seq_idx &&
-		i1->tok_idx == i2->tok_idx);
-}
+static GU_DEFINE_TYPE(
+	PgfItem, struct,
+	GU_MEMBER_P(PgfItem, base, PgfItemBase),
+	GU_MEMBER(PgfItem, args, PgfPArgs),
+	GU_MEMBER(PgfItem, curr_sym, PgfSymbol),
+	GU_MEMBER(PgfItem, seq_idx, uint16_t),
+	GU_MEMBER(PgfItem, tok_idx, uint8_t),
+	GU_MEMBER(PgfItem, alt, uint8_t));
 
 #if 0
 
@@ -93,7 +103,6 @@ pgf_item_print(PgfItem* item, GuOut* out, GuExn* exn)
 typedef GuMap PgfContsMap;
 
 
-static GU_DEFINE_TYPE(PgfItemBuf,abstract, _);
 static GU_DEFINE_TYPE(PgfItemBufs, GuSeq, gu_ptr_type(PgfItemBuf));
 
 static GU_DEFINE_TYPE(PgfContsMap, GuMap,
@@ -119,11 +128,18 @@ struct PgfParsing {
 };
 
 
+static bool
+pgf_tokens_equal(PgfParsing* parsing, PgfTokens toks1, PgfTokens toks2)
+{
+	return gu_eq(&parsing->parse->parser->tokens_hasher->eq,
+		     &toks1, &toks2);
+}
+
 static void
 pgf_parsing_add_transition(PgfParsing* parsing, PgfToken tok, PgfItem* item)
 {
-	// gu_debug("%s -> %p", tok, item);
-	gu_pdebug("", gu_string_printer, tok, " -> ", gu_ptr_printer, item, NULL);
+	gu_debug("%s -> %p", tok, item);
+	//gu_pdebug("", gu_string_printer, tok, " -> ", gu_ptr_printer, item, NULL);
 	PgfTransitions* tmap = parsing->parse->transitions;
 	PgfItemBuf* items = gu_map_get(tmap, &tok, PgfItemBuf*);
 	if (!items) {
@@ -359,7 +375,6 @@ pgf_parsing_complete(PgfParsing* parsing, PgfItem* item)
 	gu_buf_push(prodbuf, PgfProduction, prod);
 }
 
-
 static void
 pgf_parsing_predict(PgfParsing* parsing, PgfItem* item, 
 		    PgfCCat* cat, size_t lin_idx)
@@ -375,7 +390,9 @@ pgf_parsing_predict(PgfParsing* parsing, PgfItem* item,
 	for (size_t i = 0; i < n_conts; i++) {
 		PgfItem* c_item = gu_buf_get(conts, PgfItem*, i);
 		if ((!item && !c_item) ||
-		    (item && c_item && pgf_item_eq(c_item, item))) {
+		    (item && c_item &&
+		     gu_eq(&parsing->parse->parser->item_hasher->eq,
+			   c_item, item))) {
 			have_already = true;
 			break;
 		}
@@ -434,10 +451,10 @@ pgf_parsing_symbol(PgfParsing* parsing, PgfItem* item, PgfSymbol sym) {
 				PgfTokens toks = alts[i].form;
 				PgfTokens toks2 = skp->default_form;
 				// XXX: do nubbing properly
-				bool skip = pgf_tokens_equal(toks, toks2);
+				bool skip = pgf_tokens_equal(parsing, toks, toks2);
 				for (size_t j = 0; j < i; j++) {
 					PgfTokens toks2 = alts[j].form;
-					skip |= pgf_tokens_equal(toks, toks2);
+					skip |= pgf_tokens_equal(parsing, toks, toks2);
 				}
 				if (skip) {
 					continue;
@@ -551,10 +568,10 @@ pgf_parsing_scan(PgfParsing* parsing, PgfItem* item, PgfToken tok)
 				// XXX: do nubbing properly
 				PgfTokens toks = alts[i].form;
 				PgfTokens toks2 = kp->default_form;
-				bool skip = pgf_tokens_equal(toks, toks2);
+				bool skip = pgf_tokens_equal(parsing, toks, toks2);
 				for (size_t j = 0; j < i; j++) {
 					PgfTokens toks2 = alts[j].form;
-					skip |= pgf_tokens_equal(toks, toks2);
+					skip |= pgf_tokens_equal(parsing, toks, toks2);
 				}
 				if (!skip) {
 					succ |= pgf_parsing_scan_toks(
@@ -762,5 +779,10 @@ pgf_new_parser(PgfConcr* concr, GuPool* pool)
 	gu_require(concr != NULL);
 	PgfParser* parser = gu_new(PgfParser, pool);
 	parser->concr = concr;
+	GuPool* tmp_pool = gu_local_pool();
+	GuGeneric* gen_hasher = gu_new_generic(gu_hasher_instances, tmp_pool);
+	parser->item_hasher = gu_specialize(gen_hasher, gu_type(PgfItem), pool);
+	parser->tokens_hasher = gu_specialize(gen_hasher, gu_type(PgfTokens), pool);
+	gu_pool_free(tmp_pool);
 	return parser;
 }

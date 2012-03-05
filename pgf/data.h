@@ -44,6 +44,7 @@ typedef struct PgfConcr PgfConcr;
 
 typedef int PgfLength;
 typedef struct GuVariant PgfSymbol;
+extern GU_DECLARE_TYPE(PgfSymbol, GuVariant);
 typedef struct PgfAlternative PgfAlternative;
 typedef GuSeq PgfAlternatives;
 typedef struct PgfCncFun PgfCncFun;
@@ -76,10 +77,6 @@ typedef GuSeq PgfPatts;
 			      
 typedef GuSeq PgfTokens;  // -> PgfToken
 extern GU_DECLARE_TYPE(PgfTokens, GuSeq);
-
-bool
-pgf_tokens_equal(PgfTokens t1, PgfTokens t2);
-
 
 
 typedef PgfExpr PgfTree;

@@ -2,7 +2,6 @@
 #define GU_LOG_H_
 
 #include <stdarg.h>
-#include <gu/print.h>
 
 typedef enum GuLogKind {
 	GU_LOG_KIND_ENTER,

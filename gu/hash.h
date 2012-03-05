@@ -45,7 +45,7 @@ extern GuHasher gu_word_hasher[1];
 
 #include <gu/type.h>
 
-extern GuTypeTable gu_hasher_instances;
+extern GuTypeTable gu_hasher_instances[1];
 
 
 #endif // GU_HASH_H_
