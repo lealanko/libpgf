@@ -141,9 +141,6 @@ GU_DEFINE_TYPE(
 		GU_MEMBER(PgfPattApp, ctor, PgfCId),
 		GU_MEMBER(PgfPattApp, args, PgfPatts)),
 	GU_CONSTRUCTOR_S(
-		PGF_PATT_LIT, PgfPattLit,
-		GU_MEMBER(PgfPattLit, lit, PgfLiteral)),
-	GU_CONSTRUCTOR_S(
 		PGF_PATT_VAR, PgfPattVar,
 		GU_MEMBER(PgfPattVar, var, PgfCId)),
 	GU_CONSTRUCTOR_S(
@@ -152,6 +149,9 @@ GU_DEFINE_TYPE(
 		GU_MEMBER(PgfPattAs, patt, PgfPatt)),
 	GU_CONSTRUCTOR(
 		PGF_PATT_WILD, void),
+	GU_CONSTRUCTOR_S(
+		PGF_PATT_LIT, PgfPattLit,
+		GU_MEMBER(PgfPattLit, lit, PgfLiteral)),
 	GU_CONSTRUCTOR_S(
 		PGF_PATT_IMPL_ARG, PgfPattImplArg,
 		GU_MEMBER(PgfPattImplArg, patt, PgfPatt)),
