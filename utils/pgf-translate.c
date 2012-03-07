@@ -138,14 +138,8 @@ int main(int argc, char* argv[]) {
 
 		// Now begin enumerating the resulting syntax trees
 		GuEnum* result = pgf_parse_result(parse, ppool);
-
-		while (true) {
-			PgfExpr expr = gu_next(result, PgfExpr, ppool);
-			// The enumerator will return a null variant at the
-			// end of the results.
-			if (gu_variant_is_null(expr)) {
-				break;
-			}
+		PgfExpr expr;
+		while (gu_enum_next(result, &expr, ppool)) {
 			gu_putc(' ', wtr, err);
 			// Write out the abstract syntax tree
 			pgf_expr_print(expr, wtr, err);
@@ -154,12 +148,8 @@ int main(int argc, char* argv[]) {
 			// Enumerate the concrete syntax trees corresponding
 			// to the abstract tree.
 			GuEnum* cts = pgf_lzr_concretize(lzr, expr, ppool);
-			while (true) {
-				PgfCncTree ctree =
-					gu_next(cts, PgfCncTree, ppool);
-				if (gu_variant_is_null(ctree)) {
-					break;
-				}
+			PgfCncTree ctree;
+			while (gu_enum_next(cts, &ctree, ppool)) {
 				gu_puts("  ", wtr, err);
 				// Linearize the concrete tree as a simple
 				// sequence of strings.

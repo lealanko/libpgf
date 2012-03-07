@@ -1,7 +1,7 @@
 #include <gu/enum.h>
 
-void
+bool
 gu_enum_next(GuEnum* en, void* to, GuPool* pool)
 {
-	en->next(en, to, pool);
+	return en->next(en, to, pool);
 }

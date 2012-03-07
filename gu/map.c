@@ -297,6 +297,42 @@ gu_map_iter(GuMap* map, GuMapItor* itor, GuExn* err)
 	}
 }
 
+typedef struct GuMapEnum GuMapEnum;
+
+struct GuMapEnum {
+	GuEnum en;
+	GuMap* map;
+	size_t i;
+};
+
+static bool
+gu_map_enum_next(GuEnum* self, void* to, GuPool* pool)
+{
+	GuMapEnum* menum = (GuMapEnum*) self;
+	GuMap* map = menum->map;
+	size_t i = menum->i;
+	while (i < map->data.n_entries) {
+		if (gu_map_entry_is_free(map, &map->data, i)) {
+			i++;
+			continue;
+		}
+		const void* key = &map->data.keys[i * map->key_size];
+		memcpy(to, key, map->key_size);
+		menum->i = i + 1;
+		return true;
+	}
+	menum->i = i;
+	return false;
+}
+
+GuEnum*
+gu_map_enum(GuMap* map, GuPool* pool)
+{
+	return gu_new_i(pool, GuMapEnum,
+			.en = { gu_map_enum_next },
+			.map = map,
+			.i = 0);
+}
 static const uint8_t gu_map_no_values[1] = { 0 };
 
 GuMap*

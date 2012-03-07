@@ -444,12 +444,17 @@ pgf_lzn_next(PgfLzn* lzn, GuPool* pool)
 	return ctree;
 }
 
-static void
+static bool
 pgf_cnc_tree_enum_next(GuEnum* self, void* to, GuPool* pool)
 {
 	PgfLzn* lzn = gu_container(self, PgfLzn, en);
+	PgfCncTree tree = pgf_lzn_next(lzn, pool);
+	if (gu_variant_is_null(tree)) {
+		return false;
+	}
 	PgfCncTree* toc = to;
-	*toc = pgf_lzn_next(lzn, pool);
+	*toc = tree;
+	return true;
 }
 
 PgfCncTreeEnum*

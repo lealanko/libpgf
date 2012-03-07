@@ -299,7 +299,7 @@ gu_ptr_eq_fn(GuEquality* self, const void* p1, const void* p2)
 	const void* v1 = *(const void* const *) p1;
 	const void* v2 = *(const void* const *) p2;
 	GuEquality* veq = &phasher->pointed_hasher->eq;
-	return gu_eq(veq, v1, v2);
+	return (v1 && v2) ? gu_eq(veq, v1, v2) : v1 == v2;
 }
 
 static GuHash
@@ -308,7 +308,7 @@ gu_ptr_hash_fn(GuHasher* self, GuHash h, const void* p)
 	GuPointerHasher* phasher = (GuPointerHasher*) self;
 	const void* v = *(const void* const *) p;
 	GuHasher* vhasher = phasher->pointed_hasher;
-	return vhasher->hash(vhasher, h, v);
+	return v ? vhasher->hash(vhasher, h, v) : ~h; 
 }
 
 static const void*
