@@ -193,6 +193,9 @@ gu_variant_hash_fn(GuHasher* self, GuWord h, const void* p)
 	GuVariantHasher* vhasher = (GuVariantHasher*) self;
 	GuVariantInfo i = gu_variant_open(*(const GuVariant*) p);
 	h = gu_hash_word(h, i.tag);
+	if (!i.data || i.tag < 0) {
+		return ~h;
+	}
 	GuHasher* dhasher = gu_seq_get(vhasher->data_hashers, GuHasher*, i.tag);
 	return dhasher->hash(dhasher, h, i.data);
 }
