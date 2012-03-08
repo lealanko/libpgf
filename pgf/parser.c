@@ -33,6 +33,7 @@ struct PgfParser {
 	GuHasher* item_hasher;
 	GuHasher* tokens_hasher;
 	GuWriter* dbg_wtr;
+	int next_fid;
 };
 
 struct PgfParse {
@@ -140,6 +141,10 @@ pgf_parg_print(PgfPArg* parg, GuWriter* wtr, GuExn* exn)
 static void
 pgf_item_print(PgfItem* item, GuWriter* wtr, GuExn* exn)
 {
+	if (!item) {
+		gu_puts("[DONE]", wtr, exn);
+		return;
+	}
 	gu_puts("[ ", wtr, exn);
 	pgf_ccat_print(item->base->ccat, wtr, exn);
 	gu_puts(" -> ", wtr, exn);
@@ -149,8 +154,8 @@ pgf_item_print(PgfItem* item, GuWriter* wtr, GuExn* exn)
 		PgfProductionApply* papp = i.data;
 		pgf_cncfun_print(papp->fun, wtr, exn);
 		gu_puts("[", wtr, exn);
-		size_t n_pargs = gu_seq_length(papp->args);
-		PgfPArg* pargs = gu_seq_data(papp->args);
+		size_t n_pargs = gu_seq_length(item->args);
+		PgfPArg* pargs = gu_seq_data(item->args);
 		for (size_t i = 0; i < n_pargs; i++) {
 			if (i > 0) {
 				gu_puts(",", wtr, exn);
@@ -217,6 +222,7 @@ typedef struct PgfParsing PgfParsing;
 struct PgfParsing {
 	PgfParse* parse;
 	GuPool* pool;
+	GuSet* seen_items;
 	PgfContsMap* conts_map;
 	PgfGenCatMap* generated_cats;
 };
@@ -282,7 +288,7 @@ pgf_parsing_create_completed(PgfParsing* parsing, PgfItemSet* conts,
 {
 	PgfCCat* cat = gu_new(PgfCCat, parsing->pool);
 	cat->cnccat = cnccat;
-	cat->fid = PGF_FID_SYNTHETIC;
+	cat->fid = --parsing->parse->parser->next_fid;
 	cat->prods = gu_buf_seq(gu_new_buf(PgfProduction, parsing->pool));
 	gu_map_put(parsing->generated_cats, conts, PgfCCat*, cat);
 	return cat;
@@ -457,6 +463,8 @@ pgf_parsing_complete(PgfParsing* parsing, PgfItem* item)
 		// The category has already been created. If it has also been
 		// predicted already, then process a new item for this
 		// production.
+		GuBuf* prodbuf = gu_seq_buf(cat->prods);
+		gu_buf_push(prodbuf, PgfProduction, prod);
 		PgfItemSets contss = pgf_parsing_get_contss(parsing, cat);
 		size_t n_contss = gu_seq_length(contss);
 		PgfItemSet** contsd = gu_seq_data(contss);
@@ -475,6 +483,8 @@ pgf_parsing_complete(PgfParsing* parsing, PgfItem* item)
 	} else {
 		cat = pgf_parsing_create_completed(parsing, conts,
 						   item->base->ccat->cnccat);
+		GuBuf* prodbuf = gu_seq_buf(cat->prods);
+		gu_buf_push(prodbuf, PgfProduction, prod);
 		GuPool* tmp_pool = gu_local_pool();
 		GuEnum* cenum = gu_map_enum(conts, tmp_pool);
 		PgfItem* cont;
@@ -483,8 +493,6 @@ pgf_parsing_complete(PgfParsing* parsing, PgfItem* item)
 		}
 		gu_pool_free(tmp_pool);
 	}
-	GuBuf* prodbuf = gu_seq_buf(cat->prods);
-	gu_buf_push(prodbuf, PgfProduction, prod);
 }
 
 static void
@@ -492,10 +500,19 @@ pgf_parsing_predict(PgfParsing* parsing, PgfItem* item,
 		    PgfCCat* cat, size_t lin_idx)
 {
 	gu_enter("-> cat: %d", cat->fid);
+	GuWriter* dwtr = parsing->parse->parser->dbg_wtr;
+	if (dwtr) {
+		gu_puts("predict: ", dwtr, NULL);
+		pgf_ccat_print(cat, dwtr, NULL);
+		gu_printf(dwtr, NULL, ";%zu: ", lin_idx);
+		pgf_item_print(item, dwtr, NULL);
+		gu_puts("\n", dwtr, NULL);
+	}
 	if (gu_seq_is_null(cat->prods)) {
-		// Empty category
+		gu_debug("empty category");
 		return;
 	}
+	gu_debug("category has %zu productions", gu_seq_length(cat->prods));
 	PgfItemSet* conts = pgf_parsing_get_conts(parsing, cat, lin_idx);
 	if (!gu_set_has(conts, &item)) {
 		gu_set_insert(conts, &item);
@@ -588,6 +605,18 @@ pgf_parsing_symbol(PgfParsing* parsing, PgfItem* item, PgfSymbol sym) {
 static void
 pgf_parsing_item(PgfParsing* parsing, PgfItem* item)
 {
+	GuWriter* dwtr = parsing->parse->parser->dbg_wtr;
+	if (dwtr) {
+		gu_puts("parsing: ", dwtr, NULL);
+		pgf_item_print(item, dwtr, NULL);
+		gu_puts("\n", dwtr, NULL);
+	}
+	if (gu_set_has(parsing->seen_items, &item)) {
+		gu_debug("Seen item already");
+		return;
+	}
+	gu_debug("Not seen before");
+	gu_set_insert(parsing->seen_items, &item);
 	GuVariantInfo i = gu_variant_open(item->base->prod);
 	switch (i.tag) {
 	case PGF_PRODUCTION_APPLY: {
@@ -709,6 +738,8 @@ pgf_new_parsing(PgfParse* parse, GuPool* parse_pool, GuPool* out_pool)
 	parsing->generated_cats = gu_map_type_new(PgfGenCatMap, out_pool);
 	parsing->conts_map = gu_map_type_new(PgfContsMap, out_pool);
 	parsing->pool = parse_pool;
+	parsing->seen_items =
+		gu_new_set(PgfItem*, parse->parser->item_hasher, out_pool);
 	return parsing;
 }
 
@@ -798,7 +829,7 @@ pgf_cat_to_expr(PgfCCat* cat, GuChoice* choice,
 		return gu_null_variant;
 	}
 	gu_set_insert(seen_cats, cat);
-	if (cat->fid != PGF_FID_SYNTHETIC) {
+	if (cat->fid > PGF_FID_SYNTHETIC) {
 		// XXX: What should the PgfMetaId be?
 		return gu_new_variant_i(pool, PGF_EXPR_META,
 					PgfExprMeta, 
@@ -904,6 +935,7 @@ pgf_new_parser(PgfConcr* concr, GuPool* pool)
 		gu_specialize(gen_hasher, gu_type(PgfTokens), pool);
 	parser->dbg_wtr =
 		gu_new_utf8_writer(gu_file_out(stderr, pool), pool);
+	parser->next_fid = PGF_FID_SYNTHETIC;
 	gu_pool_free(tmp_pool);
 	return parser;
 }
