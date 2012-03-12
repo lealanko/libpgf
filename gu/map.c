@@ -328,10 +328,10 @@ gu_map_enum_next(GuEnum* self, void* to, GuPool* pool)
 GuEnum*
 gu_map_enum(GuMap* map, GuPool* pool)
 {
-	return gu_new_i(pool, GuMapEnum,
-			.en = { gu_map_enum_next },
-			.map = map,
-			.i = 0);
+	return (GuEnum*) gu_new_i(pool, GuMapEnum,
+				  .en = { gu_map_enum_next },
+				  .map = map,
+				  .i = 0);
 }
 static const uint8_t gu_map_no_values[1] = { 0 };
 

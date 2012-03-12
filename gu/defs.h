@@ -75,6 +75,9 @@
 
 #define GU_ARRAY_LEN(t,a) (sizeof((const t[])a) / sizeof(t))
 
+#define GU_A(...) __VA_ARGS__
+#define GU_B(...) { __VA_ARGS__ }
+
 #define GU_ID(...) __VA_ARGS__
 
 // This trick is by Laurent Deniau <laurent.deniau@cern.ch>
@@ -160,6 +163,15 @@ typedef struct GuStruct GuStruct;
 
 extern GuStruct* const gu_null_struct;
 
+
+#define GuVec(T) struct { size_t len; T* data; }
+
+#define GU_VEC(T, ...) {					\
+	.len = sizeof((T[]){__VA_ARGS__}) / sizeof(T),		\
+		.data = &(const T){0} \
+	} 
+
+
 typedef uintptr_t GuWord;
 
 #define GU_WORD_MAX UINTPTR_MAX
@@ -191,8 +203,8 @@ typedef union {
 # define GU_UNLIKELY(EXPR) __builtin_expect(EXPR, 0)
 # define GU_IS_CONSTANT(EXPR) __builtin_constant_p(EXPR)
 #else
-# define GU_LIKELY(EXPR) (EXPR)
-# define GU_UNLIKELY(EXPR) (EXPR)
+# define GU_LIKELY(EXPR) EXPR
+# define GU_UNLIKELY(EXPR) EXPR
 # ifdef GU_OPTIMIZE_SIZE
 #  define GU_IS_CONSTANT(EXPR) false
 # else

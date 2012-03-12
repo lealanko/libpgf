@@ -57,8 +57,7 @@ gu_log_full_v(GuLogKind kind, const char* func, const char* file, int line,
 		gu_log_depth--;
 	}
 	if (fmt) {
-		int indent = gu_min(32 + gu_log_depth, 48);
-		fprintf(stderr, "%-*s: ", indent, func);
+		fprintf(stderr, "%03d:%-32s: ", gu_log_depth, func);
 		vfprintf(stderr, fmt, args);
 		fputc('\n', stderr);
 		fflush(stderr);
@@ -79,8 +78,8 @@ gu_log_full(GuLogKind kind, const char* func, const char* file, int line,
 }
 
 void
-gu_plog_full_v(GuLogKind kind, const char* func, const char* file, int line,
-	       va_list args)
+gu_plog_full(GuLogKind kind, const char* func, const char* file, int line,
+	     GuFmt* fmt, const void** fargs)
 {
 	(void) (kind && line);
 	if (!gu_log_enabled(func, file)) {
@@ -90,13 +89,12 @@ gu_plog_full_v(GuLogKind kind, const char* func, const char* file, int line,
 		gu_log_depth--;
 	}
 	
-	int indent = gu_min(32 + gu_log_depth, 48);
 	GuPool* pool = gu_local_pool();
 	GuOut* errf = gu_file_out(stderr, pool);
 	GuWriter* wtr = gu_new_utf8_writer(errf, pool);
 	GuExn* exn = NULL;
-	gu_printf(wtr, exn, "%-*s: ", indent, func);
-	//gu_printv(args, wtr, exn);
+	gu_printf(wtr, exn, "%03d:%-32s: ", gu_log_depth, func);
+	gu_print_fmt(fmt, fargs, wtr, exn);
 	gu_putc('\n', wtr, exn);
 	gu_writer_flush(wtr, exn);
 	gu_pool_free(pool);
@@ -105,12 +103,3 @@ gu_plog_full_v(GuLogKind kind, const char* func, const char* file, int line,
 	}
 }
 
-void
-gu_plog_full(GuLogKind kind, const char* func, const char* file, int line,
-	     ...)
-{
-	va_list args;
-	va_start(args, line);
-	gu_plog_full_v(kind, func, file, line, args);
-	va_end(args);
-}

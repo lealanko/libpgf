@@ -14,11 +14,6 @@ enum {
 	PGF_FID_SYNTHETIC = -999
 };
 
-typedef GuBuf PgfItemBuf;
-typedef GuSeq PgfItemBufs;
-
-static GU_DEFINE_TYPE(PgfItemBuf, GuBuf, gu_ptr_type(PgfItem));
-
 typedef GuSet PgfItemSet; // -> PgfItem*
 typedef GuSeq PgfItemSets;
 
@@ -32,7 +27,6 @@ struct PgfParser {
 	PgfConcr* concr;
 	GuHasher* item_hasher;
 	GuHasher* tokens_hasher;
-	GuWriter* dbg_wtr;
 	int next_fid;
 };
 
@@ -116,13 +110,24 @@ pgf_symbol_print(PgfSymbol sym, size_t tok_idx, GuWriter* wtr, GuExn* exn)
 	}
 }
 
+
 static void
-pgf_ccat_print(PgfCCat* ccat, GuWriter* wtr, GuExn* exn)
+pgf_ccat_print(const PgfCCat* ccat, GuWriter* wtr, GuExn* exn)
 {
 	gu_printf(wtr, exn, "C%d(", ccat->fid);
 	gu_string_write(ccat->cnccat->cid, wtr, exn);
 	gu_puts(")", wtr, exn);
 }
+
+static void
+pgf_ccat_print_fn(GuPrinter* self, const void* p, GuWriter* wtr, GuExn* exn)
+{
+	(void) self;
+	pgf_ccat_print(p, wtr, exn);
+}
+
+static GuPrinter
+pgf_ccat_printer[1] = {{ pgf_ccat_print_fn }};
 
 static void
 pgf_cncfun_print(PgfCncFun* cncfun, GuWriter* wtr, GuExn* exn)
@@ -139,7 +144,7 @@ pgf_parg_print(PgfPArg* parg, GuWriter* wtr, GuExn* exn)
 }
 
 static void
-pgf_item_print(PgfItem* item, GuWriter* wtr, GuExn* exn)
+pgf_item_print(const PgfItem* item, GuWriter* wtr, GuExn* exn)
 {
 	if (!item) {
 		gu_puts("[DONE]", wtr, exn);
@@ -173,6 +178,7 @@ pgf_item_print(PgfItem* item, GuWriter* wtr, GuExn* exn)
 			size_t tok_idx = ((item->seq_idx == n)
 					  ? item->tok_idx : SIZE_MAX);
 			pgf_symbol_print(sym, tok_idx, wtr, exn);
+			
 		}
 		if (item->seq_idx == len) {
 			gu_puts(". ", wtr, exn);
@@ -198,6 +204,14 @@ pgf_item_print(PgfItem* item, GuWriter* wtr, GuExn* exn)
 	gu_puts("]", wtr, exn);
 }
 
+static void
+pgf_item_print_fn(GuPrinter* self, const void* p, GuWriter* wtr, GuExn* exn)
+{
+	(void) self;
+	pgf_item_print(p, wtr, exn);
+}
+
+static GuPrinter pgf_item_printer[1] = {{ pgf_item_print_fn }};
 
 typedef GuMap PgfContsMap;
 
@@ -400,12 +414,7 @@ pgf_parsing_combine(PgfParsing* parsing, PgfItem* cont, PgfCCat* cat)
 	gu_seq_set(item->args, PgfPArg, pcat->d,
 		   ((PgfPArg) { .hypos = gu_empty_seq(), .ccat = cat }));
 	pgf_item_advance(item, parsing->pool);
-	GuWriter* dwtr = parsing->parse->parser->dbg_wtr;
-	if (dwtr) {
-		gu_puts("combine: ", dwtr, NULL);
-		pgf_item_print(item, dwtr, NULL);
-		gu_puts("\n", dwtr, NULL);
-	}
+	gu_pdebug(GU_A({"combine: ", pgf_item_printer}), item);
 	pgf_parsing_item(parsing, item);
 }
 
@@ -425,12 +434,7 @@ pgf_parsing_production(PgfParsing* parsing, PgfCCat* cat, size_t lin_idx,
 static void
 pgf_parsing_complete(PgfParsing* parsing, PgfItem* item)
 {
-	GuWriter* dwtr = parsing->parse->parser->dbg_wtr;
-	if (dwtr) {
-		gu_puts("complete: ", dwtr, NULL);
-		pgf_item_print(item, dwtr, NULL);
-		gu_puts("\n", dwtr, NULL);
-	}
+	gu_pdebug(GU_A({"complete: ", pgf_item_printer}), item);
 	GuVariantInfo i = gu_variant_open(item->base->prod);
 	PgfProduction prod = gu_null_variant;
 	switch (i.tag) {
@@ -500,14 +504,10 @@ pgf_parsing_predict(PgfParsing* parsing, PgfItem* item,
 		    PgfCCat* cat, size_t lin_idx)
 {
 	gu_enter("-> cat: %d", cat->fid);
-	GuWriter* dwtr = parsing->parse->parser->dbg_wtr;
-	if (dwtr) {
-		gu_puts("predict: ", dwtr, NULL);
-		pgf_ccat_print(cat, dwtr, NULL);
-		gu_printf(dwtr, NULL, ";%zu: ", lin_idx);
-		pgf_item_print(item, dwtr, NULL);
-		gu_puts("\n", dwtr, NULL);
-	}
+	gu_pdebug(GU_A({"predict: ", pgf_ccat_printer},
+		       {";", gu_size_printer},
+		       {": ", pgf_item_printer}),
+		  cat, &lin_idx, item);
 	if (gu_seq_is_null(cat->prods)) {
 		gu_debug("empty category");
 		return;
@@ -605,12 +605,7 @@ pgf_parsing_symbol(PgfParsing* parsing, PgfItem* item, PgfSymbol sym) {
 static void
 pgf_parsing_item(PgfParsing* parsing, PgfItem* item)
 {
-	GuWriter* dwtr = parsing->parse->parser->dbg_wtr;
-	if (dwtr) {
-		gu_puts("parsing: ", dwtr, NULL);
-		pgf_item_print(item, dwtr, NULL);
-		gu_puts("\n", dwtr, NULL);
-	}
+	gu_pdebug(GU_A({NULL, pgf_item_printer}), item);
 	if (gu_set_has(parsing->seen_items, &item)) {
 		gu_debug("Seen item already");
 		return;
@@ -677,11 +672,7 @@ static void
 pgf_parsing_scan(PgfParsing* parsing, PgfItem* item, PgfToken tok)
 {
 	bool succ = false;
-	GuWriter* dwtr = parsing->parse->parser->dbg_wtr;
-	if (dwtr) {
-		pgf_item_print(item, dwtr, NULL);
-		gu_puts("\n", dwtr, NULL);
-	}
+	gu_pdebug(GU_A({NULL, pgf_item_printer}), item);
 	GuVariantInfo i = gu_variant_open(item->curr_sym);
 	switch (i.tag) {
 	case PGF_SYMBOL_KS: {
@@ -761,12 +752,7 @@ pgf_parse_token(PgfParse* parse, PgfToken tok, GuPool* pool)
 	if (!agenda) {
 		return NULL;
 	}
-	GuWriter* dwtr = parse->parser->dbg_wtr;
-	if (dwtr) {
-		gu_puts("scan: ", dwtr, NULL);
-		gu_string_write(tok, dwtr, NULL);
-		gu_puts("\n", dwtr, NULL);
-	}
+	gu_pdebug(GU_A({"scan: ", gu_string_printer}), &tok);
 	PgfParse* next_parse = pgf_new_parse(parse->parser, pool);
 	GuPool* tmp_pool = gu_new_pool();
 	PgfParsing* parsing = pgf_new_parsing(next_parse, pool, tmp_pool);
@@ -933,8 +919,6 @@ pgf_new_parser(PgfConcr* concr, GuPool* pool)
 		gu_specialize(gen_hasher, gu_ptr_type(PgfItem), pool);
 	parser->tokens_hasher =
 		gu_specialize(gen_hasher, gu_type(PgfTokens), pool);
-	parser->dbg_wtr =
-		gu_new_utf8_writer(gu_file_out(stderr, pool), pool);
 	parser->next_fid = PGF_FID_SYNTHETIC;
 	gu_pool_free(tmp_pool);
 	return parser;
