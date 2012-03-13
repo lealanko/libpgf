@@ -36,7 +36,7 @@ gu_hasher_hash(GuHasher* hasher, const void* p)
 }
 
 
-extern GuHasher gu_int_hasher[1];
+extern GuHasher gu_int32_hasher[1];
 
 extern GuHasher gu_addr_hasher[1];
 

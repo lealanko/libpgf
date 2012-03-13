@@ -69,6 +69,9 @@ gu_seq_is_null(GuSeq seq)
 
 
 
+bool
+gu_seq_is_buf(GuSeq seq);
+
 GuBuf*
 gu_seq_buf(GuSeq seq);
 

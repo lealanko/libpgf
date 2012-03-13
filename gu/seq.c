@@ -12,10 +12,20 @@ struct GuBuf {
 	GuFinalizer fin;
 };
 
+bool
+gu_seq_is_buf(GuSeq seq)
+{
+	if (gu_tagged_tag(seq.w_) != 0) {
+		return false;
+	}
+	GuWord* w = gu_word_ptr(seq.w_);
+	return ((w[-1] & 1) == 1);
+}
+
 GuBuf*
 gu_seq_buf(GuSeq seq)
 {
-	gu_require(gu_tagged_tag(seq.w_) == 0);
+	gu_require(gu_seq_is_buf(seq));
 	return gu_word_ptr(seq.w_);
 }
 

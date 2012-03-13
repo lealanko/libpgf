@@ -94,11 +94,6 @@ gu_map_iter(GuMap* ht, GuMapItor* itor, GuExn* err);
 GuEnum*
 gu_map_enum(GuMap* ht, GuPool* pool);
 
-typedef GuMap GuIntMap;
-
-#define gu_new_int_map(VAL_T, DEFAULT, POOL)		\
-	gu_new_map(int, gu_int_hasher, VAL_T, DEFAULT, POOL)
-
 
 #if defined(GU_TYPE_H_) && !defined(GU_MAP_H_TYPE_)
 #define GU_MAP_H_TYPE_
@@ -129,14 +124,6 @@ gu_map_type_make(GuMapType* mtype, GuPool* pool);
 		.value_type = vt_,					\
 		.default_value = dv_					\
 	}
-
-#define gu_type__GuIntMap gu_type__GuMap
-
-typedef GuType_GuMap GuType_GuIntMap;
-
-#define GU_TYPE_INIT_GuIntMap(KIND, MAP_T, VAL_T, DEFAULT)	\
-	GU_TYPE_INIT_GuMap(KIND, MAP_T, gu_type(int), gu_int_hasher,	\
-			   VAL_T, DEFAULT)
 
 #endif
 

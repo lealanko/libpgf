@@ -114,7 +114,7 @@ pgf_symbol_print(PgfSymbol sym, size_t tok_idx, GuWriter* wtr, GuExn* exn)
 static void
 pgf_ccat_print(const PgfCCat* ccat, GuWriter* wtr, GuExn* exn)
 {
-	gu_printf(wtr, exn, "C%d(", ccat->fid);
+	gu_printf(wtr, exn, "C%" PRId32 "(", pgf_ccat_fid(ccat));
 	gu_string_write(ccat->cnccat->cid, wtr, exn);
 	gu_puts(")", wtr, exn);
 }
@@ -132,7 +132,7 @@ pgf_ccat_printer[1] = {{ pgf_ccat_print_fn }};
 static void
 pgf_cncfun_print(PgfCncFun* cncfun, GuWriter* wtr, GuExn* exn)
 {
-	gu_printf(wtr, exn, "F?("); // XXX: resolve fid
+	gu_printf(wtr, exn, "F%" PRId32 "(", pgf_cncfun_fid(cncfun));
 	gu_string_write(cncfun->fun, wtr, exn);
 	gu_puts(")", wtr, exn);
 }
@@ -302,7 +302,7 @@ pgf_parsing_create_completed(PgfParsing* parsing, PgfItemSet* conts,
 {
 	PgfCCat* cat = gu_new(PgfCCat, parsing->pool);
 	cat->cnccat = cnccat;
-	cat->fid = --parsing->parse->parser->next_fid;
+	pgf_ccat_set_fid(cat, --parsing->parse->parser->next_fid);
 	cat->prods = gu_buf_seq(gu_new_buf(PgfProduction, parsing->pool));
 	gu_map_put(parsing->generated_cats, conts, PgfCCat*, cat);
 	return cat;
@@ -503,7 +503,7 @@ static void
 pgf_parsing_predict(PgfParsing* parsing, PgfItem* item, 
 		    PgfCCat* cat, size_t lin_idx)
 {
-	gu_enter("-> cat: %d", cat->fid);
+	gu_enter("-> cat: %d", pgf_ccat_fid(cat));
 	gu_pdebug(GU_A({"predict: ", pgf_ccat_printer},
 		       {";", gu_size_printer},
 		       {": ", pgf_item_printer}),
@@ -815,7 +815,8 @@ pgf_cat_to_expr(PgfCCat* cat, GuChoice* choice,
 		return gu_null_variant;
 	}
 	gu_set_insert(seen_cats, cat);
-	if (cat->fid > PGF_FID_SYNTHETIC) {
+	// If prods is not a buf, this is not a synthetic category.
+	if (!gu_seq_is_buf(cat->prods)) {
 		// XXX: What should the PgfMetaId be?
 		return gu_new_variant_i(pool, PGF_EXPR_META,
 					PgfExprMeta, 

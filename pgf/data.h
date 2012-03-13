@@ -49,6 +49,8 @@ typedef struct PgfAlternative PgfAlternative;
 typedef GuSeq PgfAlternatives;
 typedef struct PgfCncFun PgfCncFun;
 
+typedef int32_t PgfFId;
+
 
 typedef GuSeq PgfSequence; // -> PgfSymbol
 
@@ -118,9 +120,9 @@ extern GU_DECLARE_TYPE(PgfPGF, struct);
 
 struct PgfFunDecl {
 	PgfType* type;
-	int arity; // Only for computational defs?
 	PgfEquationsM defns; // maybe null
 	double prob;
+	int32_t arity; // Only for computational defs?
 };
 
 struct PgfCatFun {
@@ -153,7 +155,21 @@ struct PgfCncCat {
 struct PgfCncFun {
 	PgfCId fun; // XXX: resolve to PgfFunDecl*?
 	PgfSeqIds lins;
+#ifndef GU_OPTIMIZE_SIZE	
+	// For debugging purposes only.
+	PgfFId fid;
+#endif
 };
+
+static inline PgfFId
+pgf_cncfun_fid(const PgfCncFun* fun)
+{
+#ifdef GU_OPTIMIZE_SIZE
+	return -1;
+#else
+	return fun->fid;
+#endif
+}
 
 struct PgfAlternative {
 	PgfTokens form;
@@ -167,8 +183,31 @@ struct PgfAlternative {
 struct PgfCCat {
 	PgfCncCat* cnccat;
 	PgfProductions prods;
-	int fid;
+#ifndef GU_OPTIMIZE_SIZE	
+	// For debugging purposes only.
+	PgfFId fid;
+#endif
 };
+
+static inline PgfFId
+pgf_ccat_fid(const PgfCCat* ccat)
+{
+#ifdef GU_OPTIMIZE_SIZE
+	return -1;
+#else
+	return ccat->fid;
+#endif
+}
+
+static inline void
+pgf_ccat_set_fid(PgfCCat* ccat, PgfFId fid)
+{
+#ifdef GU_OPTIMIZE_SIZE
+	(void) (ccat && fid);
+#else
+	ccat->fid = fid;
+#endif
+}
 
 extern PgfCCat pgf_ccat_string, pgf_ccat_int, pgf_ccat_float, pgf_ccat_var;
 
@@ -194,9 +233,10 @@ typedef enum {
 
 typedef struct PgfSymbolIdx PgfSymbolIdx;
 
+// TODO: use uint16_t
 struct PgfSymbolIdx {
-	int d;
-	int r;
+	int32_t d;
+	int32_t r;
 };
 
 typedef PgfSymbolIdx PgfSymbolCat, PgfSymbolLit, PgfSymbolVar;

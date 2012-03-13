@@ -44,7 +44,7 @@ GuHasher gu_##NAME##_hasher[1] = {					\
 	}								\
 }
 
-DEFINE_INTEGER_HASHER(int, int);
+DEFINE_INTEGER_HASHER(int32_t, int32);
 DEFINE_INTEGER_HASHER(GuWord, word);
 DEFINE_INTEGER_HASHER(uint16_t, uint16);
 DEFINE_INTEGER_HASHER(uint8_t, uint8);
@@ -331,7 +331,7 @@ gu_make_ptr_hasher(GuInstance* self, GuGeneric* gen,
 GuTypeTable gu_hasher_instances[1] = {
 	GU_TYPETABLE(
 		GU_SLIST_0,
-{ gu_kind(int), GU_CONST_INSTANCE(gu_int_hasher) },
+{ gu_kind(int32_t), GU_CONST_INSTANCE(gu_int32_hasher) },
 { gu_kind(uint16_t), GU_CONST_INSTANCE(gu_uint16_hasher) },
 { gu_kind(uint8_t), GU_CONST_INSTANCE(gu_uint8_hasher) },
 { gu_kind(GuWord), GU_CONST_INSTANCE(gu_word_hasher) },

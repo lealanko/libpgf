@@ -50,9 +50,10 @@ static GU_DEFINE_TYPE(
 typedef GuBuf PgfLinInfers;
 static GU_DEFINE_TYPE(PgfLinInfers, GuBuf, gu_type(PgfLinInferEntry));
 
-typedef GuIntMap PgfCncProds;
-static GU_DEFINE_TYPE(PgfCncProds, GuIntMap, gu_type(PgfProdSeq),
-		      &gu_null_seq);
+typedef GuMap PgfCncProds;
+static GU_DEFINE_TYPE(PgfCncProds, GuMap,
+		      gu_type(int32_t), gu_int32_hasher,
+		      gu_type(PgfProdSeq), &gu_null_seq);
 
 typedef GuStringMap PgfLinProds;
 static GU_DEFINE_TYPE(PgfLinProds, GuStringMap, gu_ptr_type(PgfCncProds),
@@ -285,7 +286,7 @@ pgf_lzn_pick_supercat(PgfLzn* lzn, PgfCCat* cat)
 		}
 		cat = gu_buf_get(supers, PgfCCat*, ch - 1);
 	}
-	gu_exit("<- %d", cat->fid);
+	gu_exit("<- %d", pgf_ccat_fid(cat));
 	return cat;
 }
 

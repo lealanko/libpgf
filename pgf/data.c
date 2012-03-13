@@ -51,21 +51,19 @@ GU_DEFINE_TYPE(PgfAlternative, struct,
 
 GU_DEFINE_TYPE(PgfAlternatives, GuSeq, gu_type(PgfAlternative));
 
+GU_DEFINE_TYPE(PgfSymbolIdx, struct,
+	       GU_MEMBER(PgfSymbolIdx, d, int32_t),
+	       GU_MEMBER(PgfSymbolIdx, r, int32_t));
+
 
 GU_DEFINE_TYPE(
 	PgfSymbol, GuVariant,
-	GU_CONSTRUCTOR_S(
-		PGF_SYMBOL_CAT, PgfSymbolCat,
-		GU_MEMBER(PgfSymbolCat, d, int),
-		GU_MEMBER(PgfSymbolCat, r, int)),
-	GU_CONSTRUCTOR_S(
-		PGF_SYMBOL_LIT, PgfSymbolLit,
-		GU_MEMBER(PgfSymbolLit, d, int),
-		GU_MEMBER(PgfSymbolLit, r, int)),
-	GU_CONSTRUCTOR_S(
-		PGF_SYMBOL_VAR, PgfSymbolVar,
-		GU_MEMBER(PgfSymbolVar, d, int),
-		GU_MEMBER(PgfSymbolVar, r, int)),
+	GU_CONSTRUCTOR(
+		PGF_SYMBOL_CAT, PgfSymbolIdx),
+	GU_CONSTRUCTOR(
+		PGF_SYMBOL_LIT, PgfSymbolIdx),
+	GU_CONSTRUCTOR(
+		PGF_SYMBOL_VAR, PgfSymbolIdx),
 	GU_CONSTRUCTOR_S(
 		PGF_SYMBOL_KS, PgfSymbolKS,
 		GU_MEMBER(PgfSymbolKS, tokens, PgfTokens)),
@@ -170,7 +168,7 @@ GU_DEFINE_TYPE(PgfEquationsM, GuSeq, gu_type(PgfEquation));
 GU_DEFINE_TYPE(
 	PgfFunDecl, struct, 
 	GU_MEMBER_P(PgfFunDecl, type, PgfType),
-	GU_MEMBER(PgfFunDecl, arity, int),
+	GU_MEMBER(PgfFunDecl, arity, int32_t),
 	GU_MEMBER(PgfFunDecl, defns, PgfEquationsM),
 	GU_MEMBER(PgfFunDecl, prob, double));
 
