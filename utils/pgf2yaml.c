@@ -1,4 +1,5 @@
 #include <pgf/pgf.h>
+#include <pgf/reader.h>
 
 #include <gu/dump.h>
 #include <gu/file.h>
@@ -8,7 +9,7 @@ int main(void) {
 	GuPool* pool = gu_new_pool();
 	GuExn* err = gu_exn(NULL, type, pool);
 	GuIn* in = gu_file_in(stdin, pool);
-	PgfPGF* pgf = pgf_read(in, pool, err);
+	PgfPGF* pgf = pgf_read_pgf(in, pool, err);
 	int status = 0;
 	if (!gu_ok(err)) {
 		fprintf(stderr, "Reading PGF failed\n");

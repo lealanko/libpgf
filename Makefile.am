@@ -44,14 +44,6 @@ guinclude_HEADERS = \
 	gu/write.h \
 	gu/yaml.h
 
-pgfincludedir=$(includedir)/pgf
-pgfinclude_HEADERS = \
-	pgf/data.h \
-	pgf/expr.h \
-	pgf/linearize.h \
-	pgf/parser.h \
-	pgf/pgf.h 
-
 libgu_la_SOURCES = \
 	gu/assert.c \
 	gu/bits.c \
@@ -84,6 +76,14 @@ libgu_la_SOURCES = \
 	gu/variant.c \
 	gu/yaml.c
 
+
+pgfincludedir=$(includedir)/pgf
+pgfinclude_HEADERS = \
+	pgf/expr.h \
+	pgf/linearize.h \
+	pgf/parser.h \
+	pgf/pgf.h 
+
 libpgf_la_SOURCES = \
 	pgf/data.c \
 	pgf/data.h \
@@ -92,6 +92,7 @@ libpgf_la_SOURCES = \
 	pgf/expr.h \
 	pgf/parser.c \
 	pgf/parser.h \
+	pgf/pgf.c \
 	pgf/reader.c \
 	pgf/linearize.c
 

@@ -303,6 +303,7 @@ struct GuMapEnum {
 	GuEnum en;
 	GuMap* map;
 	size_t i;
+	bool value;
 };
 
 static bool
@@ -316,8 +317,14 @@ gu_map_enum_next(GuEnum* self, void* to, GuPool* pool)
 			i++;
 			continue;
 		}
-		const void* key = &map->data.keys[i * map->key_size];
-		memcpy(to, key, map->key_size);
+		if (menum->value) {
+			const void* value =
+				&map->data.values[i * map->value_size];
+			memcpy(to, value, map->value_size);
+		} else {
+			const void* key = &map->data.keys[i * map->key_size];
+			memcpy(to, key, map->key_size);
+		}
 		menum->i = i + 1;
 		return true;
 	}
@@ -326,13 +333,26 @@ gu_map_enum_next(GuEnum* self, void* to, GuPool* pool)
 }
 
 GuEnum*
-gu_map_enum(GuMap* map, GuPool* pool)
+gu_map_keys(GuMap* map, GuPool* pool)
 {
 	return (GuEnum*) gu_new_i(pool, GuMapEnum,
 				  .en = { gu_map_enum_next },
 				  .map = map,
-				  .i = 0);
+				  .i = 0,
+				  .value = false);
 }
+
+GuEnum*
+gu_map_values(GuMap* map, GuPool* pool)
+{
+	return (GuEnum*) gu_new_i(pool, GuMapEnum,
+				  .en = { gu_map_enum_next },
+				  .map = map,
+				  .i = 0,
+				  .value = true);
+}
+
+
 static const uint8_t gu_map_no_values[1] = { 0 };
 
 GuMap*

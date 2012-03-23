@@ -490,7 +490,7 @@ pgf_parsing_complete(PgfParsing* parsing, PgfItem* item)
 		GuBuf* prodbuf = gu_seq_buf(cat->prods);
 		gu_buf_push(prodbuf, PgfProduction, prod);
 		GuPool* tmp_pool = gu_local_pool();
-		GuEnum* cenum = gu_map_enum(conts, tmp_pool);
+		GuEnum* cenum = gu_map_keys(conts, tmp_pool);
 		PgfItem* cont;
 		while (gu_enum_next(cenum, &cont, tmp_pool)) {
 			pgf_parsing_combine(parsing, cont, cat);
@@ -756,7 +756,7 @@ pgf_parse_token(PgfParse* parse, PgfToken tok, GuPool* pool)
 	PgfParse* next_parse = pgf_new_parse(parse->parser, pool);
 	GuPool* tmp_pool = gu_new_pool();
 	PgfParsing* parsing = pgf_new_parsing(next_parse, pool, tmp_pool);
-	GuEnum* items = gu_map_enum(agenda, tmp_pool);
+	GuEnum* items = gu_map_keys(agenda, tmp_pool);
 	PgfItem* item;
 	while (gu_enum_next(items, &item, tmp_pool)) {
 		pgf_parsing_scan(parsing, item, tok);

@@ -569,7 +569,9 @@ pgf_read_new_PgfConcr(GuType* type, PgfReader* rdr, GuPool* pool)
 	 * freed. */
 	GuPool* tmp_pool = gu_new_pool();
 	rdr->curr_pool = tmp_pool;
-	PgfConcr* concr = gu_new(PgfConcr, pool);;
+	PgfConcr* concr = gu_new(PgfConcr, pool);
+	concr->id = *(PgfCId*) rdr->curr_key;
+	
 	concr->cflags = 
 		pgf_read_new(rdr, gu_type(PgfFlags), pool);
 	concr->printnames = 
@@ -748,7 +750,7 @@ pgf_new_reader(GuIn* in, GuPool* opool, GuPool* pool, GuExn* err)
 
 
 PgfPGF*
-pgf_read(GuIn* in, GuPool* pool, GuExn* err)
+pgf_read_pgf(GuIn* in, GuPool* pool, GuExn* err)
 {
 	GuPool* tmp_pool = gu_new_pool();
 	PgfReader* rdr = pgf_new_reader(in, pool, tmp_pool, err);

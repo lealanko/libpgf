@@ -92,7 +92,10 @@ void
 gu_map_iter(GuMap* ht, GuMapItor* itor, GuExn* err);
 
 GuEnum*
-gu_map_enum(GuMap* ht, GuPool* pool);
+gu_map_keys(GuMap* ht, GuPool* pool);
+
+GuEnum*
+gu_map_values(GuMap* ht, GuPool* pool);
 
 
 #if defined(GU_TYPE_H_) && !defined(GU_MAP_H_TYPE_)

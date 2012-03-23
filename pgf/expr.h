@@ -40,7 +40,7 @@ typedef enum {
 } PgfLiteralTag;
 
 typedef struct {
-	const char* val;
+	GuString val;
 } PgfLiteralStr;
 
 typedef struct {

@@ -9,7 +9,7 @@
 #include <pgf/parser.h>
 #include <pgf/linearize.h>
 #include <pgf/expr.h>
-#include <pgf/edsl.h>
+#include <pgf/reader.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -56,7 +56,7 @@ int main(int argc, char* argv[]) {
 	GuExn* err = gu_new_exn(NULL, gu_kind(type), pool);
 
 	// Read the PGF grammar.
-	PgfPGF* pgf = pgf_read(in, pool, err);
+	PgfPGF* pgf = pgf_read_pgf(in, pool, err);
 
 	// If an error occured, it shows in the exception frame
 	if (!gu_ok(err)) {

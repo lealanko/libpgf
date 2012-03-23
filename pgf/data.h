@@ -40,7 +40,6 @@ extern GU_DECLARE_TYPE(PgfCCats, GuSeq);
 
 typedef struct PgfAbstr PgfAbstr;
 typedef struct PgfFunDecl PgfFunDecl;
-typedef struct PgfConcr PgfConcr;
 
 typedef int PgfLength;
 typedef struct GuVariant PgfSymbol;
@@ -215,6 +214,7 @@ typedef PgfCIdMap PgfPrintNames;
 extern GU_DECLARE_TYPE(PgfPrintNames, GuStringMap);
 
 struct PgfConcr {
+	PgfCId id;
 	PgfFlags* cflags;
 	PgfPrintNames* printnames;
 	PgfCIdMap* cnccats;

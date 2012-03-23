@@ -8,6 +8,7 @@ typedef enum GuLogKind {
 	GU_LOG_KIND_ENTER,
 	GU_LOG_KIND_EXIT,
 	GU_LOG_KIND_DEBUG,
+	GU_LOG_KIND_WARNING,
 	GU_LOG_KIND_ERROR
 } GuLogKind;
 
@@ -73,6 +74,9 @@ gu_log(GuLogKind kind, const char* fmt, ...)
 
 #define gu_exit(...)				\
 	gu_log(GU_LOG_KIND_EXIT, __VA_ARGS__)
+
+#define gu_warn(...)				\
+	gu_log(GU_LOG_KIND_WARNING, __VA_ARGS__)
 
 #define gu_debug(...)				\
 	gu_log(GU_LOG_KIND_DEBUG, __VA_ARGS__)

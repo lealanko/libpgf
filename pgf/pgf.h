@@ -29,7 +29,7 @@
 #include <gu/mem.h>
 #include <gu/in.h>
 #include <gu/string.h>
-
+#include <gu/enum.h>
 
 typedef GuString PgfCId;
 extern GU_DECLARE_TYPE(PgfCId, typedef);
@@ -47,26 +47,28 @@ typedef struct PgfPGF PgfPGF;
  */
 
 
-PgfPGF*
-pgf_read(GuIn* in, GuPool* pool, GuExn* err); 
+typedef struct PgfConcr PgfConcr;
 
-/**< Read a grammar from a PGF file.
- *
- * @param from  PGF input stream.
- * The stream must be positioned in the beginning of a binary
- * PGF representation. After a succesful invocation, the stream is
- * still open and positioned at the end of the representation.
- *
- * @param[out] err_out  Raised error.
- * If non-\c NULL, \c *err_out should be \c NULL. Then, upon
- * failure, \c *err_out is set to point to a newly allocated
- * error object, which the caller must free with #g_exn_free
- * or #g_exn_propagate.
- *
- * @return A new PGF object, or \c NULL upon failure. The returned
- * object must later be freed with #pgf_free.
- *
- */
+GuString
+pgf_concr_id(PgfConcr* concr);
+/**< Get the identifier of the concrete grammar. */
+
+GuString
+pgf_concr_lang(PgfConcr* concr);
+
+
+
+
+GuEnum*
+pgf_pgf_concrs(PgfPGF* pgf, GuPool* pool);
+
+PgfConcr*
+pgf_pgf_concr(PgfPGF* pgf, GuString cid, GuPool* pool);
+
+PgfConcr*
+pgf_pgf_concr_by_lang(PgfPGF* pgf, GuString lang, GuPool* pool);
+
+
 
 
 #include <gu/type.h>
