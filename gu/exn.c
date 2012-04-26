@@ -57,7 +57,7 @@ gu_exn_raise_debug_(GuExn* base, GuType* type,
 			return &err->data;
 		}
 	}
-	// Exceptian had already been raised, possibly blocked, or no
+	// Exception had already been raised, possibly blocked, or no
 	// exception value is required.
 	return NULL;
 }

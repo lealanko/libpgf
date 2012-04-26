@@ -102,12 +102,8 @@
 
   <!-- Layout definition for a file page -->
   <file>
-    <briefdescription visible="yes"/>
-    <includes visible="$SHOW_INCLUDE_FILES"/>
-    <includegraph visible="$INCLUDE_GRAPH"/>
-    <includedbygraph visible="$INCLUDED_BY_GRAPH"/>
-    <sourcelink visible="yes"/>
-    <detaileddescription title=""/>
+    <briefdescription visible="no"/>
+    <detaileddescription title=" "/>
     <memberdecl>
       <membergroups visible="yes"/>
       <namespaces visible="yes" title=""/>
@@ -126,6 +122,10 @@
       <defines title=""/>
       <variables title=""/>
     </memberdef>
+    <sourcelink visible="$DEVDOC"/>
+    <includes visible="$SHOW_INCLUDE_FILES"/>
+    <includegraph visible="$INCLUDE_GRAPH"/>
+    <includedbygraph visible="$INCLUDED_BY_GRAPH"/>
     <authorsection/>
   </file>
 
@@ -144,8 +144,8 @@
       <nestedgroups visible="yes" title=""/>
       <files visible="yes" title=""/>
       <typedefs title=""/>
-      <defines title=""/>
       <functions title=""/>
+      <defines title=""/>
       <variables title=""/>
       <signals title=""/>
       <publicslots title=""/>

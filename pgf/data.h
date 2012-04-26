@@ -130,7 +130,8 @@ struct PgfCatFun {
 };
 
 struct PgfCat {
-	// TODO: Add cid here
+	PgfPGF* pgf;
+	PgfCId cid;
 	PgfHypos context;
 	PgfCatFuns functions;  
 };

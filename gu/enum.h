@@ -3,6 +3,9 @@
 
 #include <gu/mem.h>
 
+/** @file
+ * Enumerations.
+ */
 
 typedef struct GuEnum GuEnum;
 /**< An enumeration of elements. */

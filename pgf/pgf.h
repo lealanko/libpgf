@@ -70,6 +70,10 @@ pgf_pgf_concr_by_lang(PgfPGF* pgf, GuString lang, GuPool* pool);
 
 
 
+typedef struct PgfCat PgfCat;
+PgfCat*
+pgf_pgf_cat(PgfPGF* pgf, PgfCId cid);
+
 
 #include <gu/type.h>
 GU_DECLARE_TYPE(PgfPGF, struct);

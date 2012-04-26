@@ -3,25 +3,25 @@
 
 #include <pgf/pgf.h>
 
+/** @file
+ * Reading PGF grammars.
+ */
+
 PgfPGF*
-pgf_read_pgf(GuIn* in, GuPool* pool, GuExn* err); 
+pgf_read_pgf(GuIn* in, GuPool* pool, GuExn* exn); 
 
 /**< Read a grammar from a PGF file.
  *
- * @param from  PGF input stream.
+ * @param in  PGF input stream.
  * The stream must be positioned in the beginning of a binary
  * PGF representation. After a succesful invocation, the stream is
  * still open and positioned at the end of the representation.
  *
- * @param[out] err_out  Raised error.
- * If non-\c NULL, \c *err_out should be \c NULL. Then, upon
- * failure, \c *err_out is set to point to a newly allocated
- * error object, which the caller must free with #g_exn_free
- * or #g_exn_propagate.
+ * @param pool  The pool to allocate from.
  *
- * @return A new PGF object, or \c NULL upon failure. The returned
- * object must later be freed with #pgf_free.
+ * @param[out] exn  Current exception frame.
  *
+ * @return A new PGF object allocated from `pool`, or `NULL` upon failure.
  */
 
 

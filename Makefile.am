@@ -1,5 +1,3 @@
-AUTOMAKE_OPTIONS = subdir-objects
-
 LDADD = libgu.la
 
 lib_LTLIBRARIES = libgu.la libpgf.la
@@ -79,10 +77,12 @@ libgu_la_SOURCES = \
 
 pgfincludedir=$(includedir)/pgf
 pgfinclude_HEADERS = \
+	libpgf.h \
 	pgf/expr.h \
 	pgf/linearize.h \
 	pgf/parser.h \
-	pgf/pgf.h 
+	pgf/pgf.h \
+	pgf/reader.h
 
 libpgf_la_SOURCES = \
 	pgf/data.c \

@@ -50,9 +50,11 @@ DX_ARG_ABLE(dev, [include internal development documentation],
             [],
             [],
 	    [],
-	    [DX_ENV_APPEND(DEVDOC, YES)]
-	    [DX_ENV_APPEND(INPUT, $srcdir)],
+	    [DX_ENV_APPEND(DEVDOC, YES)
+	     DX_ENV_APPEND(NODEVDOC, NO)
+	     DX_ENV_APPEND(INPUT, $srcdir)],
 	    [DX_ENV_APPEND(DEVDOC, NO)
+	     DX_ENV_APPEND(NODEVDOC, YES)
 	     DX_ENV_APPEND(INPUT, 
 	     [\$(guinclude_HEADERS) \$(pgfinclude_HEADERS)])])
 DX_INIT_DOXYGEN(libpgf)
