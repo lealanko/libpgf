@@ -52,17 +52,17 @@ typedef struct GuExn GuExn;
 
 
 /// Allocate a new local exception frame.
-#define gu_exn(parent, CATCH_KIND, pool) &(GuExn){	\
+#define gu_exn(parent_exn, CATCH_KIND, pool_) &(GuExn){	\
 	.state = GU_EXN_OK,	\
-	.parent = (parent),	\
+	.parent = (parent_exn),	\
 	.catch = gu_kind(CATCH_KIND),	\
 	.caught = NULL,	\
-	.data.pool = (pool),	\
+	.data.pool = (pool_),	\
 	.data.data = NULL \
 }
 
 /**<
- * @param parent      #GuExn `*`
+ * @param parent_exn      #GuExn `*`
  * @param CATCH_KIND  a kind name
  * @param pool        #GuPool `*`
  */
@@ -241,6 +241,9 @@ gu_exn_caught_data(GuExn* err);
 
 
 /** @name Special operations
+ *
+ *  
+ * 
  */
 
 static inline void

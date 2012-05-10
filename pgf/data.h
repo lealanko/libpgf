@@ -86,7 +86,6 @@ typedef struct PgfEquation PgfEquation;
 typedef GuSeq PgfEquations;
 typedef PgfEquations PgfEquationsM; // can be null
 extern GU_DECLARE_TYPE(PgfEquationsM, GuSeq);
-typedef struct PgfCat PgfCat;
 
 typedef PgfSequence PgfSeqId; // shared reference
 typedef GuSeq PgfSeqIds;

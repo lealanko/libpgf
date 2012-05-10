@@ -19,7 +19,7 @@
 
 /** @file
  *
- * The public libpgf API.
+ * PGF Grammars.
  */
 
 #ifndef PGF_H_
@@ -31,21 +31,52 @@
 #include <gu/string.h>
 #include <gu/enum.h>
 
+
+
+/** @name PGF Grammar objects
+ */
+
+/// A PGF grammar.
+typedef struct PgfPGF PgfPGF;
+
+
+/** @name Identifiers
+ *
+ * Identifiers are used to name different parts of PGF grammars: concrete
+ * grammars, abstract categories, and abstract functions.
+ * 
+ */
+
+
+/// A PGF identifier.
 typedef GuString PgfCId;
+
+/**< Each identifier is a #GuString that conforms to the lexical constraints
+ * of PGF identifiers.
+ */
+
 extern GU_DECLARE_TYPE(PgfCId, typedef);
 
 
-/// A single lexical token			      
-typedef GuString PgfToken;			      
 
-/// @name PGF Grammar objects
-/// @{
-
-typedef struct PgfPGF PgfPGF;
-
-/**< A representation of a PGF grammar. 
+/** @name Abstract categories.
+ *
+ *  
+ * 
  */
 
+/// An abstract category.
+typedef struct PgfCat PgfCat;
+
+PgfCat*
+pgf_pgf_cat(PgfPGF* pgf, PgfCId cid);
+
+
+
+/** @name Concrete grammars
+ *
+ * Each PGF grammar contains a number of 
+ */
 
 typedef struct PgfConcr PgfConcr;
 
@@ -70,15 +101,13 @@ pgf_pgf_concr_by_lang(PgfPGF* pgf, GuString lang, GuPool* pool);
 
 
 
-typedef struct PgfCat PgfCat;
-PgfCat*
-pgf_pgf_cat(PgfPGF* pgf, PgfCId cid);
+/// A single lexical token			      
+typedef GuString PgfToken;			      
+
 
 
 #include <gu/type.h>
 GU_DECLARE_TYPE(PgfPGF, struct);
-
-/// @}
 
 
 #endif // PGF_H_

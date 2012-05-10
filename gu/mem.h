@@ -88,7 +88,7 @@ gu_local_pool_(uint8_t* init_buf, size_t sz);
 /// Create a stack-allocated memory pool.
 #define gu_local_pool()				\
 	gu_local_pool_(gu_alloca(GU_LOCAL_POOL_INIT_SIZE_),	\
-		       GU_LOCAL_POOL_INIT_SIZE)
+		       GU_LOCAL_POOL_INIT_SIZE_)
 /**<
  * @return A memory pool whose first chunk is allocated directly from
  * the stack. This makes its creation faster, and more suitable for
@@ -166,9 +166,9 @@ gu_malloc_init(GuPool* pool, size_t size, const void* init)
 /// Allocate space to store an array of objects of a given type.
 
 #define gu_new_n(TYPE, n, pool)						\
-	((type*)gu_malloc_aligned((pool),				\
+	((TYPE*)gu_malloc_aligned((pool),				\
 				  sizeof(TYPE) * (n),			\
-				  gu_alignof(type)))
+				  gu_alignof(TYPE)))
 /**< 
  * @param TYPE  type
  *

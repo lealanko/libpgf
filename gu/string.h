@@ -24,12 +24,77 @@
 #include <gu/read.h>
 #include <gu/write.h>
 
+/** @file
+ *
+ * Strings.
+ */
+
+
+
+/** @name Basics
+ */
+
+
+/// A string.
 typedef GuOpaque() GuString;
 
+/**< A #GuString represents a sequence of Unicode codepoints. The
+ * representation is likely to be more efficient than using simply an array of
+ * #GuUCS values.
+ *
+ * A #GuString is immutable: once created, its value cannot be changed. 
+ */
+
+
+/// An empty string.
 extern const GuString gu_empty_string;
 
+/// Create a string from a C string.
+GuString
+gu_str_string(const char* str, GuPool* pool);
+
+
+/// Create a string from a sequence of UCS code points.
+GuString
+gu_ucs_string(const GuUCS* ubuf, size_t len, GuPool* pool);
+
+
+/// Copy a string.
 GuString
 gu_string_copy(GuString string, GuPool* pool);
+
+/**<
+ * @return a new string, representing the same code point sequence as `string`,
+ * but allocated from `pool`.
+ *
+ * @note Since strings are immutable, the only situation where this function
+ * is needed is when `string` has the desired value, but too short lifetime.
+ */
+
+
+/// Compare two strings for equality.
+bool
+gu_string_eq(GuString s1, GuString s2);
+
+/** @return `true` iff `s1` and `s2` represent the same sequences of code points.
+ */
+
+
+/** @name Formatting
+ */
+
+GuString
+gu_format_string_v(const char* fmt, va_list args, GuPool* pool);
+
+GuString
+gu_format_string(GuPool* pool, const char* fmt, ...);
+
+
+
+
+
+/** @name I/O
+ */
 
 void
 gu_string_write(GuString string, GuWriter* wtr, GuExn* err);
@@ -37,11 +102,8 @@ gu_string_write(GuString string, GuWriter* wtr, GuExn* err);
 GuReader*
 gu_string_reader(GuString string, GuPool* pool);
 
-bool
-gu_string_is_stable(GuString string);
-
-GuString
-gu_ucs_string(const GuUCS* ubuf, size_t len, GuPool* pool);
+/** @name String buffers
+ */
 
 typedef struct GuStringBuf GuStringBuf;
 
@@ -54,16 +116,22 @@ gu_string_buf_writer(GuStringBuf* sb);
 GuString
 gu_string_buf_freeze(GuStringBuf* sb, GuPool* pool);
 
-GuString
-gu_format_string_v(const char* fmt, va_list args, GuPool* pool);
 
-GuString
-gu_format_string(GuPool* pool, const char* fmt, ...);
 
-GuString
-gu_str_string(const char* str, GuPool* pool);
+
+/** @name Low-level operations
+ */
+
+bool
+gu_string_is_stable(GuString string);
+
+
+
 
 #endif // GU_STRING_H_
+
+/** @name Miscellaneous
+ */
 
 #if defined(GU_HASH_H_) && !defined(GU_STRING_H_HASH_)
 #define GU_STRING_H_HASH_
@@ -73,8 +141,6 @@ gu_string_hash(GuString s);
 
 extern GuHasher gu_string_hasher[1];
 
-bool
-gu_string_eq(GuString s1, GuString s2);
 #endif
 
 #ifdef GU_TYPE_H_
