@@ -69,32 +69,35 @@ gu_in_input(GuIn* in, uint8_t* dst, size_t sz, GuExn* err)
 		in->stream_pos += len;
 		return len;
 	}
-	gu_raise(err, GuEOF);
 	return 0;
 }
 
 size_t
-gu_in_some(GuIn* in, uint8_t* dst, size_t sz, GuExn* err)
+gu_in_some(GuIn* in, uint8_t* dst, size_t min_sz, size_t max_sz, GuExn* err)
 {
-	gu_require(sz <= PTRDIFF_MAX);
-	if (!gu_in_begin_buffering(in, err)) {
-		if (!gu_ok(err)) return 0; 
-		return gu_in_input(in, dst, sz, err);
+	gu_require(min_sz <= max_sz);
+	gu_require(max_sz <= PTRDIFF_MAX);
+	size_t got = 0;
+	if (gu_in_begin_buffering(in, err)) {
+		got = GU_MIN(max_sz, (size_t)(-in->buf_curr));
+		memcpy(dst, &in->buf_end[in->buf_curr], got);
+		in->buf_curr += got;
+	} else if (!gu_ok(err)) return 0;
+	while (got < min_sz) {
+		size_t igot = gu_in_input(in, &dst[got], max_sz - got, err);
+		if (igot == 0) break; // EOF
+		got += igot;
 	}
-	size_t real_sz = GU_MIN(sz, (size_t)(-in->buf_curr));
-	memcpy(dst, &in->buf_end[in->buf_curr], real_sz);
-	in->buf_curr += real_sz;
-	return real_sz;
+	return got;
 }
 
 void
 gu_in_bytes_(GuIn* in, uint8_t* dst, size_t sz, GuExn* err)
 {
-	size_t avail_sz = GU_MIN(sz, (size_t)(-in->buf_curr));
-	memcpy(dst, &in->buf_end[in->buf_curr], avail_sz);
-	in->buf_curr += avail_sz;
-	if (avail_sz < sz) {
-		gu_in_input(in, &dst[avail_sz], sz - avail_sz, err);
+	size_t got = gu_in_some(in, dst, sz, sz, err);
+	if (!gu_ok(err)) return;
+	if (got < sz) {
+		gu_raise(err, GuEOF);
 	}
 }
 
@@ -124,7 +127,9 @@ gu_in_u8_(GuIn* in, GuExn* err)
 	uint8_t u = 0;
 	size_t r = gu_in_input(in, &u, 1, err);
 	if (r < 1) {
-		gu_raise(err, GuEOF);
+		if (gu_ok(err)) {
+			gu_raise(err, GuEOF);
+		}
 		return 0;
 	}
 	return u;
@@ -311,7 +316,7 @@ static size_t
 gu_proxy_in_input(GuInStream* self, uint8_t* dst, size_t sz, GuExn* err)
 {
 	GuProxyInStream* pis = gu_container(self, GuProxyInStream, stream);
-	return gu_in_some(pis->real_in, dst, sz, err);
+	return gu_in_some(pis->real_in, dst, 1, sz, err);
 }
 
 GuInStream*
@@ -347,7 +352,7 @@ gu_buffered_in_begin_buffer(GuInStream* self, size_t* sz_out, GuExn* err)
 		gu_container(self, GuBufferedInStream, stream);
 	if (bis->curr == bis->have) {
 		bis->curr = 0;
-		bis->have = gu_in_some(bis->in, bis->buf, bis->alloc, err);
+		bis->have = gu_in_some(bis->in, bis->buf, 1, bis->alloc, err);
 		if (!gu_ok(err)) return NULL;
 	}
 	*sz_out = bis->have - bis->curr;
@@ -368,7 +373,7 @@ gu_buffered_in_input(GuInStream* self, uint8_t* dst, size_t sz, GuExn* err)
 {
 	GuBufferedInStream* bis = 
 		gu_container(self, GuBufferedInStream, stream);
-	return gu_in_some(bis->in, dst, sz, err);
+	return gu_in_some(bis->in, dst, 1, sz, err);
 }
 
 GuIn*

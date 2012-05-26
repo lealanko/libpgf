@@ -52,12 +52,8 @@ gu_out_buffered(GuOut* out, GuPool* pool);
 uint8_t*
 gu_out_begin_span(GuOut* out, size_t req, size_t* sz_out, GuExn* err);
 
-uint8_t*
-gu_out_force_span(GuOut* out, size_t min, size_t max, size_t* sz_out,
-		  GuExn* err);
-
 void
-gu_out_end_span(GuOut* out, size_t sz);
+gu_out_end_span(GuOut* out, uint8_t* span, size_t sz, GuExn* err);
 
 size_t
 gu_out_bytes_(GuOut* restrict out, const uint8_t* restrict src, 

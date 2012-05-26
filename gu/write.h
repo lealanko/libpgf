@@ -52,8 +52,8 @@ gu_vprintf(const char* fmt, va_list args, GuWriter* wtr, GuExn* err);
 void
 gu_printf(GuWriter* wtr, GuExn* err, const char* fmt, ...);
 
-//GuWriter
-//gu_init_utf8_writer(GuOut* utf8_out);
+GuWriter*
+gu_new_writer(GuOutStream* utf8_stream, GuPool* pool);
 
 GuWriter*
 gu_new_utf8_writer(GuOut* utf8_out, GuPool* pool);

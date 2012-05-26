@@ -56,7 +56,7 @@ gu_char_ucs(char c)
 
 /// Convert a code point into a C character
 char
-gu_ucs_char(GuUCS uc, GuExn* err);
+gu_ucs_char(GuUCS uc);
 
 /// Convert a C string into a code point sequence
 size_t

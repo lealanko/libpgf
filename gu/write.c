@@ -26,136 +26,122 @@ gu_printf(GuWriter* wtr, GuExn* err, const char* fmt, ...)
 	va_end(args);
 }
 
+GuWriter*
+gu_new_writer(GuOutStream* utf8_stream, GuPool* pool)
+{
+	GuWriter* wtr = gu_new(GuWriter, pool);
+	wtr->out_ = gu_init_out(utf8_stream);
+	return wtr;
+}
+
 
 GuWriter*
 gu_new_utf8_writer(GuOut* utf8_out, GuPool* pool)
 {
 	GuOutStream* stream = gu_out_proxy_stream(utf8_out, pool);
-	GuWriter* wtr = gu_new(GuWriter, pool);
-	wtr->out_ = gu_init_out(stream);
-	return wtr;
+	return gu_new_writer(stream, pool);
 }
 
 
-#if 0
 #ifdef GU_UCS_WCHAR
 #include <stdlib.h>
 #include <wchar.h>
-static const mbstate_t gu_init_mbstate; // implicitly initialized to zero
 #endif
 
-typedef struct GuLocaleWriter GuLocaleWriter;
+#define GU_LOCALE_WRITER_BUF_SIZE 4096
 
-struct GuLocaleWriter {
-	GuOutWriter owtr;
+typedef struct GuLocaleOutStream GuLocaleOutStream;
+
+struct GuLocaleOutStream {
+	GuOutStream stream;
+	GuOut* out;
 #ifdef GU_UCS_WCHAR
 	mbstate_t ps;
-	size_t mb_cur_max;
 #endif
+	GuUCS* ucs_buf_curr;
+	GuUCS ucs_buf[GU_LOCALE_WRITER_BUF_SIZE + 1];
 };
 
-size_t
-gu_locale_writer_write(GuWriter* wtr, const uint8_t* utf8_src, size_t sz, 
-		       GuExn* err)
+static void
+gu_locale_writer_flush(GuOutStream* os, GuExn* err)
 {
-	GuLocaleWriter* lwtr = (GuLocaleWriter*) wtr;
-	size_t done = 0;
-	static const size_t bufsize = 256;
+	GuLocaleOutStream* los = (GuLocaleOutStream*) os;
+	const GuUCS* src_curr = los->ucs_buf;
+	GuUCS* src_end = los->ucs_buf_curr;
+	*src_end = L'\0';
+	while (src_curr < src_end) {
+		size_t sz;
+		// Need at least two bytes: one for proper output, one for
+		// the '\0' that wcsrtombs insists on.
+		uint8_t* span = gu_out_begin_span(los->out, 2, &sz, err);
 #ifdef GU_UCS_WCHAR
-	size_t margin = lwtr->mb_cur_max;
-#else
-	size_t margin = 1;
-#endif
-	GuOut* out = lwtr->owtr.out;
-	if (gu_out_is_buffered(out)) {
-		while (done < sz) {
-			size_t dst_sz;
-			uint8_t* dst = gu_out_begin_span(out, &dst_sz);
-			if (!dst) {
-				break;
-			}
-			if (dst_sz <= margin) {
-				gu_out_end_span(out, 0);
-				break;
-			}
-			size_t end = dst_sz - margin;
-			const uint8_t* 
-			size_t n = done;
-			while (n < sz && dst_i <= end) {
-#ifdef GU_UCS_WCHAR
-				GuUCS ucs = gu_
-				wchar_t wc = src[n];
-				size_t nb = wcrtomb((char*) p, wc, &lwtr->ps);
-#else
-			*p = (uint8_t) gu_ucs_char(buf[n], err);
-			size_t nb = 1;
-			if (!gu_ok(err)) {
-				gu_exn_clear(err);
-				nb = (size_t) -1;
-			}
-#endif
-			if (nb == (size_t) -1) {
-				*p++ = (uint8_t) '?';
-			} else {
-				p += nb;
-			}
-				
-			}
-			for (
-
+		const GuUCS* src_orig = src_curr;
+		const GuUCS* next = &src_curr[wcslen(src_curr)];
+		if (!gu_ok(err)) return;
+		size_t n = wcsrtombs((char*) span, &src_curr, sz, &los->ps);
+		while (n == (size_t) -1) {
+			// Encoding error. Just replace the offending
+			// character and try again.
+			*(GuUCS*) src_curr = L'?';
+			src_curr = src_orig;
+			n = wcsrtombs((char*) span, &src_curr, sz,
+				      &los->ps);
 		}
-
-
-
+		if (src_curr == NULL) {
+			src_curr = next + 1;
+			if (src_curr <= src_end) {
+				n++;
+			} 
+		}
+#else
+		size_t n = GU_MIN(sz, (size_t) (src_end - src_curr));
+		for (size_t i = 0; i < n; i++) {
+			GuUCS u = src_curr[i];
+			char c = gu_ucs_char(u);
+			if (c == '\0' && u != 0) {
+				c = '?';
+			}
+			span[i] = (uint8_t) c;
+		}
+		src_curr += n;
+#endif
+		gu_out_end_span(los->out, span, n, err);
+		if (!gu_ok(err)) return;
 	}
+	los->ucs_buf_curr = los->ucs_buf;
+}
 
-	uint8_t cbuf[256];
-	while (done < size && gu_ok(err)) {
-		uint8_t* p = cbuf;
-		uint8_t* edge = &cbuf[bufsize - margin];
-		size_t n;
-		for  (n = done; p <= edge && n < size; n++) {
-#ifdef GU_UCS_WCHAR
-			wchar_t wc = buf[n];
-			size_t nb = wcrtomb((char*) p, wc, &lwtr->ps);
-#else
-			*p = (uint8_t) gu_ucs_char(buf[n], err);
-			size_t nb = 1;
-			if (!gu_ok(err)) {
-				gu_exn_clear(err);
-				nb = (size_t) -1;
-			}
-#endif
-			if (nb == (size_t) -1) {
-				*p++ = (uint8_t) '?';
-			} else {
-				p += nb;
-			}
-		}
-		gu_out_bytes(lwtr->owtr.out, cbuf, p - cbuf, err);
-		if (gu_ok(err)) {
-			done = n;
-		}
+size_t
+gu_locale_writer_output(GuOutStream* os, const uint8_t* utf8_src, size_t sz, 
+			GuExn* exn)
+{
+	GuLocaleOutStream* los = (GuLocaleOutStream*) os;
+	const uint8_t* src = utf8_src;
+	const uint8_t* src_end = &src[sz];
+	GuUCS* dst_end = &los->ucs_buf[GU_LOCALE_WRITER_BUF_SIZE];
+	while (true) {
+		gu_utf8_decode_unsafe(&src, src_end, &los->ucs_buf_curr, dst_end);
+		if (src == src_end) break;
+		gu_locale_writer_flush(os, exn);
+		if (!gu_ok(exn)) break;
 	}
-	return done;
+	return 0;
 }
 
 GuWriter*
 gu_locale_writer(GuOut* out, GuPool* pool)
 {
-	GuLocaleWriter* lwtr = gu_new_s(
-		pool, GuLocaleWriter,
-		.wtr.out.output = gu_locale_writer_output,
-		.wtr.out.flush = gu_locale_writer_flush,
+	GuLocaleOutStream* los = gu_new_i(
+		pool, GuLocaleOutStream,
+		.stream.output = gu_locale_writer_output,
+		.stream.flush = gu_locale_writer_flush,
 		.out = out);
 #ifdef GU_UCS_WCHAR
-	lwtr->ps = gu_init_mbstate;
-	lwtr->mb_cur_max = MB_CUR_MAX;
+	los->ps = (mbstate_t) { 0 };
 #endif
-	return (GuWriter*) lwtr;
+	los->ucs_buf_curr = los->ucs_buf;
+	return gu_new_writer(&los->stream, pool);
 }
-
-#endif
 
 extern inline void
 gu_ucs_write(GuUCS ucs, GuWriter* wtr, GuExn* err);

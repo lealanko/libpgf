@@ -46,7 +46,7 @@ size_t
 gu_in_tell(GuIn* in);
 
 size_t
-gu_in_some(GuIn* in, uint8_t* buf, size_t max_len, GuExn* err);
+gu_in_some(GuIn* in, uint8_t* buf, size_t min_len, size_t max_len, GuExn* err);
 
 inline void
 gu_in_bytes(GuIn* in, uint8_t* buf, size_t sz, GuExn* err)

@@ -24,16 +24,15 @@ gu_char_is_valid(char c)
 }
 
 char
-gu_ucs_char(GuUCS uc, GuExn* err)
+gu_ucs_char(GuUCS uc)
 {
-	if (0 <= uc && uc <= 127) {
+	if (0 <= uc && uc < 128) {
 		char c = (char) uc;
 		if (gu_char_is_valid(c)) {
 			return c;
 		}
 	}
-	gu_raise(err, GuUCSExn);
-	return 0;
+	return '\0';
 }
 
 #else // defined(GU_CHAR_ASCII)
@@ -80,18 +79,12 @@ gu_char_is_valid(char c)
 }
 
 char
-gu_ucs_char(GuUCS uc, GuExn* err)
+gu_ucs_char(GuUCS uc)
 {
-	if (uc == 0) {
-		return '\0';
-	} else if (0 < uc && uc <= 127) {
-		char c = gu_ucs_ascii[uc];
-		if (c != '\0') {
-			return (unsigned char) c;
-		}
+	if (0 <= uc && uc < 128) {
+		return gu_ucs_ascii[uc];
 	}
-	gu_raise(err, GuUCSExn);
-	return 0;
+	return '\0';
 }
 
 #endif
@@ -117,8 +110,10 @@ gu_ucs_to_str(const GuUCS* ubuf, size_t len, char* cbuf, GuExn* err)
 {
 	size_t n = 0;
 	while (n < len) {
-		char c = gu_ucs_char(ubuf[n], err);
-		if (!gu_ok(err)) {
+		GuUCS u = ubuf[n];
+		char c = gu_ucs_char(u);
+		if (c == '\0' && u != 0) {
+			gu_raise(err, GuUCSExn);
 			break;
 		}
 		cbuf[n] = c;

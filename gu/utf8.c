@@ -2,209 +2,227 @@
 #include <gu/utf8.h>
 #include <guconfig.h>
 
-GuUCS
-gu_utf8_decode(const uint8_t** src_inout)
+static size_t
+gu_utf8_decode_one_unsafe(const uint8_t* src, GuUCS* dst)
 {
-	const uint8_t* src = *src_inout;
 	uint8_t c = src[0];
 	if (c < 0x80) {
-		*src_inout = src + 1;
-		return (GuUCS) c;
+		*dst = c;
+		return 1;
 	}
-	size_t len = (c < 0xe0 ? 1 :
-		      c < 0xf0 ? 2 :
-		      3);
-	uint32_t mask = 0x07071f7f;
-	uint32_t u = c & (mask >> (len * 8));
-	for (size_t i = 1; i <= len; i++) {
+	size_t len = c < 0xe0 ? 1 : c < 0xf0 ? 2 : 3;
+	const uint32_t mask = 0x070f1f7f;
+	GuUCS u = c & (mask >> (len * 8));
+	size_t i;
+	for (i = 1; i <= len; i++) {
 		c = src[i];
 		u = u << 6 | (c & 0x3f);
 	}
-	*src_inout = &src[len + 1];
-	return (GuUCS) u;
+	*dst = u;
+	return i;
 }
 
-GuUCS
-gu_in_utf8_(GuIn* in, GuExn* err)
+static size_t
+gu_utf8_decode_one(const uint8_t* src, GuUCS* dst, GuExn* err)
 {
-	uint8_t c = gu_in_u8(in, err);
-	if (!gu_ok(err)) {
-		return 0;
-	}
-	int len = (c < 0x80 ? 0 : 
-		   c < 0xc2 ? -1 :
-		   c < 0xe0 ? 1 :
-		   c < 0xf0 ? 2 :
-		   c < 0xf5 ? 3 :
-		   -1);
-	if (len < 0) {
-	 	goto fail;
-	} else if (len == 0) {
-		return c;
-	}
-	static const uint8_t mask[4] = { 0x7f, 0x1f, 0x0f, 0x07 };
-	uint32_t u = c & mask[len];
-	uint8_t buf[3];
-	// If reading the extra bytes causes EOF, it is an encoding
-	// error, not a legitimate end of character stream.
-	GuExn* tmp_err = gu_exn(err, GuEOF, NULL);
-	gu_in_bytes(in, buf, len, tmp_err);
-	if (tmp_err->caught) {
+	uint8_t c = src[0];
+	if (c < 0x80) {
+		*dst = c;
+		return 1;
+	} else if (c < 0xc2 || c > 0xf4) {
 		goto fail;
 	}
-	if (!gu_ok(err)) {
-		return 0;
-	}
-	for (int i = 0; i < len; i++) {
-		c = buf[i];
-		if ((c & 0xc0) != 0x80) {
-			goto fail;
-		}
+	size_t len = c < 0xe0 ? 1 : c < 0xf0 ? 2 : 3;
+	const uint32_t mask = 0x070f1f7f;
+	GuUCS u = c & (mask >> (len * 8));
+	size_t i;
+	for (i = 1; i <= len; i++) {
+		c = src[i];
 		u = u << 6 | (c & 0x3f);
 	}
-	GuUCS ucs = (GuUCS) u;
-	if (!gu_ucs_valid(ucs)) {
+	if (!gu_ucs_valid(u)) {
 		goto fail;
 	}
-	return ucs;
-
+	*dst = u;
+	return i;
 fail:
 	gu_raise(err, GuUCSExn);
 	return 0;
 }
 
 
-size_t
-gu_advance_utf8(GuUCS ucs, uint8_t* buf)
+void
+gu_utf8_decode_unsafe(const uint8_t** src_inout, const uint8_t* src_end,
+		      GuUCS** dst_inout, GuUCS* dst_end)
+{
+	const uint8_t* src_curr = *src_inout;
+	size_t src_rem = src_end - src_curr;
+	GuUCS* dst_curr = *dst_inout;
+	size_t dst_rem = dst_end - dst_curr;
+
+	while (true) {
+		size_t sz = GU_MIN((src_rem + 3) / 4, dst_rem);
+		if (!sz) break;
+		for (size_t i = 0; i < sz; i++) {
+			size_t len = gu_utf8_decode_one_unsafe(src_curr,
+							       &dst_curr[i]);
+			src_curr += len;
+		}
+		src_rem = src_end - src_curr;
+		dst_curr += sz;
+		dst_rem -= sz;
+	}
+	// We assume the input is well-formed and doesn't end in
+	// a partial character.
+	gu_assert(src_curr <= src_end);
+	*src_inout = src_curr;
+	*dst_inout = dst_curr;
+}
+
+
+static size_t
+gu_utf8_encode_one_unsafe(GuUCS ucs, uint8_t* buf)
 {
 	gu_require(gu_ucs_valid(ucs));
 	if (ucs < 0x80) {
 		buf[0] = (uint8_t) ucs;
 		return 1;
-	} else if (ucs < 0x800) {
-		buf[0] = 0xc0 | (ucs >> 6);
-		buf[1] = 0x80 | (ucs & 0x3f);
-		return 2;
-	} else if (ucs < 0x10000) {
-		buf[0] = 0xe0 | (ucs >> 12);
-		buf[1] = 0x80 | ((ucs >> 6) & 0x3f);
-		buf[2] = 0x80 | (ucs & 0x3f);
-		return 3;
-	} else {
-		buf[0] = 0xf0 | (ucs >> 18);
-		buf[1] = 0x80 | ((ucs >> 12) & 0x3f);
-		buf[2] = 0x80 | ((ucs >> 6) & 0x3f);
-		buf[3] = 0x80 | (ucs & 0x3f);
-		return 4;
 	}
+	size_t n = ucs < 0x800 ? 1 : ucs < 0x10000 ? 2 : 3;
+	for (size_t i = n; i > 0; i--) {
+		buf[n] = (uint8_t)(ucs & 0x3f);
+		ucs >>= 6;
+	}
+	buf[0] = (uint8_t) (ucs | (0xf0e0c000U >> (n * 8)));
+	return n + 1;
+}
+
+void
+gu_utf8_encode(const GuUCS** src_inout, const GuUCS* src_end,
+	       uint8_t** dst_inout, uint8_t* dst_end)
+{
+	const GuUCS* src_curr = *src_inout;
+	size_t src_rem = src_end - src_curr;
+	uint8_t* dst_curr = *dst_inout;
+	size_t dst_rem = dst_end - dst_curr;
+
+	while (true) {
+		size_t n = GU_MIN(src_rem, dst_rem / 4);
+		if (!n) break;
+		for (size_t i = 0; i < n; i++) {
+			size_t len = gu_utf8_encode_one_unsafe(src_curr[i],
+							       dst_curr);
+			dst_curr += len;
+		}
+		src_curr += n;
+		src_rem -= n;
+		dst_rem = dst_end - dst_curr;
+	}
+	while (src_rem && dst_rem) {
+		uint8_t buf[4];
+		size_t len = gu_utf8_encode_one_unsafe(*src_curr, buf);
+		if (len > dst_rem) {
+			break;
+		}
+		memcpy(dst_curr, buf, len);
+		dst_curr += len;
+		dst_rem -= len;
+		src_curr++;
+		src_rem--;
+	}
+	*src_inout = src_curr;
+	*dst_inout = dst_curr;
+}
+
+
+
+
+GuUCS
+gu_in_utf8_(GuIn* in, GuExn* err)
+{
+	uint8_t c = gu_in_u8(in, err);
+	if (!gu_ok(err)) return 0;
+	size_t len = c < 0xc0 ? 0 : c < 0xe0 ? 1 : c < 0xf0 ? 2 : 3;
+	uint8_t buf[4];
+	buf[0] = c;
+	size_t got = gu_in_some(in, &buf[1], len, len, err);
+	if (got < len) {
+		if (gu_ok(err)) {
+			// If reading the extra bytes causes EOF, it is an
+			// encoding error, not a legitimate end of
+			// character stream.
+			gu_raise(err, GuUCSExn);
+		}
+		return 0;
+	}
+	GuUCS ret = 0;
+	gu_utf8_decode_one(buf, &ret, err);
+	return ret;
 }
 
 char
 gu_in_utf8_char_(GuIn* in, GuExn* err)
 {
-	return gu_ucs_char(gu_in_utf8(in, err), err);
+	GuUCS u = gu_in_utf8(in, err);
+	if (!gu_ok(err)) return 0;
+	char c = gu_ucs_char(u);
+	if (c == '\0' && u != 0) {
+		gu_raise(err, GuUCSExn);
+	}
+	return c;
 }
 
 void
 gu_out_utf8_long_(GuUCS ucs, GuOut* out, GuExn* err)
 {
-	uint8_t buf[4];
-	size_t sz = gu_advance_utf8(ucs, buf);
-	switch (sz) {
-	case 2:
-		gu_out_bytes(out, buf, 2, err);
-		break;
-	case 3:
-		gu_out_bytes(out, buf, 3, err);
-		break;
-	case 4:
-		gu_out_bytes(out, buf, 4, err);
-		break;
-	default:
-		gu_impossible();
-	}
+	uint8_t* buf = gu_out_begin_span(out, 4, NULL, err);
+	if (!gu_ok(err)) return;
+	size_t sz = gu_utf8_encode_one_unsafe(ucs, buf);
+	gu_out_end_span(out, buf, sz, err);
 }
 
 extern inline void
 gu_out_utf8(GuUCS ucs, GuOut* out, GuExn* err);
 
-static size_t 
-gu_utf32_out_utf8_buffered_(const GuUCS* src, size_t len, GuOut* out, 
-			    GuExn* err)
-{
-	size_t src_i = 0;
-	while (src_i < len) {
-		size_t dst_sz;
-		uint8_t* dst = gu_out_begin_span(out, len - src_i, &dst_sz, err);
-		if (!gu_ok(err)) {
-			return src_i;
-		}
-		if (!dst) {
-			gu_out_utf8(src[src_i], out, err);
-			if (!gu_ok(err)) {
-				return src_i;
-			}
-			src_i++;
-			break;
-		} 
-		size_t dst_i = 0;
-		while (true) {
-			size_t safe = (dst_sz - dst_i) / 4;
-			size_t end = GU_MIN(len, src_i + safe);
-			if (end == src_i) {
-				break;
-			}
-			do {
-				GuUCS ucs = src[src_i++];
-				dst_i += gu_advance_utf8(ucs, &dst[dst_i]);
-			} while (src_i < end);
-		} 
-		gu_out_end_span(out, dst_i);
-	}
-	return src_i;
-}
 
 size_t
 gu_utf32_out_utf8(const GuUCS* src, size_t len, GuOut* out, GuExn* err)
 {
-	if (gu_out_is_buffered(out)) {
-		return gu_utf32_out_utf8_buffered_(src, len, out, err);
-	} 
-	for (size_t i = 0; i < len; i++) {
-		gu_out_utf8(src[i], out, err);
-		if (!gu_ok(err)) {
-			return i;
-		}
+	const GuUCS* src_curr = src;
+	const GuUCS* src_end = &src[len];
+	while (src_curr < src_end) {
+		const GuUCS* src_tmp = src_curr;
+		size_t dst_sz;
+		uint8_t* dst = gu_out_begin_span(out, 4, &dst_sz, err);
+		if (!gu_ok(err)) break;
+		uint8_t* dst_curr = dst;
+		gu_utf8_encode(&src_tmp, src_end, &dst_curr, &dst[dst_sz]);
+		gu_out_end_span(out, dst, dst_curr - dst, err);
+		if (!gu_ok(err)) break;
+		src_curr = src_tmp;
 	}
-	return len;
-
+	return src_curr - src;
 }
 
 #ifndef GU_CHAR_ASCII
 
-void gu_str_out_utf8_(const char* str, GuOut* out, GuExn* err)
+void
+gu_str_out_utf8_(const char* str, GuOut* out, GuExn* err)
 {
 	size_t len = strlen(str);
-	size_t sz = 0;
-	uint8_t* buf = gu_out_begin_span(out, len, &sz, err);
-	if (!gu_ok(err)) {
-		return;
-	}
-	if (buf != NULL && sz < len) {
-		gu_out_end_span(out, 0);
-		buf = NULL;
-	}
-	GuPool* tmp_pool = buf ? NULL : gu_local_pool();
-	buf = buf ? buf : gu_new_n(uint8_t, len, tmp_pool);
-	for (size_t i = 0; i < len; i++) {
-		GuUCS ucs = gu_char_ucs(str[i]);
-		buf[i] = (uint8_t) ucs;
-	}
-	if (tmp_pool) {
-		gu_out_bytes(out, buf, len, err);
-		gu_pool_free(tmp_pool);
-	} else {
-		gu_out_end_span(out, len);
+	size_t i = 0;
+	while (i < len) {
+		size_t sz;
+		uint8_t* buf = gu_out_begin_span(out, 1, &sz, err);
+		if (!gu_ok(err)) return;
+		size_t n = GU_MIN(sz, len - i);
+		for (size_t j = 0; j < n; j++) {
+			GuUCS ucs = gu_char_ucs(str[i + j]);
+			gu_assert(ucs < 0x80);
+			buf[j] = (uint8_t) ucs;
+		}
+		gu_out_end_span(out, n);
+		i += n;
 	}
 }
 

@@ -49,8 +49,9 @@ gu_out_utf8(GuUCS ucs, GuOut* out, GuExn* err)
 size_t
 gu_utf32_out_utf8(const GuUCS* src, size_t len, GuOut* out, GuExn* err);
 
-GuUCS
-gu_utf8_decode(const uint8_t** utf8);
+void
+gu_utf8_decode_unsafe(const uint8_t** src_inout, const uint8_t* src_end,
+		      GuUCS** dst_inout, GuUCS* dst_end);
 
 inline void 
 gu_str_out_utf8(const char* str, GuOut* out, GuExn* err)

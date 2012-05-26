@@ -1,6 +1,7 @@
 #include <gu/seq.h>
 #include <gu/out.h>
 
+#define GU_DEFAULT_BUFFER_SIZE 4096
 
 
 GuOut
@@ -126,19 +127,29 @@ gu_out_flush(GuOut* out, GuExn* err)
 uint8_t*
 gu_out_begin_span(GuOut* out, size_t req, size_t* sz_out, GuExn* err)
 {
-	if (!out->buf_end && !gu_out_begin_buf(out, req, err)) {
-		return NULL;
+	if ((!gu_out_is_buffering(out) && !gu_out_begin_buf(out, req, err)) ||
+	    (size_t)(-out->buf_curr) < req) {
+		if (!gu_ok(err)) return NULL;
+		return gu_mem_buf_alloc(GU_MAX(req, GU_DEFAULT_BUFFER_SIZE),
+					sz_out);
 	}
 	*sz_out = -out->buf_curr;
 	return &out->buf_end[out->buf_curr];
 }
 
 void
-gu_out_end_span(GuOut* out, size_t sz)
+gu_out_end_span(GuOut* out, uint8_t* span, size_t sz, GuExn* err)
 {
-	ptrdiff_t new_curr = (ptrdiff_t) sz + out->buf_curr;
-	gu_require(new_curr <= 0);
-	out->buf_curr = new_curr;
+	if (gu_out_is_buffering(out) &&
+	    span == &out->buf_end[out->buf_curr]) {
+		gu_assert(span == &out->buf_end[out->buf_curr]);
+		ptrdiff_t new_curr = (ptrdiff_t) sz + out->buf_curr;
+		gu_require(new_curr <= 0);
+		out->buf_curr = new_curr;
+	} else {
+		gu_out_bytes_(out, span, sz, err);
+		gu_mem_buf_free(span);
+	}
 }
 
 size_t
@@ -154,7 +165,7 @@ gu_out_bytes_(GuOut* restrict out, const uint8_t* restrict src, size_t len,
 		if (gu_out_try_buf_(out, src, len)) {
 			return len;
 		}
-	}
+	} else if (!gu_ok(err)) return 0;
 	return gu_out_output(out, src, len, err);
 }
 
@@ -165,7 +176,7 @@ void gu_out_u8_(GuOut* restrict out, uint8_t u, GuExn* err)
 		if (gu_out_try_u8_(out, u)) {
 			return;
 		}
-	}
+	} else if (!gu_ok(err)) return;
 	gu_out_output(out, &u, 1, err);
 }
 
@@ -194,6 +205,7 @@ typedef struct GuProxyOutStream GuProxyOutStream;
 
 struct GuProxyOutStream {
 	GuOutStream stream;
+	uint8_t* buf;
 	GuOut* real_out;
 };
 
@@ -204,7 +216,8 @@ gu_proxy_out_buf_begin(GuOutStream* self, size_t req, size_t* sz_out,
 {
 	GuProxyOutStream* pos =
 		gu_container(self, GuProxyOutStream, stream);
-	return gu_out_begin_span(pos->real_out, req, sz_out, err);
+	pos->buf = gu_out_begin_span(pos->real_out, req, sz_out, err);
+	return pos->buf;
 }
 
 static void
@@ -212,7 +225,7 @@ gu_proxy_out_buf_end(GuOutStream* self, size_t sz, GuExn* err)
 {
 	GuProxyOutStream* pos =
 		gu_container(self, GuProxyOutStream, stream);
-	gu_out_end_span(pos->real_out, sz);
+	gu_out_end_span(pos->real_out, pos->buf, sz, err);
 }
 
 static size_t
@@ -296,7 +309,7 @@ gu_out_buffered(GuOut* out, GuPool* pool)
 	if (gu_out_is_buffered(out)) {
 		return out;
 	}
-	return gu_new_buffered_out(out, 4096, pool);
+	return gu_new_buffered_out(out, GU_DEFAULT_BUFFER_SIZE, pool);
 }
 
 
