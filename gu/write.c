@@ -63,9 +63,8 @@ struct GuLocaleOutStream {
 };
 
 static void
-gu_locale_writer_flush(GuOutStream* os, GuExn* err)
+gu_locale_writer_flush_ucs_buf(GuLocaleOutStream* los, GuExn* err)
 {
-	GuLocaleOutStream* los = (GuLocaleOutStream*) os;
 	const GuUCS* src_curr = los->ucs_buf;
 	GuUCS* src_end = los->ucs_buf_curr;
 	*src_end = L'\0';
@@ -111,6 +110,15 @@ gu_locale_writer_flush(GuOutStream* os, GuExn* err)
 	los->ucs_buf_curr = los->ucs_buf;
 }
 
+static void
+gu_locale_writer_flush(GuOutStream* os, GuExn* err)
+{
+	GuLocaleOutStream* los = (GuLocaleOutStream*) os;
+	gu_locale_writer_flush_ucs_buf(los, err);
+	if (!gu_ok(err)) return;
+	gu_out_flush(los->out, err);
+}
+
 size_t
 gu_locale_writer_output(GuOutStream* os, const uint8_t* utf8_src, size_t sz, 
 			GuExn* exn)
@@ -122,14 +130,14 @@ gu_locale_writer_output(GuOutStream* os, const uint8_t* utf8_src, size_t sz,
 	while (true) {
 		gu_utf8_decode_unsafe(&src, src_end, &los->ucs_buf_curr, dst_end);
 		if (src == src_end) break;
-		gu_locale_writer_flush(os, exn);
+		gu_locale_writer_flush_ucs_buf(los, exn);
 		if (!gu_ok(exn)) break;
 	}
 	return 0;
 }
 
 GuWriter*
-gu_locale_writer(GuOut* out, GuPool* pool)
+gu_new_locale_writer(GuOut* out, GuPool* pool)
 {
 	GuLocaleOutStream* los = gu_new_i(
 		pool, GuLocaleOutStream,
@@ -141,6 +149,17 @@ gu_locale_writer(GuOut* out, GuPool* pool)
 #endif
 	los->ucs_buf_curr = los->ucs_buf;
 	return gu_new_writer(&los->stream, pool);
+}
+
+GuWriter*
+gu_writer_buffered(GuWriter* wtr, GuPool* pool)
+{
+	if (gu_out_is_buffered(&wtr->out_)) {
+		return wtr;
+	}
+	GuWriter* bwtr = gu_new(GuWriter, pool);
+	bwtr->out_ = gu_init_buffered_out(&wtr->out_, 0, pool);
+	return bwtr;
 }
 
 extern inline void

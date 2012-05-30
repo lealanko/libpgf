@@ -195,6 +195,13 @@ typedef union {
 	(((union { GuMaxAlign align_; uint8_t buf_[N]; }){{0}}).buf_)
 
 
+#ifdef GU_OPTIMIZE_SIZE
+#define GU_SIZE_OPTIMIZED(normal, optimized) optimized
+#else
+#define GU_SIZE_OPTIMIZED(normal, optimized) normal
+#endif
+
+
 // For Doxygen
 #define GU_PRIVATE /** @private */
 

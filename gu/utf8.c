@@ -79,21 +79,29 @@ gu_utf8_decode_unsafe(const uint8_t** src_inout, const uint8_t* src_end,
 	*dst_inout = dst_curr;
 }
 
+static size_t
+gu_utf8_encode_length(GuUCS ucs)
+{
+	return (GU_LIKELY(ucs < 0x80) ? 1 :
+		ucs < 0x800 ? 2 :
+		ucs < 0x10000 ? 3 :
+		4);
+}
 
 static size_t
 gu_utf8_encode_one_unsafe(GuUCS ucs, uint8_t* buf)
 {
 	gu_require(gu_ucs_valid(ucs));
-	if (ucs < 0x80) {
+	if (GU_LIKELY(ucs < 0x80)) {
 		buf[0] = (uint8_t) ucs;
 		return 1;
 	}
 	size_t n = ucs < 0x800 ? 1 : ucs < 0x10000 ? 2 : 3;
 	for (size_t i = n; i > 0; i--) {
-		buf[n] = (uint8_t)(ucs & 0x3f);
+		buf[i] = 0x80 | (uint8_t)(ucs & 0x3f);
 		ucs >>= 6;
 	}
-	buf[0] = (uint8_t) (ucs | (0xf0e0c000U >> (n * 8)));
+	buf[0] = (uint8_t) (ucs | ~(0x7f >> n));
 	return n + 1;
 }
 
@@ -102,12 +110,11 @@ gu_utf8_encode(const GuUCS** src_inout, const GuUCS* src_end,
 	       uint8_t** dst_inout, uint8_t* dst_end)
 {
 	const GuUCS* src_curr = *src_inout;
-	size_t src_rem = src_end - src_curr;
 	uint8_t* dst_curr = *dst_inout;
-	size_t dst_rem = dst_end - dst_curr;
 
 	while (true) {
-		size_t n = GU_MIN(src_rem, dst_rem / 4);
+		size_t n = GU_MIN((src_end - src_curr),
+				  (dst_end - dst_curr) / 4);
 		if (!n) break;
 		for (size_t i = 0; i < n; i++) {
 			size_t len = gu_utf8_encode_one_unsafe(src_curr[i],
@@ -115,20 +122,16 @@ gu_utf8_encode(const GuUCS** src_inout, const GuUCS* src_end,
 			dst_curr += len;
 		}
 		src_curr += n;
-		src_rem -= n;
-		dst_rem = dst_end - dst_curr;
 	}
-	while (src_rem && dst_rem) {
-		uint8_t buf[4];
-		size_t len = gu_utf8_encode_one_unsafe(*src_curr, buf);
-		if (len > dst_rem) {
+	while (src_curr < src_end && dst_curr < dst_end) {
+		GuUCS ucs = *src_curr;
+		size_t len = gu_utf8_encode_length(ucs);
+		if (len > (size_t)(dst_end - dst_curr)) {
 			break;
 		}
-		memcpy(dst_curr, buf, len);
+		gu_utf8_encode_one_unsafe(ucs, dst_curr);
 		dst_curr += len;
-		dst_rem -= len;
 		src_curr++;
-		src_rem--;
 	}
 	*src_inout = src_curr;
 	*dst_inout = dst_curr;
@@ -193,7 +196,8 @@ gu_utf32_out_utf8(const GuUCS* src, size_t len, GuOut* out, GuExn* err)
 	while (src_curr < src_end) {
 		const GuUCS* src_tmp = src_curr;
 		size_t dst_sz;
-		uint8_t* dst = gu_out_begin_span(out, 4, &dst_sz, err);
+		size_t len = gu_utf8_encode_length(*src_tmp);
+		uint8_t* dst = gu_out_begin_span(out, len, &dst_sz, err);
 		if (!gu_ok(err)) break;
 		uint8_t* dst_curr = dst;
 		gu_utf8_encode(&src_tmp, src_end, &dst_curr, &dst[dst_sz]);

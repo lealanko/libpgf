@@ -59,6 +59,9 @@ GuWriter*
 gu_new_utf8_writer(GuOut* utf8_out, GuPool* pool);
 
 GuWriter*
-gu_make_locale_writer(GuOut* locale_out, GuPool* pool);
+gu_new_locale_writer(GuOut* locale_out, GuPool* pool);
+
+GuWriter*
+gu_writer_buffered(GuWriter* wtr, GuPool* pool);
 
 #endif // GU_WRITE_H_

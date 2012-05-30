@@ -62,7 +62,7 @@ gu_utf8_string(const uint8_t* buf, size_t sz, GuPool* pool)
 GuString
 gu_string_buf_freeze(GuStringBuf* sb, GuPool* pool)
 {
-	gu_writer_flush(sb->wtr, NULL);
+	gu_writer_flush(sb->wtr, gu_null_exn());
 	uint8_t* data = gu_buf_data(sb->bbuf);
 	size_t len = gu_buf_length(sb->bbuf);
 	return gu_utf8_string(data, len, pool);
@@ -175,8 +175,9 @@ gu_format_string_v(const char* fmt, va_list args, GuPool* pool)
 	GuPool* tmp_pool = gu_local_pool();
 	GuStringBuf* sb = gu_string_buf(tmp_pool);
 	GuWriter* wtr = gu_string_buf_writer(sb);
-	gu_vprintf(fmt, args, wtr, NULL);
-	gu_writer_flush(wtr, NULL);
+	GuExn* exn = gu_null_exn();
+	gu_vprintf(fmt, args, wtr, exn);
+	gu_writer_flush(wtr, exn);
 	GuString s = gu_string_buf_freeze(sb, pool);
 	gu_pool_free(tmp_pool);
 	return s;
@@ -201,8 +202,9 @@ gu_str_string(const char* str, GuPool* pool)
 	GuPool* tmp_pool = gu_local_pool();
 	GuStringBuf* sb = gu_string_buf(tmp_pool);
 	GuWriter* wtr = gu_string_buf_writer(sb);
-	gu_puts(str, wtr, NULL);
-	gu_writer_flush(wtr, NULL);
+	GuExn* exn = gu_null_exn();
+	gu_puts(str, wtr, exn);
+	gu_writer_flush(wtr, exn);
 	GuString s = gu_string_buf_freeze(sb, pool);
 	gu_pool_free(tmp_pool);
 	return s;

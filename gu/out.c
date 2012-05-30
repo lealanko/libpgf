@@ -133,7 +133,9 @@ gu_out_begin_span(GuOut* out, size_t req, size_t* sz_out, GuExn* err)
 		return gu_mem_buf_alloc(GU_MAX(req, GU_DEFAULT_BUFFER_SIZE),
 					sz_out);
 	}
-	*sz_out = -out->buf_curr;
+	if (sz_out) {
+		*sz_out = -out->buf_curr;
+	}
 	return &out->buf_end[out->buf_curr];
 }
 
@@ -287,9 +289,12 @@ gu_buffered_out_buf_end(GuOutStream* self, size_t sz, GuExn* err)
 	gu_out_bytes(b->pstream.real_out, b->buf, sz, err);
 }
 
-GuOut*
-gu_new_buffered_out(GuOut* out, size_t sz, GuPool* pool)
+GuOut
+gu_init_buffered_out(GuOut* out, size_t sz, GuPool* pool)
 {
+	if (sz == 0) {
+		sz = GU_DEFAULT_BUFFER_SIZE;
+	}
 	GuBufferedOutStream* b =
 		gu_new_flex(pool, GuBufferedOutStream, buf, sz);
 	b->pstream.stream = (GuOutStream) {
@@ -300,7 +305,15 @@ gu_new_buffered_out(GuOut* out, size_t sz, GuPool* pool)
 	};
 	b->pstream.real_out = out;
 	b->sz = sz;
-	return gu_new_out(&b->pstream.stream, pool);
+	return gu_init_out(&b->pstream.stream);
+}
+
+GuOut*
+gu_new_buffered_out(GuOut* out, size_t sz, GuPool* pool)
+{
+	GuOut* bout = gu_new(GuOut, pool);
+	*bout = gu_init_buffered_out(out, sz, pool);
+	return bout;
 }
 
 GuOut*
@@ -309,7 +322,7 @@ gu_out_buffered(GuOut* out, GuPool* pool)
 	if (gu_out_is_buffered(out)) {
 		return out;
 	}
-	return gu_new_buffered_out(out, GU_DEFAULT_BUFFER_SIZE, pool);
+	return gu_new_buffered_out(out, 0, pool);
 }
 
 

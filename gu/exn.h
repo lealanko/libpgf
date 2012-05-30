@@ -68,6 +68,16 @@ typedef struct GuExn GuExn;
  */
 
 
+#define gu_null_exn() &(GuExn){	\
+	.state = GU_EXN_OK,	\
+	.parent = NULL, \
+	.catch = NULL, \
+	.caught = NULL,	\
+	.data.pool = NULL,	\
+	.data.data = NULL \
+}
+
+
 /// Allocate a new exception frame.
 GuExn*
 gu_new_exn(GuExn* parent, GuKind* catch_kind, GuPool* pool);
@@ -184,9 +194,7 @@ gu_exn_is_raised(GuExn* err);
 
 /// Check the status of the current exception frame
 static inline bool
-gu_ok(GuExn* exn) {
-	return !GU_UNLIKELY(gu_exn_is_raised(exn));
-}
+gu_ok(GuExn* exn);
 /**< @return `true` iff no exception has been raised in `exn` or propagated to
  * it from its subframes.
  */
@@ -314,7 +322,12 @@ gu_exn_clear(GuExn* err) {
 
 static inline bool
 gu_exn_is_raised(GuExn* err) {
-	return err && (err->state == GU_EXN_RAISED);
+	return err->state == GU_EXN_RAISED;
+}
+
+static inline bool
+gu_ok(GuExn* err) {
+	return !GU_UNLIKELY(gu_exn_is_raised(err));
 }
 
 

@@ -39,30 +39,9 @@ gu_plog_full(GuLogKind kind, const char* func, const char* file, int line,
 
 #else
 
-static inline void
-gu_logv(GuLogKind kind, const char* fmt, va_list args)
-{
-	(void) kind;
-	(void) fmt;
-	(void) args;
-}
-
-static inline void
-gu_log(GuLogKind kind, const char* fmt, ...)
-{
-	(void) kind;
-	(void) fmt;
-}
-
-static inline void
-gu_log(GuLogKind kind, const char* fmt, ...)
-{
-	(void) kind;
-	(void) fmt;
-}
-
-#define gu_plog(KIND, FMT, ...)		\
-	GU_NOP
+#define gu_logv(kind, fmt, args) GU_NOP
+#define gu_log(kind, fmt, ...) GU_NOP
+#define gu_plog(kind, fmt, ...) GU_NOP
 
 #endif
 

@@ -15,6 +15,7 @@
 #include <gu/string.h>
 #include <gu/in.h>
 #include <gu/out.h>
+#include <gu/file.h>
 #include <gu/read.h>
 #include <gu/write.h>
 #include <gu/variant.h>

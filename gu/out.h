@@ -43,6 +43,9 @@ gu_out_is_buffered(GuOut* out)
 GuOutStream*
 gu_out_proxy_stream(GuOut* out, GuPool* pool);
 
+GuOut
+gu_init_buffered_out(GuOut* out, size_t buf_sz, GuPool* pool);
+
 GuOut*
 gu_new_buffered_out(GuOut* out, size_t buf_sz, GuPool* pool);
 

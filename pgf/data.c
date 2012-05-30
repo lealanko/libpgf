@@ -5,10 +5,10 @@
 #include <gu/assert.h>
 
 
-PgfCCat pgf_ccat_string = { NULL, GU_NULL_SEQ, -1 };
-PgfCCat pgf_ccat_int = { NULL, GU_NULL_SEQ, -2 };
-PgfCCat pgf_ccat_float = { NULL, GU_NULL_SEQ, -3 };
-PgfCCat pgf_ccat_var = { NULL, GU_NULL_SEQ, -4 };
+PgfCCat pgf_ccat_string = PGF_INIT_CCAT(NULL, GU_NULL_SEQ, -1);
+PgfCCat pgf_ccat_int = PGF_INIT_CCAT(NULL, GU_NULL_SEQ, -2);
+PgfCCat pgf_ccat_float = PGF_INIT_CCAT(NULL, GU_NULL_SEQ, -3);
+PgfCCat pgf_ccat_var = PGF_INIT_CCAT(NULL, GU_NULL_SEQ, -4);
 
 PgfCCatId
 pgf_literal_cat(PgfLiteral lit)

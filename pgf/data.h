@@ -154,10 +154,7 @@ struct PgfCncCat {
 struct PgfCncFun {
 	PgfCId fun; // XXX: resolve to PgfFunDecl*?
 	PgfSeqIds lins;
-#ifndef GU_OPTIMIZE_SIZE	
-	// For debugging purposes only.
-	PgfFId fid;
-#endif
+	GU_SIZE_OPTIMIZED(PgfFId fid;,)
 };
 
 static inline PgfFId
@@ -182,30 +179,25 @@ struct PgfAlternative {
 struct PgfCCat {
 	PgfCncCat* cnccat;
 	PgfProductions prods;
-#ifndef GU_OPTIMIZE_SIZE	
 	// For debugging purposes only.
-	PgfFId fid;
-#endif
+	GU_SIZE_OPTIMIZED(PgfFId fid;,)
 };
+
+#define PGF_INIT_CCAT(cnccat, prods, fid) {			\
+		cnccat, prods GU_SIZE_OPTIMIZED(GU_COMMA fid,)	\
+			}
+
 
 static inline PgfFId
 pgf_ccat_fid(const PgfCCat* ccat)
 {
-#ifdef GU_OPTIMIZE_SIZE
-	return -1;
-#else
-	return ccat->fid;
-#endif
+	return GU_SIZE_OPTIMIZED(ccat->fid, -1);
 }
 
 static inline void
 pgf_ccat_set_fid(PgfCCat* ccat, PgfFId fid)
 {
-#ifdef GU_OPTIMIZE_SIZE
-	(void) (ccat && fid);
-#else
-	ccat->fid = fid;
-#endif
+	GU_SIZE_OPTIMIZED(ccat->fid = fid, (void) (ccat && fid));
 }
 
 extern PgfCCat pgf_ccat_string, pgf_ccat_int, pgf_ccat_float, pgf_ccat_var;
