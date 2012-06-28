@@ -55,7 +55,7 @@ gu_file_input(GuInStream* stream, uint8_t* buf, size_t sz, GuExn* err)
 	GuFileInStream* fis = gu_container(stream, GuFileInStream, stream);
 	errno = 0;
 	size_t got = fread(buf, 1, sz, fis->file);
-	if (got == 0) {
+	if (got < sz) {
 		if (ferror(fis->file)) {
 			gu_raise_errno(err);
 		}

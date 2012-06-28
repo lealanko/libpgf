@@ -37,7 +37,7 @@ GuInStream*
 gu_in_proxy_stream(GuIn* in, GuPool* pool);
 
 const uint8_t*
-gu_in_begin_span(GuIn* in, size_t *sz_out, GuExn* err);
+gu_in_begin_span(GuIn* in, uint8_t* fallback, size_t *sz_inout, GuExn* err);
 
 void
 gu_in_end_span(GuIn* in, size_t consumed);

@@ -178,10 +178,12 @@ gu_in_utf8_char_(GuIn* in, GuExn* err)
 void
 gu_out_utf8_long_(GuUCS ucs, GuOut* out, GuExn* err)
 {
-	uint8_t* buf = gu_out_begin_span(out, 4, NULL, err);
+	uint8_t buf[4];
+	size_t req = 4;
+	uint8_t* span = gu_out_begin_span(out, buf, &req, err);
 	if (!gu_ok(err)) return;
-	size_t sz = gu_utf8_encode_one_unsafe(ucs, buf);
-	gu_out_end_span(out, buf, sz, err);
+	size_t sz = gu_utf8_encode_one_unsafe(ucs, span);
+	gu_out_end_span(out, span, sz, err);
 }
 
 extern inline void
@@ -195,9 +197,9 @@ gu_utf32_out_utf8(const GuUCS* src, size_t len, GuOut* out, GuExn* err)
 	const GuUCS* src_end = &src[len];
 	while (src_curr < src_end) {
 		const GuUCS* src_tmp = src_curr;
-		size_t dst_sz;
-		size_t len = gu_utf8_encode_length(*src_tmp);
-		uint8_t* dst = gu_out_begin_span(out, len, &dst_sz, err);
+		uint8_t buf[4];
+		size_t dst_sz = 4;
+		uint8_t* dst = gu_out_begin_span(out, buf, &dst_sz, err);
 		if (!gu_ok(err)) break;
 		uint8_t* dst_curr = dst;
 		gu_utf8_encode(&src_tmp, src_end, &dst_curr, &dst[dst_sz]);

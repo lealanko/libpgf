@@ -26,12 +26,31 @@ gu_printf(GuWriter* wtr, GuExn* err, const char* fmt, ...)
 	va_end(args);
 }
 
+typedef struct GuRealWriter GuRealWriter;
+
+struct GuRealWriter {
+	GuWriter wtr;
+	GuFinalizer fini;
+};
+
+static void
+gu_writer_finalize(GuFinalizer* self)
+{
+	GuRealWriter* rwtr = gu_container(self, GuRealWriter, fini);
+	GuPool* pool = gu_local_pool();
+	GuExn* exn = gu_exn(NULL, type, pool);
+	gu_writer_flush(&rwtr->wtr, exn);
+	gu_pool_free(pool);
+}
+
 GuWriter*
 gu_new_writer(GuOutStream* utf8_stream, GuPool* pool)
 {
-	GuWriter* wtr = gu_new(GuWriter, pool);
-	wtr->out_ = gu_init_out(utf8_stream);
-	return wtr;
+	GuRealWriter* rwtr = gu_new(GuRealWriter, pool);
+	rwtr->wtr.out_ = gu_init_out(utf8_stream);
+	rwtr->fini.fn = gu_writer_finalize;
+	gu_pool_finally(pool, &rwtr->fini);
+	return &rwtr->wtr;
 }
 
 
@@ -69,11 +88,10 @@ gu_locale_writer_flush_ucs_buf(GuLocaleOutStream* los, GuExn* err)
 	GuUCS* src_end = los->ucs_buf_curr;
 	*src_end = L'\0';
 	while (src_curr < src_end) {
-		size_t sz;
-		// Need at least two bytes: one for proper output, one for
-		// the '\0' that wcsrtombs insists on.
-		uint8_t* span = gu_out_begin_span(los->out, 2, &sz, err);
 #ifdef GU_UCS_WCHAR
+		uint8_t buf[MB_LEN_MAX + 1];
+		size_t sz = MB_LEN_MAX + 1;
+		uint8_t* span = gu_out_begin_span(los->out, buf, &sz, err);
 		const GuUCS* src_orig = src_curr;
 		const GuUCS* next = &src_curr[wcslen(src_curr)];
 		if (!gu_ok(err)) return;
@@ -93,6 +111,9 @@ gu_locale_writer_flush_ucs_buf(GuLocaleOutStream* los, GuExn* err)
 			} 
 		}
 #else
+		uint8_t buf[32];
+		size_t sz = 32;
+		uint8_t* span = gu_out_begin_span(los->out, buf, &sz, err);
 		size_t n = GU_MIN(sz, (size_t) (src_end - src_curr));
 		for (size_t i = 0; i < n; i++) {
 			GuUCS u = src_curr[i];

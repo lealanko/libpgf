@@ -46,6 +46,10 @@ gu_out_utf8(GuUCS ucs, GuOut* out, GuExn* err)
 	}
 }
 
+void
+gu_utf8_encode(const GuUCS** src_inout, const GuUCS* src_end,
+	       uint8_t** dst_inout, uint8_t* dst_end);
+
 size_t
 gu_utf32_out_utf8(const GuUCS* src, size_t len, GuOut* out, GuExn* err);
 

@@ -125,17 +125,15 @@ gu_out_flush(GuOut* out, GuExn* err)
 }
 
 uint8_t*
-gu_out_begin_span(GuOut* out, size_t req, size_t* sz_out, GuExn* err)
+gu_out_begin_span(GuOut* out, uint8_t* fallback, size_t* sz_inout, GuExn* err)
 {
+	size_t req = *sz_inout;
 	if ((!gu_out_is_buffering(out) && !gu_out_begin_buf(out, req, err)) ||
 	    (size_t)(-out->buf_curr) < req) {
 		if (!gu_ok(err)) return NULL;
-		return gu_mem_buf_alloc(GU_MAX(req, GU_DEFAULT_BUFFER_SIZE),
-					sz_out);
+		return fallback;
 	}
-	if (sz_out) {
-		*sz_out = -out->buf_curr;
-	}
+	*sz_inout = -out->buf_curr;
 	return &out->buf_end[out->buf_curr];
 }
 
@@ -149,8 +147,8 @@ gu_out_end_span(GuOut* out, uint8_t* span, size_t sz, GuExn* err)
 		gu_require(new_curr <= 0);
 		out->buf_curr = new_curr;
 	} else {
+		// The span is a fallback buffer, not stream buffer
 		gu_out_bytes_(out, span, sz, err);
-		gu_mem_buf_free(span);
 	}
 }
 
@@ -218,7 +216,7 @@ gu_proxy_out_buf_begin(GuOutStream* self, size_t req, size_t* sz_out,
 {
 	GuProxyOutStream* pos =
 		gu_container(self, GuProxyOutStream, stream);
-	pos->buf = gu_out_begin_span(pos->real_out, req, sz_out, err);
+	pos->buf = gu_out_begin_span(pos->real_out, NULL, sz_out, err);
 	return pos->buf;
 }
 

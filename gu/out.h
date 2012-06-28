@@ -53,7 +53,8 @@ GuOut*
 gu_out_buffered(GuOut* out, GuPool* pool);
 
 uint8_t*
-gu_out_begin_span(GuOut* out, size_t req, size_t* sz_out, GuExn* err);
+gu_out_begin_span(GuOut* out, uint8_t* fallback, size_t* sz_inout,
+		  GuExn* err);
 
 void
 gu_out_end_span(GuOut* out, uint8_t* span, size_t sz, GuExn* err);

@@ -44,7 +44,7 @@ gu_in_begin_buffering(GuIn* in, GuExn* err)
 	size_t sz = 0;
 	const uint8_t* new_buf = 
 		in->stream->begin_buffer(in->stream, &sz, err);
-	if (new_buf) {
+	if (new_buf && sz > 0) {
 		in->buf_end = &new_buf[sz];
 		in->buf_curr = -(ptrdiff_t) sz;
 		in->buf_size = sz;
@@ -102,18 +102,26 @@ gu_in_bytes_(GuIn* in, uint8_t* dst, size_t sz, GuExn* err)
 }
 
 const uint8_t*
-gu_in_begin_span(GuIn* in, size_t *sz_out, GuExn* err)
+gu_in_begin_span(GuIn* in, uint8_t* fallback, size_t *sz_inout, GuExn* err)
 {
 	if (!gu_in_begin_buffering(in, err)) {
-		return NULL;
+		size_t req = *sz_inout;
+		size_t got = gu_in_input(in, fallback, req, err);
+		*sz_inout = got;
+		return fallback;
 	}
-	*sz_out = (size_t) -in->buf_curr;
+	*sz_inout = (size_t) -in->buf_curr;
 	return &in->buf_end[in->buf_curr];
 }
 
 void
 gu_in_end_span(GuIn* in, size_t consumed)
 {
+	if (!gu_in_is_buffering(in)) {
+		// we were using the fallback buffer
+		// TODO: assert that consumed size equals fallback buffer size
+		return;
+	}
 	gu_require(consumed <= (size_t) -in->buf_curr);
 	in->buf_curr += (ptrdiff_t) consumed;
 }
@@ -302,7 +310,8 @@ static const uint8_t*
 gu_proxy_in_begin_buffer(GuInStream* self, size_t* sz_out, GuExn* err)
 {
 	GuProxyInStream* pis = gu_container(self, GuProxyInStream, stream);
-	return gu_in_begin_span(pis->real_in, sz_out, err);
+	*sz_out = 0;
+	return gu_in_begin_span(pis->real_in, NULL, sz_out, err);
 }
 
 static void
