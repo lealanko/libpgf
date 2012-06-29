@@ -1,6 +1,7 @@
-AC_INIT(Portable Grammar Format library, 0.1.pre, 
+AC_INIT(Portable Grammar Format library, 0.1, 
 		 https://code.google.com/p/grammatical-framework/, 
-		 libpgf)
+		 libpgf,
+		 http://grammaticalframework.org/libpgf/)
 AC_PREREQ(2.58)
 
 AC_CONFIG_SRCDIR([gu/mem.c])
@@ -56,7 +57,8 @@ DX_ARG_ABLE(dev, [include internal development documentation],
 	    [DX_ENV_APPEND(DEVDOC, NO)
 	     DX_ENV_APPEND(NODEVDOC, YES)
 	     DX_ENV_APPEND(INPUT, 
-	     [\$(guinclude_HEADERS) \$(pgfinclude_HEADERS)])])
+	     [README.md libgu.h \$(guinclude_HEADERS) \
+	      libpgf.h \$(pgfinclude_HEADERS)])])
 DX_INIT_DOXYGEN(libpgf)
 
 

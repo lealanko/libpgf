@@ -81,12 +81,12 @@ pgf_parse_token(PgfParse* parse, PgfToken tok, GuPool* pool);
  *
  * @pool
  *
- * @return A new parse state obtained by feeding \p tok as an input to \p
- * parse, or \c NULL if the token was unexpected.
+ * @return A new parse state obtained by feeding `tok` as an input to 
+ * `parse`, or `NULL` if the token was unexpected.
  *
  * @note The new parse state partially depends on the old one, so it doesn't
- * make sense to use a \p pool argument with a longer lifetime than that of
- * the pool used to create \parse.
+ * make sense to use a `pool` argument with a longer lifetime than that of
+ * the pool used to create `parse`.
  */
 
 

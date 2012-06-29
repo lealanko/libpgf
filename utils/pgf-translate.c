@@ -5,7 +5,6 @@
 #include <gu/enum.h>
 #include <gu/file.h>
 #include <pgf/pgf.h>
-#include <pgf/data.h>
 #include <pgf/parser.h>
 #include <pgf/linearize.h>
 #include <pgf/expr.h>

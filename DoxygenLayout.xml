@@ -2,13 +2,13 @@
   <!-- Navigation index tabs for HTML output -->
   <navindex>
     <tab type="mainpage" visible="yes" title=""/>
-    <tab type="pages" visible="yes" title="" intro=""/>
+    <tab type="pages" visible="no" title="" intro=""/>
     <tab type="modules" visible="yes" title="" intro=""/>
-    <tab type="namespaces" visible="yes" title="">
+    <tab type="namespaces" visible="no" title="">
       <tab type="namespacelist" visible="yes" title="" intro=""/>
       <tab type="namespacemembers" visible="yes" title="" intro=""/>
     </tab>
-    <tab type="classes" visible="yes" title="">
+    <tab type="classes" visible="no" title="">
       <tab type="classlist" visible="yes" title="" intro=""/>
       <tab type="classindex" visible="$ALPHABETICAL_INDEX" title=""/> 
       <tab type="hierarchy" visible="yes" title="" intro=""/>
@@ -18,8 +18,8 @@
       <tab type="filelist" visible="yes" title="" intro=""/>
       <tab type="globals" visible="yes" title="" intro=""/>
     </tab>
-    <tab type="dirs" visible="yes" title="" intro=""/>
-    <tab type="examples" visible="yes" title="" intro=""/>  
+    <tab type="dirs" visible="no" title="" intro=""/>
+    <tab type="examples" visible="no" title="" intro=""/>  
   </navindex>
 
   <!-- Layout definition for a class page -->
@@ -104,6 +104,7 @@
   <file>
     <briefdescription visible="no"/>
     <detaileddescription title=" "/>
+    <includes visible="$SHOW_INCLUDE_FILES"/>
     <memberdecl>
       <membergroups visible="yes"/>
       <namespaces visible="yes" title=""/>
@@ -123,7 +124,6 @@
       <variables title=""/>
     </memberdef>
     <sourcelink visible="$DEVDOC"/>
-    <includes visible="$SHOW_INCLUDE_FILES"/>
     <includegraph visible="$INCLUDE_GRAPH"/>
     <includedbygraph visible="$INCLUDED_BY_GRAPH"/>
     <authorsection/>

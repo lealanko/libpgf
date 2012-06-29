@@ -2,6 +2,8 @@
 #define LIBGU_H_
 
 /** @file
+ *
+ * This header includes the headers of every component of `libgu`.
  */
 
 #include <gu/defs.h>

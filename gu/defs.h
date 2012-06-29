@@ -37,8 +37,8 @@
 	((container_type*)(((uint8_t*) (mem_p)) - offsetof(container_type, member)))
 /**< Find the address of a containing structure.
  *
- * If @c s has type @c t*, where @c t is a struct or union type with a
- * member @m, then <tt>GU_CONTAINER_P(&s->m, t, m) == s</tt>.
+ * If `s` has type `t*`, where `t` is a struct or union type with a
+ * member `m`, then `GU_CONTAINER_P(&s->m, t, m) == s`.
  * 
  * @param mem_p           Pointer to the member of a structure.
  * @param container_type  The type of the containing structure.

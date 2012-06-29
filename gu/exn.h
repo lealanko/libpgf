@@ -64,7 +64,7 @@ typedef struct GuExn GuExn;
 /**<
  * @param parent_exn      #GuExn `*`
  * @param CATCH_KIND  a kind name
- * @param pool        #GuPool `*`
+ * @param pool_        #GuPool `*`
  */
 
 
