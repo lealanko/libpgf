@@ -273,7 +273,6 @@ static uint8_t*
 gu_buffered_out_buf_begin(GuOutStream* self, size_t req, size_t* sz_out,
 			  GuExn* err)
 {
-	(void) (req && err);
 	GuBufferedOutStream* b =
 		gu_container(self, GuBufferedOutStream, pstream.stream);
 	*sz_out = b->sz;

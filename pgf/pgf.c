@@ -10,7 +10,6 @@ pgf_pgf_concr(PgfPGF* pgf, GuString cid, GuPool* pool)
 {
 	// The `pool` parameter may get used in the future, if concretes are
 	// only loaded when needed.
-	(void) pool;
 	return gu_map_get(pgf->concretes, &cid, PgfConcr*);
 }
 	

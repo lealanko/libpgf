@@ -124,7 +124,6 @@ pgf_ccat_print(const PgfCCat* ccat, GuWriter* wtr, GuExn* exn)
 static void
 pgf_ccat_print_fn(GuPrinter* self, const void* p, GuWriter* wtr, GuExn* exn)
 {
-	(void) self;
 	pgf_ccat_print(p, wtr, exn);
 }
 
@@ -209,7 +208,6 @@ pgf_item_print(const PgfItem* item, GuWriter* wtr, GuExn* exn)
 static void
 pgf_item_print_fn(GuPrinter* self, const void* p, GuWriter* wtr, GuExn* exn)
 {
-	(void) self;
 	pgf_item_print(p, wtr, exn);
 }
 

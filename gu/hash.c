@@ -26,7 +26,6 @@ gu_hash_word(GuHash h, GuWord w)
 static bool								\
 gu_##NAME##_eq_fn(GuEquality* self, const void* p1, const void* p2)	\
 {									\
-	(void) self;							\
 	const TYPE* ip1 = p1;						\
 	const TYPE* ip2 = p2;						\
 	return *ip1 == *ip2;						\
@@ -35,7 +34,6 @@ gu_##NAME##_eq_fn(GuEquality* self, const void* p1, const void* p2)	\
 static GuHash								\
 gu_##NAME##_hash_fn(GuHasher* self, GuHash h, const void* p)		\
 {									\
-	(void) self;							\
 	return gu_hash_word(h, (GuWord) *(const TYPE*) p);		\
 }									\
 									\
@@ -55,14 +53,12 @@ DEFINE_INTEGER_HASHER(uint8_t, uint8);
 static bool
 gu_addr_eq_fn(GuEquality* self, const void* p1, const void* p2)
 {
-	(void) self;
 	return (p1 == p2);
 }
 
 static GuHash
 gu_addr_hash_fn(GuHasher* self, GuHash h, const void* p)
 {
-	(void) self;
 	return gu_hash_word(h, (GuWord) p);
 }
 
@@ -151,7 +147,6 @@ static const void*
 gu_make_seq_hasher(GuInstance* self, GuGeneric* gen,
 		   GuType* type, GuPool* pool)
 {
-	(void) self;
 	GuSeqType* stype = gu_type_cast(type, GuSeq);
 	GuHasher* ehasher = gu_specialize(gen, stype->elem_type, pool);
 	size_t esize = gu_type_size(stype->elem_type);
@@ -206,7 +201,6 @@ static const void*
 gu_make_variant_hasher(GuInstance* self, GuGeneric* gen,
 		       GuType* type, GuPool* pool)
 {
-	(void) self;
 	GuVariantType* vtype = gu_type_cast(type, GuVariant);
 	size_t len = vtype->ctors.len;
 	GuSeq dhashers = gu_new_seq(GuHasher*, len, pool);
@@ -274,7 +268,6 @@ static const void*
 gu_make_struct_hasher(GuInstance* self, GuGeneric* gen,
 		      GuType* type, GuPool* pool)
 {
-	(void) self;
 	GuStructRepr* srepr = gu_type_cast(type, struct);
 	size_t n_members = srepr->members.len;
 	GuMember* members = srepr->members.elems;

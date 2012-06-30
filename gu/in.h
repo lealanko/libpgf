@@ -139,7 +139,7 @@ double
 gu_in_f64be(GuIn* in, GuExn* err);
 
 GuIn*
-gu_buffered_in(GuIn* in, size_t sz, GuPool* pool);
+gu_new_buffered_in(GuIn* in, size_t sz, GuPool* pool);
 
 GuIn*
 gu_data_in(const uint8_t* buf, size_t size, GuPool* pool);

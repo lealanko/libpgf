@@ -247,7 +247,6 @@ gu_string_eq(GuString s1, GuString s2)
 static GuHash
 gu_string_hasher_hash(GuHasher* self, GuHash h, const void* p)
 {
-	(void) self;
 	const GuString* sp = p;
 	return gu_string_hash(*sp);
 }
@@ -255,7 +254,6 @@ gu_string_hasher_hash(GuHasher* self, GuHash h, const void* p)
 static bool
 gu_string_eq_fn(GuEquality* self, const void* p1, const void* p2)
 {
-	(void) self;
 	const GuString* sp1 = p1;
 	const GuString* sp2 = p2;
 	return gu_string_eq(*sp1, *sp2);

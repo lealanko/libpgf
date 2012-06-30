@@ -176,7 +176,6 @@ static void
 pgf_lzr_index_cnccat_cb(GuMapItor* fn, const void* key, void* value,
 			GuExn* err)
 {
-	(void) (key && err);
 	PgfLzrIndexFn* clo = (PgfLzrIndexFn*) fn;
 	PgfCncCat** cnccatp = value;
 	PgfCncCat* cnccat = *cnccatp;

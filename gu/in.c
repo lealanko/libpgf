@@ -388,7 +388,7 @@ gu_buffered_in_input(GuInStream* self, uint8_t* dst, size_t sz, GuExn* err)
 }
 
 GuIn*
-gu_buffered_in(GuIn* in, size_t buf_sz, GuPool* pool)
+gu_new_buffered_in(GuIn* in, size_t buf_sz, GuPool* pool)
 {
 	GuBufferedInStream* bis = gu_new_flex(pool, GuBufferedInStream,
 					      buf, buf_sz);
@@ -413,7 +413,6 @@ struct GuDataIn {
 static const uint8_t*
 gu_data_in_begin_buffer(GuInStream* self, size_t* sz_out, GuExn* err)
 {
-	(void) err;
 	GuDataIn* di = gu_container(self, GuDataIn, stream);
 	const uint8_t* buf = di->data;
 	if (buf) {

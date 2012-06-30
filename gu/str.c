@@ -36,7 +36,6 @@ gu_str_eq(GuStr s1, GuStr s2)
 static bool
 gu_str_is_equal(GuEquality* self, const void* p1, const void* p2)
 {
-	(void) self;
 	const GuStr* sp1 = p1;
 	const GuStr* sp2 = p2;
 	return gu_str_eq(*sp1, *sp2);
@@ -45,7 +44,6 @@ gu_str_is_equal(GuEquality* self, const void* p1, const void* p2)
 static GuHash
 gu_str_hasher_hash(GuHasher* self, GuHash h, const void* p)
 {
-	(void) self;
 	const GuStr* sp = p;
 	for (const char* s = *sp; *s != '\0'; s++) {
 		h = 101 * h + (unsigned char) *s;

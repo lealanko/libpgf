@@ -86,8 +86,6 @@ static void
 gu_dump_int(GuDumpFn* dumper, GuType* type, const void* p, 
 	    GuDump* ctx)
 {
-	(void) dumper;
-	(void) type;
 	const int* ip = p;
 	gu_dump_scalar(ctx, "%d", *ip);
 }
@@ -96,7 +94,6 @@ static void
 gu_dump_uint16(GuDumpFn* dumper, GuType* type, const void* p, 
 	       GuDump* ctx)
 {
-	(void) (dumper && type);
 	const uint16_t* ip = p;
 	gu_dump_scalar(ctx, "%" PRIu16, *ip);
 }
@@ -105,7 +102,6 @@ static void
 gu_dump_int32(GuDumpFn* dumper, GuType* type, const void* p, 
 	      GuDump* ctx)
 {
-	(void) (dumper && type);
 	const int32_t* ip = p;
 	gu_dump_scalar(ctx, "%" PRIi32, *ip);
 }
@@ -114,7 +110,6 @@ static void
 gu_dump_size(GuDumpFn* dumper, GuType* type, const void* p, 
 	     GuDump* ctx)
 {
-	(void) (dumper && type);
 	const size_t* zp = p;
 	gu_dump_scalar(ctx, "%zu", *zp);
 }
@@ -125,8 +120,6 @@ static void
 gu_dump_double(GuDumpFn* dumper, GuType* type, const void* p, 
 	       GuDump* ctx)
 {
-	(void) dumper;
-	(void) type;
 	const double* dp = p;
 	gu_dump_scalar(ctx, "%lf", *dp);
 }
@@ -137,8 +130,6 @@ static void
 gu_dump_length(GuDumpFn* dumper, GuType* type, const void* p, 
 	       GuDump* ctx)
 {
-	(void) dumper;
-	(void) type;
 	const GuLength* ip = p;
 	gu_dump_scalar(ctx, "%d", *ip);
 	GuLength* lenp = gu_map_get(ctx->data, gu_dump_length_key, void*);
@@ -151,8 +142,6 @@ static void
 gu_dump_str(GuDumpFn* dumper, GuType* type, const void* p, 
 	    GuDump* ctx)
 {
-	(void) dumper;
-	(void) type;
 	const GuStr* sp = p;
 	gu_dump_str_scalar(ctx, *sp);
 }
@@ -161,8 +150,6 @@ static void
 gu_dump_string(GuDumpFn* dumper, GuType* type, const void* p, 
 	       GuDump* ctx)
 {
-	(void) dumper;
-	(void) type;
 	const GuString* sp = p;
 	gu_yaml_scalar(ctx->yaml, *sp);
 }
@@ -173,7 +160,6 @@ static void
 gu_dump_pointer(GuDumpFn* dumper, GuType* type, const void* p, 
 		GuDump* ctx)
 {
-	(void) dumper;
 	GuPointerType* ptype = (GuPointerType*) type;
 	void* const* pp = p;
 	if (*pp == NULL) {
@@ -192,7 +178,6 @@ typedef struct {
 static void
 gu_dump_map_itor(GuMapItor* self, const void* key, void* value, GuExn* err)
 {
-	(void) err;
 	GuDumpMapFn* clo = (GuDumpMapFn*) self;
 	gu_dump(clo->mtype->key_type, key, clo->ctx);
 	gu_dump(clo->mtype->value_type, value, clo->ctx);
@@ -202,7 +187,6 @@ static void
 gu_dump_map(GuDumpFn* dumper, GuType* type, const void* p,
 	    GuDump* ctx)
 {
-	(void) dumper;
 	GuMapType* mtype = (GuMapType*) type;
 	GuMap* map = (GuMap*) p;
 	gu_yaml_begin_mapping(ctx->yaml);
@@ -216,7 +200,6 @@ static void
 gu_dump_struct(GuDumpFn* dumper, GuType* type, const void* p,
 	       GuDump* ctx)
 {
-	(void) dumper;
 	GuStructRepr* srepr = (GuStructRepr*) type;
 	gu_yaml_begin_mapping(ctx->yaml);
 	const uint8_t* data = p;
@@ -251,7 +234,6 @@ static void
 gu_dump_alias(GuDumpFn* dumper, GuType* type, const void* p,
 	      GuDump* ctx)
 {
-	(void) dumper;
 	GuTypeAlias* alias = gu_type_cast(type, alias);
 
 	gu_dump(alias->type, p, ctx);
@@ -283,7 +265,6 @@ static void
 gu_dump_referenced(GuDumpFn* dumper, GuType* type, const void* p,
 		   GuDump* ctx)
 {
-	(void) dumper;
 	GuTypeAlias* alias = gu_type_cast(type, alias);
 	bool created = gu_dump_anchor(ctx, p);
 	if (created) {
@@ -297,8 +278,6 @@ static void
 gu_dump_reference(GuDumpFn* dumper, GuType* type, const void* p, 
 		  GuDump* ctx)
 {
-	(void) dumper;
-	(void) type;
 	void* const* pp = p;
 	bool created = gu_dump_anchor(ctx, *pp);
 	if (created) {
@@ -312,7 +291,6 @@ static void
 gu_dump_shared(GuDumpFn* dumper, GuType* type, const void* p, 
 		  GuDump* ctx)
 {
-	(void) dumper;
 	void* const* pp = p;
 	if (*pp == NULL || !ctx->print_shared) {
 		gu_dump_null(ctx);
@@ -329,7 +307,6 @@ static void
 gu_dump_list(GuDumpFn* dumper, GuType* type, const void* p, 
 	     GuDump* ctx)
 {
-	(void) dumper;
 	GuListType* ltype = (GuListType*) type;
 	const uint8_t* up = p;
 	int len = * (const int*) p;
@@ -346,7 +323,6 @@ static void
 gu_dump_variant(GuDumpFn* dumper, GuType* type, const void* p,
 		GuDump* ctx)
 {
-	(void) dumper;
 	GuVariantType* vtype = gu_type_cast(type, GuVariant);
 	const GuVariant* vp = p;
 	int tag = gu_variant_tag(*vp);
@@ -369,7 +345,6 @@ static void
 gu_dump_enum(GuDumpFn* dumper, GuType* type, const void* p,
 	     GuDump* ctx)
 {
-	(void) dumper;
 	GuEnumType* etype = gu_type_cast(type, enum);
 	GuEnumConstant* cp = gu_enum_value(etype, p);
 	gu_assert(cp != NULL);
@@ -380,7 +355,6 @@ static void
 gu_dump_seq(GuDumpFn* dumper, GuType* type, const void* p,
 	    GuDump* ctx)
 {
-	(void) dumper;
 	GuSeqType* dtype = gu_type_cast(type, GuSeq);
 	size_t elem_size = gu_type_size(dtype->elem_type);
 	const GuSeq* seqp = p;

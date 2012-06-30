@@ -51,7 +51,6 @@ void
 gu_log_full_v(GuLogKind kind, const char* func, const char* file, int line,
 	      const char* fmt, va_list args)
 {
-	(void) (kind && line);
 	if (!gu_log_enabled(func, file)) {
 		return;
 	}
@@ -83,7 +82,6 @@ void
 gu_plog_full(GuLogKind kind, const char* func, const char* file, int line,
 	     GuFmt* fmt, const void** fargs)
 {
-	(void) (kind && line);
 	if (!gu_log_enabled(func, file)) {
 		return;
 	}

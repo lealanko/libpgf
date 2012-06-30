@@ -185,7 +185,6 @@ static size_t
 gu_buf_out_output(GuOutStream* stream, const uint8_t* src, size_t sz,
 		  GuExn* err)
 {
-	(void) err;
 	GuBufOut* bout = gu_container(stream, GuBufOut, stream);
 	GuBuf* buf = bout->buf;
 	gu_assert(sz % buf->elem_size == 0);
@@ -197,8 +196,6 @@ gu_buf_out_output(GuOutStream* stream, const uint8_t* src, size_t sz,
 static uint8_t*
 gu_buf_outbuf_begin(GuOutStream* stream, size_t req, size_t* sz_out, GuExn* err)
 {
-	(void) req;
-	(void) err;
 	GuBufOut* bout = gu_container(stream, GuBufOut, stream);
 	GuBuf* buf = bout->buf;
 	size_t esz = buf->elem_size;
@@ -213,7 +210,6 @@ gu_buf_outbuf_begin(GuOutStream* stream, size_t req, size_t* sz_out, GuExn* err)
 static void
 gu_buf_outbuf_end(GuOutStream* stream, size_t sz, GuExn* err)
 {
-	(void) err;
 	GuBufOut* bout = gu_container(stream, GuBufOut, stream);
 	GuBuf* buf = bout->buf;
 	size_t len = gu_buf_length(buf);

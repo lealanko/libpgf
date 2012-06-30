@@ -217,35 +217,30 @@ pgf_read_to_enum(GuType* type, PgfReader* rdr, void* to)
 static void
 pgf_read_to_void(GuType* info, PgfReader* rdr, void* to)
 {
-	(void) (info && rdr && to);
 }
 
 
 static void
 pgf_read_to_int32_t(GuType* type, PgfReader* rdr, void* to) 
 {
-	(void) type;
 	*(int*) to = pgf_read_int(rdr);
 }
 
 static void
 pgf_read_to_uint16_t(GuType* type, PgfReader* rdr, void* to)
 {
-	(void) type;
 	*(uint16_t*) to = gu_in_u16be(rdr->in, rdr->err);
 }
 
 static void
 pgf_read_to_GuLength(GuType* type, PgfReader* rdr, void* to)
 {
-	(void) type;
 	*(GuLength*) to = pgf_read_len(rdr);
 }
 
 static void
 pgf_read_to_double(GuType* type, PgfReader* rdr, void* to)
 {
-	(void) type;
 	*(double*) to = gu_in_f64be(rdr->in, rdr->err);
 }
 
@@ -262,7 +257,6 @@ pgf_read_into_map(GuMapType* mtype, PgfReader* rdr, GuMap* map, GuPool* pool)
 	/* The parameter pool is the temporary pool used to store the
 	   map. But the actual values need to be more persistent so we
 	   store them in rdr->opool. */
-	(void) pool;
 	GuPool* tmp_pool = gu_new_pool();
 	void* old_key = rdr->curr_key;
 	void* key = NULL;
@@ -304,7 +298,6 @@ pgf_read_new_GuMap(GuType* type, PgfReader* rdr, GuPool* pool)
 static void
 pgf_read_to_GuString(GuType* type, PgfReader* rdr, void* to)
 {
-	(void) (type);
 	gu_enter("-> GuString");
 	pgf_reader_tell(rdr);
 	GuString* sp = to;
@@ -330,7 +323,6 @@ pgf_read_to_GuString(GuType* type, PgfReader* rdr, void* to)
 static void
 pgf_read_to_PgfCId(GuType* type, PgfReader* rdr, void* to)
 {
-	(void) (type);
 	gu_enter("-> PgfCId");
 	pgf_reader_tell(rdr);
 	
@@ -373,7 +365,6 @@ pgf_reader_intern_ccat(PgfReader* rdr, PgfFId fid)
 static void
 pgf_read_to_PgfCCatId(GuType* type, PgfReader* rdr, void* to)
 {
-	(void) (type);
 	PgfCCat** pto = to;
 	PgfFId fid = pgf_read_int(rdr);
 	gu_return_on_exn(rdr->err,);
@@ -451,10 +442,9 @@ pgf_read_to_idarray(GuType* type, PgfReader* rdr, void* to)
 static void
 pgf_read_to_PgfSeqId(GuType* type, PgfReader* rdr, void* to)
 {
-	(void) type;
 	int32_t id = pgf_read_int(rdr);
 	gu_return_on_exn(rdr->err,);
-	if (id < 0 || id >= gu_seq_length(rdr->curr_sequences)) {
+	if (id < 0 || (size_t)id >= gu_seq_length(rdr->curr_sequences)) {
 		gu_raise(rdr->err, PgfReadExn);
 		return;
 	}
@@ -465,10 +455,9 @@ pgf_read_to_PgfSeqId(GuType* type, PgfReader* rdr, void* to)
 static void
 pgf_read_to_PgfFunId(GuType* type, PgfReader* rdr, void* to)
 {
-	(void) type;
 	int32_t id = pgf_read_int(rdr);
 	gu_return_on_exn(rdr->err,);
-	if (id < 0 || id >= gu_seq_length(rdr->curr_cncfuns)) {
+	if (id < 0 || (size_t)id >= gu_seq_length(rdr->curr_cncfuns)) {
 		gu_raise(rdr->err, PgfReadExn);
 		return;
 	}
@@ -536,7 +525,6 @@ pgf_ccat_set_cnccat(PgfCCat* ccat, GuBuf* newly_set)
 static void
 pgf_read_ccat_cb(GuMapItor* fn, const void* key, void* value, GuExn* err)
 {
-	(void) (key && err);
 	PgfCCatCbCtx* ctx = (PgfCCatCbCtx*) fn;
 	PgfCCat** ccatp = value;
 	pgf_ccat_set_cnccat(*ccatp, ctx->seq);
@@ -545,7 +533,6 @@ pgf_read_ccat_cb(GuMapItor* fn, const void* key, void* value, GuExn* err)
 static void*
 pgf_read_new_PgfConcr(GuType* type, PgfReader* rdr, GuPool* pool)
 {
-	(void) (type);
 	/* We allocate indices from a temporary pool. The actual data
 	 * is allocated from rdr->opool. Once everything is resolved
 	 * and indices aren't needed, the temporary pool can be
@@ -633,7 +620,6 @@ pgf_read_new_PgfCncCat(GuType* type, PgfReader* rdr, GuPool* pool)
 {
 	PgfCId cid = *(PgfCId*) rdr->curr_key;
 	gu_enter("-> cid");
-	(void) (type);
 	PgfCncCat* cnccat = gu_new(PgfCncCat, pool);
 	cnccat->cid = cid;
 	int first = pgf_read_int(rdr);
