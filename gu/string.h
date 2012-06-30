@@ -19,7 +19,7 @@
 
 
 /// A string.
-typedef GuOpaque() GuString;
+typedef GuOpaque GuString;
 
 /**< A #GuString represents a sequence of Unicode codepoints. The
  * representation is likely to be more efficient than using simply an array of

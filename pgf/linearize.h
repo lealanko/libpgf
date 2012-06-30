@@ -49,7 +49,7 @@ pgf_new_lzr(PgfConcr* cnc, GuPool* pool);
  * Because of the \c variants construct in GF, there may be several
  * possible concrete syntax trees that correspond to a given abstract
  * syntax tree. These can be enumerated with #pgf_lzr_concretize and
- * #pgf_cnc_trees_next.
+ * #gu_enum_next.
  *
  * @{
  */
