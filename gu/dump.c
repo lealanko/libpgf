@@ -96,10 +96,18 @@ static void
 gu_dump_uint16(GuDumpFn* dumper, GuType* type, const void* p, 
 	       GuDump* ctx)
 {
-	(void) dumper;
-	(void) type;
+	(void) (dumper && type);
 	const uint16_t* ip = p;
 	gu_dump_scalar(ctx, "%" PRIu16, *ip);
+}
+
+static void 
+gu_dump_int32(GuDumpFn* dumper, GuType* type, const void* p, 
+	      GuDump* ctx)
+{
+	(void) (dumper && type);
+	const int32_t* ip = p;
+	gu_dump_scalar(ctx, "%" PRIi32, *ip);
 }
 
 static void 
@@ -199,7 +207,7 @@ gu_dump_map(GuDumpFn* dumper, GuType* type, const void* p,
 	GuMap* map = (GuMap*) p;
 	gu_yaml_begin_mapping(ctx->yaml);
 	GuDumpMapFn clo = { { gu_dump_map_itor }, mtype, ctx };
-	gu_map_iter(map, &clo.itor, NULL);
+	gu_map_iter(map, &clo.itor, gu_null_exn());
 	gu_yaml_end(ctx->yaml);
 }
 
@@ -397,6 +405,7 @@ gu_dump_table = GU_TYPETABLE(
 	GU_SLIST_0,
 	{ gu_kind(int), gu_fn(gu_dump_int) },
 	{ gu_kind(uint16_t), gu_fn(gu_dump_uint16) },
+	{ gu_kind(int32_t), gu_fn(gu_dump_int32) },
 	{ gu_kind(size_t), gu_fn(gu_dump_size) },
 	{ gu_kind(GuStr), gu_fn(gu_dump_str) },
 	{ gu_kind(GuString), gu_fn(gu_dump_string) },
