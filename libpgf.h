@@ -20,7 +20,7 @@
  * - Representing abstract syntax trees: pgf/expr.h
  * - Linearizing abstract syntax trees: pgf/linearize.h
  * 
- * @author Lauri Alanko <lealanko@helsinki.fi>
+ * @author Lauri Alanko <lealanko@ling.helsinki.fi>
  *
  * @copyright Copyright 2010-2012 University of Helsinki. Released under the
  * @ref LGPL3.
