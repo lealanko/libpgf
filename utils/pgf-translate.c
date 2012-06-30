@@ -1,3 +1,5 @@
+// Copyright 2011-2012 University of Helsinki. Released under LGPL3.
+
 #include <gu/variant.h>
 #include <gu/map.h>
 #include <gu/dump.h>
@@ -84,10 +86,9 @@ int main(int argc, char* argv[]) {
 	// Create an output stream for stdout
 	GuOut* out = gu_file_out(stdout, pool);
 
-	// Locale-encoding writers are currently unsupported
-	// GuWriter* wtr = gu_locale_writer(out, pool);
-	// Use a writer with hard-coded utf-8 encoding for now.
-	GuWriter* wtr = gu_new_utf8_writer(out, pool);
+	// Use a writer that translates characters into the current locale's
+	// encoding.
+	GuWriter* wtr = gu_new_locale_writer(out, pool);
 
 	// The interactive translation loop.
 	// XXX: This currently reads stdin directly, so it doesn't support
@@ -120,7 +121,7 @@ int main(int argc, char* argv[]) {
 			break;
 		}
 
-		// naive tokenization
+		// Just do utterly naive space-separated tokenization
 		char* tok = strtok(line, " \n");
 		while (tok) {
 			GuString tok_s = gu_str_string(tok, pool);

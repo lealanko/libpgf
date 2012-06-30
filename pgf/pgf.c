@@ -1,3 +1,5 @@
+// Copyright 2012 University of Helsinki. Released under LGPL3.
+
 #include <pgf/pgf.h>
 #include <gu/log.h>
 #include "pgf/data.h"

@@ -106,6 +106,12 @@ utils_pgf2yaml_LDADD = libpgf.la libgu.la
 utils_pgf_translate_SOURCES = utils/pgf-translate.c
 utils_pgf_translate_LDADD = libpgf.la libgu.la
 
+noinst_PROGRAMS = \
+	test/test-write
+
+test_test_write_SOURCES = test/test-write.c
+test_test_write_LDADD = libgu.la
+
 AUTOMAKE_OPTIONS = foreign subdir-objects dist-bzip2
 ACLOCAL_AMFLAGS = -I m4
 include doxygen.am

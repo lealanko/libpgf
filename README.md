@@ -2,8 +2,10 @@ LIBPGF                                                      {#mainpage}
 ======
 
 This is a preview release of `libpgf`, a native-code library for parsing
-and linearization of the PGF grammars produced by the [Grammatical 
-Framework][GF].
+and linearization of the PGF grammars produced by the [Grammatical
+Framework][GF]. The library is designed to be a lightweight, portable,
+easily embeddable alternative to the Haskell-based PGF runtime that is
+distributed with GF.
 
 This release is not yet ready for production use: essential
 functionality is still missing, the API is still likely to change, and
@@ -17,7 +19,7 @@ Getting the library
 
 The current version of the library is 0.1. It is currently available
 only as a [source package][libpgf-0.1-src]. The library is released
-under the [GNU Lesser General Public License][LGPL3], version 3.
+under the @ref LGPL3.
 
 
 Prerequisites
@@ -34,7 +36,6 @@ Although the code "only" requires C99-conformance, it seems that many
 compilers fail at it subtly. In particular:
 
 - Clang does not currently support "extern inline" properly.
-
 - Sun C 5.9 apparently has a bug in its treatment of sizeof on compound
   array literals.
 
@@ -117,16 +118,8 @@ Documentation is still fragmentary, but some of the most important
 headers have documentation comments. If you have [Doxygen] installed,
 `make doxygen-doc` will generate HTML documentation for the library.
 
-The documentation of the following headers should be enough to get you
-up to speed with the library.
-
-- Memory pools: gu/mem.h
-- Exceptions: gu/exn.h
-- PGF reading: pgf/reader.h
-- Looking up concrete grammars from a PGF: pgf/pgf.h
-- Parsing token streams: pgf/parser.h
-- Representing abstract syntax trees: pgf/expr.h
-- Linearizing abstract syntax trees: pgf/linearize.h
+The introductory documentation for `libgu` and `libpgf` can be found in
+libgu.h and libpgf.h, respectively.
 
 The sources in @ref pgf-translate have some comments which may also
 clarify how to use the library.
@@ -146,7 +139,7 @@ Credits
 -------
 
 `libpgf` and `libgu` are developed by [Lauri Alanko]. The PGF format
-and parsing algorithms were invented by [Krasimir Angelov].
+and parsing algorithms were created by [Krasimir Angelov].
 
 
 [Doxygen]:		http://doxygen.org/
@@ -162,3 +155,5 @@ and parsing algorithms were invented by [Krasimir Angelov].
 @page pgf-translate pgf-translate.c
 @include ./utils/pgf-translate.c
 
+@page LGPL3 GNU Lesser General Public License, version 3
+@verbinclude COPYING.LESSER

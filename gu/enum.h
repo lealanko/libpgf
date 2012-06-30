@@ -1,11 +1,13 @@
-#ifndef GU_ENUM_H_
-#define GU_ENUM_H_
-
-#include <gu/mem.h>
+// Copyright 2011-2012 University of Helsinki. Released under LGPL3.
 
 /** @file
  * Enumerations.
  */
+
+#ifndef GU_ENUM_H_
+#define GU_ENUM_H_
+
+#include <gu/mem.h>
 
 typedef struct GuEnum GuEnum;
 /**< An enumeration of elements. */

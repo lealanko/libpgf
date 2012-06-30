@@ -1,21 +1,4 @@
-/* 
- * Copyright 2010 University of Helsinki.
- *   
- * This file is part of libpgf.
- * 
- * Libpgf is free software: you can redistribute it and/or modify it under
- * the terms of the GNU Lesser General Public License as published by the
- * Free Software Foundation, either version 3 of the License, or (at your
- * option) any later version.
- * 
- * Libpgf is distributed in the hope that it will be useful, but WITHOUT
- * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
- * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public
- * License for more details.
- * 
- * You should have received a copy of the GNU Lesser General Public
- * License along with libpgf. If not, see <http://www.gnu.org/licenses/>.
- */
+// Copyright 2010-2012 University of Helsinki. Released under LGPL3.
 
 #include "data.h"
 #include "linearize.h"
@@ -225,7 +208,7 @@ pgf_new_lzr(PgfConcr* cnc, GuPool* pool)
 	gu_pool_free(tmp_pool);
 
 	PgfLzrIndexFn clo = { { pgf_lzr_index_cnccat_cb }, lzr };
-	gu_map_iter(cnc->cnccats, &clo.fn, NULL);
+	gu_map_iter(cnc->cnccats, &clo.fn, gu_null_exn());
 	size_t n_extras = gu_seq_length(cnc->extra_ccats);
 	for (size_t i = 0; i < n_extras; i++) {
 		PgfCCat* cat = gu_seq_get(cnc->extra_ccats, PgfCCat*, i);

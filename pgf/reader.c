@@ -1,21 +1,4 @@
-/* 
- * Copyright 2010 University of Helsinki.
- *   
- * This file is part of libpgf.
- * 
- * Libpgf is free software: you can redistribute it and/or modify it under
- * the terms of the GNU Lesser General Public License as published by the
- * Free Software Foundation, either version 3 of the License, or (at your
- * option) any later version.
- * 
- * Libpgf is distributed in the hope that it will be useful, but WITHOUT
- * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
- * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public
- * License for more details.
- * 
- * You should have received a copy of the GNU Lesser General Public
- * License along with libpgf. If not, see <http://www.gnu.org/licenses/>.
- */
+// Copyright 2010-2012 University of Helsinki. Released under LGPL3.
 
 #include "data.h"
 #include "expr.h"
@@ -600,7 +583,7 @@ pgf_read_new_PgfConcr(GuType* type, PgfReader* rdr, GuPool* pool)
 
 	GuBuf* extra_ccats = gu_new_buf(PgfCCat*, tmp_pool);
 	PgfCCatCbCtx ctx = { { pgf_read_ccat_cb }, extra_ccats };
-	gu_map_iter(rdr->curr_ccats, &ctx.fn, NULL);
+	gu_map_iter(rdr->curr_ccats, &ctx.fn, gu_null_exn());
 	concr->extra_ccats = gu_buf_freeze(extra_ccats, rdr->opool);
 	(void) pgf_read_int(rdr); // totalcats
 fail:

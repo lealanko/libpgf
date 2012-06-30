@@ -1,3 +1,5 @@
+// Copyright 2010-2012 University of Helsinki. Released under LGPL3.
+
 #ifndef GU_MAP_H_
 #define GU_MAP_H_
 

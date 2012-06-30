@@ -1,3 +1,4 @@
+// Copyright 2010-2012 University of Helsinki. Released under LGPL3.
  
 #ifndef GU_TYPE_H_
 #define GU_TYPE_H_

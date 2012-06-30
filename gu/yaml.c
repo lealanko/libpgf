@@ -1,3 +1,5 @@
+// Copyright 2011 University of Helsinki. Released under LGPL3.
+
 #include <gu/yaml.h>
 #include <gu/seq.h>
 #include <gu/assert.h>

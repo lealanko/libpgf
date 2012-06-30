@@ -1,3 +1,5 @@
+// Copyright 2011 University of Helsinki. Released under LGPL3.
+
 #ifndef PGF_EDSL_H_
 #define PGF_EDSL_H_
 

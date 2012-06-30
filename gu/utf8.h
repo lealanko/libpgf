@@ -1,3 +1,5 @@
+// Copyright 2011-2012 University of Helsinki. Released under LGPL3.
+
 #ifndef GU_UTF8_H_
 #define GU_UTF8_H_
 

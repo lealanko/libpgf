@@ -1,3 +1,5 @@
+// Copyright 2010-2012 University of Helsinki. Released under LGPL3.
+
 #include <gu/defs.h>
 #include <gu/mem.h>
 #include <gu/type.h>

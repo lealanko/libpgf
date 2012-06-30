@@ -1,3 +1,4 @@
+// Copyright 2010-2012 University of Helsinki. Released under LGPL3.
 
 #include <gu/type.h>
 #include <gu/assert.h>

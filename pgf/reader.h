@@ -1,3 +1,5 @@
+// Copyright -2012 University of Helsinki. Released under LGPL3.
+
 #ifndef GU_READER_H_
 #define GU_READER_H_
 

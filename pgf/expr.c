@@ -1,3 +1,5 @@
+// Copyright 2011-2012 University of Helsinki. Released under LGPL3.
+
 #include "expr.h"
 #include <gu/intern.h>
 #include <gu/assert.h>

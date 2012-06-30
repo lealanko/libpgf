@@ -1,5 +1,6 @@
-#include <gu/bits.h>
+// Copyright 2010-2012 University of Helsinki. Released under LGPL3.
 
+#include <gu/bits.h>
 #include <limits.h>
 #include <inttypes.h>
 #include <stdio.h>

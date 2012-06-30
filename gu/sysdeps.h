@@ -1,3 +1,5 @@
+// Copyright 2011 University of Helsinki. Released under LGPL3.
+
 #ifndef GU_SYSDEPS_H_
 #define GU_SYSDEPS_H_
 
