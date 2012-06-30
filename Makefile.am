@@ -117,6 +117,7 @@ ACLOCAL_AMFLAGS = -I m4
 include doxygen.am
 
 EXTRA_DIST = \
+	INSTALL \
 	Doxyfile \
 	DoxygenLayout.xml \
 	libgu.pc.in \
