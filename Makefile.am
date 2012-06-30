@@ -40,7 +40,8 @@ guinclude_HEADERS = \
 	gu/utf8.h \
 	gu/variant.h \
 	gu/write.h \
-	gu/yaml.h
+	gu/yaml.h \
+	libgu.h
 
 libgu_la_SOURCES = \
 	gu/assert.c \
@@ -74,15 +75,14 @@ libgu_la_SOURCES = \
 	gu/variant.c \
 	gu/yaml.c
 
-
 pgfincludedir=$(includedir)/pgf
 pgfinclude_HEADERS = \
-	libpgf.h \
 	pgf/expr.h \
 	pgf/linearize.h \
 	pgf/parser.h \
 	pgf/pgf.h \
-	pgf/reader.h
+	pgf/reader.h \
+	libpgf.h
 
 libpgf_la_SOURCES = \
 	pgf/data.c \
