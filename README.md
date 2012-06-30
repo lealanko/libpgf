@@ -46,9 +46,10 @@ the code. Modern versions of GCC, on the other hand, seem to work fine.
 Installing
 ----------
 
-This is a standard GNU Autotools package. Read the attached INSTALL file
-for generic installation instructions. There are currently no
-interesting special configuration options.
+This is a standard GNU Autotools package: `./configure; make; make
+install` should do the trick. Read the attached @ref INSTALL file for
+generic installation instructions. There are currently no interesting
+special configuration options.
 
 Pkg-config configuration files for the library are also provided.
 
@@ -157,3 +158,6 @@ and parsing algorithms were created by [Krasimir Angelov].
 
 @page LGPL3 GNU Lesser General Public License, version 3
 @verbinclude COPYING.LESSER
+
+@page INSTALL
+@verbinclude INSTALL

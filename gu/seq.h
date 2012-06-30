@@ -9,7 +9,7 @@
 
 typedef struct GuBuf GuBuf;
 
-typedef GuOpaque GuSeq;
+typedef GU_OPAQUE GuSeq;
 
 GuSeq
 gu_make_seq(size_t elem_size, size_t len, GuPool* pool);

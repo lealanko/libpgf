@@ -80,7 +80,7 @@ gu_ptr_word(void* p)
 	return (GuWord) p;
 }
 
-#define GuOpaque struct { GuWord w_; }
+#define GU_OPAQUE struct { GuWord w_; }
 
 typedef GuWord GuTagged;
 
