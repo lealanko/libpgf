@@ -41,6 +41,10 @@ gu_str_string(const char* str, GuPool* pool);
 GuString
 gu_ucs_string(const GuUCS* ubuf, size_t len, GuPool* pool);
 
+/// Create a string from a UTF-8 encoded buffer.
+GuString
+gu_utf8_string(const uint8_t* buf, size_t sz, GuPool* pool);
+
 
 /// Copy a string.
 GuString

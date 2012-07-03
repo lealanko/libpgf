@@ -90,7 +90,7 @@ typedef GuString PgfToken;
 
 
 #include <gu/type.h>
-GU_DECLARE_TYPE(PgfPGF, struct);
+GU_DECLARE_TYPE(PgfPGF, referenced);
 
 
 #endif // PGF_H_

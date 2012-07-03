@@ -33,10 +33,10 @@ struct PgfReader {
 	PgfCncFuns curr_cncfuns;
 	GuMap* curr_ccats;
 	GuMap* curr_lindefs;
-	GuMap* curr_coercions;
 	GuTypeMap* read_to_map;
 	GuTypeMap* read_new_map;
 	void* curr_key;
+	GuMap* ctx;
 	GuPool* curr_pool;
 };
 
@@ -252,6 +252,13 @@ pgf_read_to_alias(GuType* type, PgfReader* rdr, void* to)
 }
 
 static void
+pgf_read_to_referenced(GuType* type, PgfReader* rdr, void* to)
+{
+	GuTypeAlias* atype = gu_type_cast(type, alias);
+	gu_map_put(rdr->ctx, type, void*, to);
+	pgf_read_to(rdr, atype->type, to);
+}
+static void
 pgf_read_into_map(GuMapType* mtype, PgfReader* rdr, GuMap* map, GuPool* pool)
 {
 	/* The parameter pool is the temporary pool used to store the
@@ -440,6 +447,21 @@ pgf_read_to_idarray(GuType* type, PgfReader* rdr, void* to)
 }
 
 static void
+pgf_read_to_PgfContext(GuType* type, PgfReader* rdr, void* to)
+{
+	GuPointerType* ptype = gu_type_cast(type, pointer);
+	GuStruct* ctx = gu_map_get(rdr->ctx, ptype->pointed_type, GuStruct*);
+	*(GuStruct**) to = ctx;
+}
+
+static void
+pgf_read_to_PgfKey(GuType* type, PgfReader* rdr, void* to)
+{
+	size_t sz = gu_type_size(type);
+	memcpy(to, rdr->curr_key, sz);
+}
+
+static void
 pgf_read_to_PgfSeqId(GuType* type, PgfReader* rdr, void* to)
 {
 	int32_t id = pgf_read_int(rdr);
@@ -540,6 +562,8 @@ pgf_read_new_PgfConcr(GuType* type, PgfReader* rdr, GuPool* pool)
 	GuPool* tmp_pool = gu_new_pool();
 	rdr->curr_pool = tmp_pool;
 	PgfConcr* concr = gu_new(PgfConcr, pool);
+	concr->pgf =
+		(PgfPGF*) gu_map_get(rdr->ctx, gu_type(PgfPGF), GuStruct*);
 	concr->id = *(PgfCId*) rdr->curr_key;
 	
 	concr->cflags = 
@@ -681,7 +705,10 @@ pgf_read_to_table = GU_TYPETABLE(
 	PGF_READ_TO(PgfCCatId),
 	PGF_READ_TO(PgfSeqId),
 	PGF_READ_TO(PgfFunId),
+	PGF_READ_TO(PgfContext),
+	PGF_READ_TO(PgfKey),
 	PGF_READ_TO(alias),
+	PGF_READ_TO(referenced),
 	PGF_READ_TO_FN(PgfSequences, pgf_read_to_idarray),
 	PGF_READ_TO_FN(PgfCncFuns, pgf_read_to_idarray));
 
@@ -714,6 +741,7 @@ pgf_new_reader(GuIn* in, GuPool* opool, GuPool* pool, GuExn* err)
 	rdr->read_to_map = gu_new_type_map(&pgf_read_to_table, pool);
 	rdr->read_new_map = gu_new_type_map(&pgf_read_new_table, pool);
 	rdr->pool = pool;
+	rdr->ctx = gu_new_addr_map(GuType, void*, &gu_null, pool);
 	return rdr;
 }
 

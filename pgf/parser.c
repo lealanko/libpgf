@@ -882,18 +882,20 @@ pgf_parse_result(PgfParse* parse, GuPool* pool)
 
 
 
-// TODO: s/CId/Cat, add the cid to Cat, make Cat the key to CncCat
+// TODO: make Cat the key to CncCat
 PgfParse*
-pgf_parser_parse(PgfParser* parser, PgfCId cat, size_t lin_idx, GuPool* pool)
+pgf_parser_parse(PgfParser* parser, PgfCat* cat, size_t lin_idx, GuPool* pool)
 {
+	gu_require(cat->pgf == parser->concr->pgf);
 	PgfParse* parse = pgf_new_parse(parser, pool);
 	GuPool* tmp_pool = gu_new_pool();
 	PgfParsing* parsing = pgf_new_parsing(parse, pool, tmp_pool);
 	PgfCncCat* cnccat =
-		gu_map_get(parser->concr->cnccats, &cat, PgfCncCat*);
+		gu_map_get(parser->concr->cnccats, &cat->cid, PgfCncCat*);
 	if (!cnccat) {
-		// error ...
-		gu_impossible();
+		// No concrete productions, but a valid category. Just return
+		// the empty parse. XXX: Or should we raise error?
+		return parse;
 	}
 	gu_assert(lin_idx < cnccat->n_lins);
 	size_t n_ccats = gu_seq_length(cnccat->cats);

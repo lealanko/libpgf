@@ -53,3 +53,8 @@ pgf_pgf_concrs(PgfPGF* pgf, GuPool* pool)
 }
 
 
+PgfCat*
+pgf_pgf_cat(PgfPGF* pgf, PgfCId cid)
+{
+	return gu_map_get(pgf->abstract.cats, &cid, PgfCat*);
+}

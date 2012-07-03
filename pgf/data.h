@@ -79,25 +79,36 @@ typedef GuSeq PgfSequences;
 extern GU_DECLARE_TYPE(PgfSequences, GuSeq);
 
 
+extern GU_DECLARE_KIND(PgfContext);
+typedef GuPointerType GuType_PgfContext;
+#define GU_TYPE_INIT_PgfContext GU_TYPE_INIT_pointer
+typedef PgfPGF* PgfPGFCtx;
+typedef PgfAbstr* PgfAbstrCtx;
+
+extern GU_DECLARE_KIND(PgfKey);
+typedef GuTypeAlias GuType_PgfKey;
+#define GU_TYPE_INIT_PgfKey GU_TYPE_INIT_alias
+typedef PgfCId PgfCIdKey;
+
 
 
 struct PgfAbstr {
+	PgfCId name;
 	PgfFlags* aflags;
 	PgfCIdMap* funs; // |-> PgfFunDecl*
 	PgfCIdMap* cats; // |-> PgfCat*
 };
 
+extern GU_DECLARE_TYPE(PgfAbstr, struct);
+
 struct PgfPGF {
 	uint16_t major_version;
 	uint16_t minor_version;
 	PgfFlags* gflags;
-	PgfCId absname;
 	PgfAbstr abstract;
 	PgfCIdMap* concretes; // |-> PgfConcr*
 	GuPool* pool;
 };
-
-extern GU_DECLARE_TYPE(PgfPGF, struct);
 
 struct PgfFunDecl {
 	PgfType* type;
@@ -112,8 +123,8 @@ struct PgfCatFun {
 };
 
 struct PgfCat {
-	PgfPGF* pgf;
-	PgfCId cid;
+	PgfPGFCtx pgf;
+	PgfCIdKey cid;
 	PgfHypos context;
 	PgfCatFuns functions;  
 };
@@ -189,7 +200,8 @@ typedef PgfCIdMap PgfPrintNames;
 extern GU_DECLARE_TYPE(PgfPrintNames, GuStringMap);
 
 struct PgfConcr {
-	PgfCId id;
+	PgfPGFCtx pgf;
+	PgfCIdKey id;
 	PgfFlags* cflags;
 	PgfPrintNames* printnames;
 	PgfCIdMap* cnccats;

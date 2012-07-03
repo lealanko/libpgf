@@ -31,7 +31,7 @@ int main(int argc, char* argv[]) {
 	char* filename = argv[1];
 
 	// Transform C strings to libgu strings
-	GuString cat = gu_str_string(argv[2], pool);
+	GuString catname = gu_str_string(argv[2], pool);
 	char* start = argv[3];
 	char* end = NULL;
 	long lin_idx = strtol(start, &end, 10);
@@ -54,7 +54,7 @@ int main(int argc, char* argv[]) {
 	GuIn* in = gu_file_in(infile, pool);
 
 	// Create an exception frame that catches all errors.
-	GuExn* err = gu_new_exn(NULL, gu_kind(type), pool);
+	GuExn* err = gu_top_exn(pool);
 
 	// Read the PGF grammar.
 	PgfPGF* pgf = pgf_read_pgf(in, pool, err);
@@ -64,6 +64,13 @@ int main(int argc, char* argv[]) {
 		fprintf(stderr, "Reading PGF failed\n");
 		status = EXIT_FAILURE;
 		goto fail_read;
+	}
+
+	PgfCat* cat = pgf_pgf_cat(pgf, catname);
+	if (!cat) {
+		fprintf(stderr, "Unknown start category: %s", argv[2]);
+		status = EXIT_FAILURE;
+		goto fail_cat;
 	}
 
 	// Look up the source and destination concrete categories
@@ -164,6 +171,7 @@ int main(int argc, char* argv[]) {
 		gu_pool_free(ppool);
 	}
 fail_concr:
+fail_cat:
 fail_read:
 	fclose(infile);
 fail:

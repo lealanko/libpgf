@@ -36,11 +36,11 @@ typedef struct PgfParser PgfParser;
 PgfParser*
 pgf_new_parser(PgfConcr* concr, GuPool* pool);
 /**<
- * @param concr The concrete category whose sentences are to be parsed
+ * @param concr The concrete grammar whose sentences are to be parsed
  *
  * @pool
  *
- * @return A newly created parser for the concrete category \p concr
+ * @return A newly created parser for the concrete category `concr`
  */ 
 
 /** @}
@@ -59,11 +59,12 @@ pgf_new_parser(PgfConcr* concr, GuPool* pool);
 
 /// Begin parsing
 PgfParse*
-pgf_parser_parse(PgfParser* parser, PgfCId cat, size_t lin_idx, GuPool* pool);
+pgf_parser_parse(PgfParser* parser, PgfCat* cat, size_t lin_idx, GuPool* pool);
 /**<
  * @param parser The parser to use
  *
- * @param cat The identifier of the abstract category to parse
+ * @param cat The abstract category to parse. This must be from the same
+ * #PgfPGF as the concrete category used to create the parser.
  *
  * @param lin_idx The index of the field of the concrete category to parse
  *

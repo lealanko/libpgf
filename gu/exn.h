@@ -63,6 +63,8 @@ typedef struct GuExn GuExn;
 	.data.data = NULL \
 }
 
+#define gu_top_exn(pool) gu_exn(NULL, type, pool)
+
 /**<
  * @param parent_exn      #GuExn `*`
  * @param CATCH_KIND  a kind name

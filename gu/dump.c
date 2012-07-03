@@ -279,11 +279,15 @@ gu_dump_reference(GuDumpFn* dumper, GuType* type, const void* p,
 		  GuDump* ctx)
 {
 	void* const* pp = p;
-	bool created = gu_dump_anchor(ctx, *pp);
-	if (created) {
-		// gu_assert(false);
-		GuPointerType* ptype = (GuPointerType*) type;
-		gu_dump(ptype->pointed_type, *pp, ctx);
+	if (*pp == NULL || !ctx->print_shared) {
+		gu_dump_null(ctx);
+	} else {
+		bool created = gu_dump_anchor(ctx, *pp);
+		if (created) {
+			// gu_assert(false);
+			GuPointerType* ptype = (GuPointerType*) type;
+			gu_dump(ptype->pointed_type, *pp, ctx);
+		}
 	}
 }
 

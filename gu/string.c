@@ -33,7 +33,7 @@ gu_string_buf_writer(GuStringBuf* sb)
 	return sb->wtr;
 }
 
-static GuString
+GuString
 gu_utf8_string(const uint8_t* buf, size_t sz, GuPool* pool)
 {
 	if (sz < GU_MIN(sizeof(GuWord), 128)) {
