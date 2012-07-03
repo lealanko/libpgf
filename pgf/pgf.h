@@ -11,6 +11,7 @@
 #include <gu/exn.h>
 #include <gu/mem.h>
 #include <gu/in.h>
+#include <gu/seq.h>
 #include <gu/string.h>
 #include <gu/enum.h>
 
@@ -52,6 +53,9 @@ extern GU_DECLARE_TYPE(PgfCId, typedef);
 typedef struct PgfCat PgfCat;
 
 PgfCat*
+pgf_pgf_startcat(PgfPGF* pgf);
+
+PgfCat*
 pgf_pgf_cat(PgfPGF* pgf, PgfCId cid);
 
 
@@ -70,6 +74,9 @@ pgf_concr_id(PgfConcr* concr);
 GuString
 pgf_concr_lang(PgfConcr* concr);
 
+GuStrings
+pgf_concr_cat_labels(PgfConcr* concr, PgfCat* cat, GuPool* pool);
+
 
 
 
@@ -81,6 +88,7 @@ pgf_pgf_concr(PgfPGF* pgf, GuString cid, GuPool* pool);
 
 PgfConcr*
 pgf_pgf_concr_by_lang(PgfPGF* pgf, GuString lang, GuPool* pool);
+
 
 
 

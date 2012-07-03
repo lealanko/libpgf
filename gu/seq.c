@@ -98,6 +98,17 @@ gu_make_seq(size_t elem_size, size_t length, GuPool* pool)
 	}
 }
 
+GuSeq
+gu_seq_copy(GuSeq seq, size_t elem_size, GuPool* pool)
+{
+	size_t length = gu_seq_length(seq);
+	GuSeq copy = gu_make_seq(elem_size, length, pool);
+	void* from = gu_seq_data(seq);
+	void* to = gu_seq_data(copy);
+	memcpy(to, from, elem_size * length);
+	return copy;
+}
+
 static void
 gu_buf_require(GuBuf* buf, size_t req_len)
 {

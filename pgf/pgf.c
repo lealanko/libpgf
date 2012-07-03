@@ -2,6 +2,7 @@
 
 #include <pgf/pgf.h>
 #include <gu/log.h>
+#include <gu/variant.h>
 #include "pgf/data.h"
 
 
@@ -46,6 +47,17 @@ end:
 	return ret;
 }
 
+GuStrings
+pgf_concr_cat_labels(PgfConcr* concr, PgfCat* cat, GuPool* pool)
+{
+	gu_require(cat->pgf == concr->pgf);
+	PgfCncCat* cnccat = gu_map_get(concr->cnccats, &cat->cid, PgfCncCat*);
+	if (!cnccat) {
+		return gu_null_seq;
+	}
+	return GU_SEQ_COPY(cnccat->labels, GuString, pool);
+}
+
 GuEnum*
 pgf_pgf_concrs(PgfPGF* pgf, GuPool* pool)
 {
@@ -53,8 +65,32 @@ pgf_pgf_concrs(PgfPGF* pgf, GuPool* pool)
 }
 
 
+
 PgfCat*
 pgf_pgf_cat(PgfPGF* pgf, PgfCId cid)
 {
 	return gu_map_get(pgf->abstract.cats, &cid, PgfCat*);
+}
+
+PgfCat*
+pgf_pgf_startcat(PgfPGF* pgf)
+{
+	GuPool* pool = gu_local_pool();
+	GuString str = gu_str_string("startcat", pool);
+	PgfLiteral lit = gu_map_get(pgf->abstract.aflags, &str, PgfLiteral);
+	switch (gu_variant_tag(lit)) {
+	case PGF_LITERAL_STR: {
+		PgfLiteralStr* lits = gu_variant_data(lit);
+		PgfCat* cat = pgf_pgf_cat(pgf, lits->val);
+		if (!cat) {
+			gu_warn("PGF named non-existent startcat");
+		}
+		return cat;
+	}
+	case GU_VARIANT_NULL:
+		break;
+	default:
+		gu_warn("PGF had non-string startcat");
+	}
+	return NULL;
 }

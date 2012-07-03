@@ -68,6 +68,12 @@ gu_seq_is_null(GuSeq seq)
 	(*gu_seq_index(SEQ, T, I) = (V));	\
 	GU_END
 
+GuSeq
+gu_seq_copy(GuSeq seq, size_t elem_size, GuPool* pool);
+
+#define GU_SEQ_COPY(seq, T, pool) \
+	gu_seq_copy(seq, sizeof(T), pool)
+
 
 
 
