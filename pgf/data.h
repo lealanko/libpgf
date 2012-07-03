@@ -134,9 +134,9 @@ struct PgfCncCat {
 	PgfCId cid;
 	PgfCCatIds cats;
 	PgfFunIds lindefs;
-	size_t n_lins;
+	size_t n_ctnts;
 
-	GuStrings labels;
+	GuStrings ctnts;
 	/**< Labels for tuples. All nested tuples, records and tables
 	 * in the GF linearization types are flattened into a single
 	 * tuple in the corresponding PGF concrete category. This
@@ -144,6 +144,9 @@ struct PgfCncCat {
 	 * parameter (or their combination) each tuple element
 	 * represents. */
 };
+
+PgfCtntId
+pgf_cnccat_ctnt_id_(PgfCncCat* cnccat, GuString ctnt);
 
 struct PgfCncFun {
 	PgfCId fun; // XXX: resolve to PgfFunDecl*?
@@ -199,12 +202,19 @@ extern PgfCCat pgf_ccat_string, pgf_ccat_int, pgf_ccat_float, pgf_ccat_var;
 typedef PgfCIdMap PgfPrintNames;
 extern GU_DECLARE_TYPE(PgfPrintNames, GuStringMap);
 
+typedef GuMap PgfCncCatMap;
+extern GU_DECLARE_TYPE(PgfCncCatMap, GuAddrMap);
+
+typedef PgfCat PgfCatId;
+extern GU_DECLARE_TYPE(PgfCatId, alias);
+
+
 struct PgfConcr {
 	PgfPGFCtx pgf;
 	PgfCIdKey id;
 	PgfFlags* cflags;
 	PgfPrintNames* printnames;
-	PgfCIdMap* cnccats;
+	PgfCncCatMap* cnccats;
 	PgfCCats extra_ccats;
 };
 

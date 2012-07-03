@@ -1,9 +1,13 @@
-// Copyright 2011 University of Helsinki. Released under LGPL3.
+// Copyright 2011-2012 University of Helsinki. Released under LGPL3.
 
 #ifndef GU_SYSDEPS_H_
 #define GU_SYSDEPS_H_
 
 #include <guconfig.h>
+
+#if !defined(__STDC_VERSION__) || __STDC_VERSION__ < 199901
+# error "libgu requires a C99 compiler"
+#endif
 
 #if defined(__GNUC__) && !defined(__STRICT_ANSI__)
 # define GU_GNUC

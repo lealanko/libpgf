@@ -1,87 +1,120 @@
 // Copyright 2011-2012 University of Helsinki. Released under LGPL3.
 
-#include <gu/variant.h>
-#include <gu/map.h>
-#include <gu/dump.h>
-#include <gu/log.h>
-#include <gu/enum.h>
+#include <libpgf.h>
 #include <gu/file.h>
-#include <pgf/pgf.h>
-#include <pgf/parser.h>
-#include <pgf/linearize.h>
-#include <pgf/expr.h>
-#include <pgf/reader.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 #include <locale.h>
+#include <unistd.h>
+#include <stdlib.h>
 
-int main(int argc, char* argv[]) {
-	// Set the character locale, so we can produce proper output.
-	setlocale(LC_CTYPE, "");
+typedef struct {
+	GuString catname;
+	GuString from_ctnt;
+	GuString to_ctnt;
+	bool show_expr;
+	const char* filename;
+	GuString from;
+	GuString to;
+} Options;
 
-	// Create the pool that is used to allocate everything
-	GuPool* pool = gu_new_pool();
-	int status = EXIT_SUCCESS;
-	if (argc != 6) {
-		fprintf(stderr, "usage: %s pgf cat lin from_lang to_lang\n", argv[0]);
-		status = EXIT_FAILURE;
-		goto fail;
+
+Options*
+parse_options(int argc, char* argv[], GuPool* pool, GuExn* exn)
+{
+	Options opts = { gu_null_string };
+	int opt;
+	while ((opt = getopt(argc, argv, "c:F:T:t")) != -1) {
+		GuString* dst = NULL;
+		switch (opt) {
+		case 'c':
+			dst = &opts.catname;
+			break;
+		case 'F':
+			dst = &opts.from_ctnt;
+			break;
+		case 'T':
+			dst = &opts.to_ctnt;
+			break;
+		case 't':
+			opts.show_expr = true;
+			break;
+		default:
+			gu_raise(exn, void);
+			return NULL;
+		}
+		if (dst) {
+			*dst = gu_str_string(optarg, pool);
+		}
 	}
-	char* filename = argv[1];
-
-	// Transform C strings to libgu strings
-	GuString catname = gu_str_string(argv[2], pool);
-	char* start = argv[3];
-	char* end = NULL;
-	long lin_idx = strtol(start, &end, 10);
-	if (!*start || *end) {
-		fprintf(stderr, "bad linearization index: %s", start);
-		status = EXIT_FAILURE;
-		goto fail;
+	if (optind != argc - 3) {
+		gu_raise(exn, void);
+		return NULL;
 	}
-	GuString from_lang = gu_str_string(argv[4], pool);
-	GuString to_lang = gu_str_string(argv[5], pool);
-	
+	opts.filename = argv[optind];
+	opts.from = gu_str_string(argv[optind + 1], pool);
+	opts.to = gu_str_string(argv[optind + 2], pool);
+	Options* ret = gu_new(Options, pool);
+	*ret = opts;
+	return ret;
+}
+
+
+PgfPGF*
+read_pgf(const char* filename, GuPool* opool, GuExn* exn)
+{
 	FILE* infile = fopen(filename, "r");
 	if (infile == NULL) {
-		fprintf(stderr, "couldn't open %s\n", filename);
-		status = EXIT_FAILURE;
-		goto fail;
+		gu_raise_i(exn, GuStr, "couldn't open file");
+		return NULL;
 	}
-
+	GuPool* pool = gu_local_pool();
 	// Create an input stream from the input file
 	GuIn* in = gu_file_in(infile, pool);
-
-	// Create an exception frame that catches all errors.
-	GuExn* err = gu_top_exn(pool);
-
 	// Read the PGF grammar.
-	PgfPGF* pgf = pgf_read_pgf(in, pool, err);
+	PgfPGF* pgf = pgf_read_pgf(in, opool, exn);
+	gu_pool_free(pool);
+	fclose(infile);
+	return pgf;
+}
 
-	// If an error occured, it shows in the exception frame
-	if (!gu_ok(err)) {
-		fprintf(stderr, "Reading PGF failed\n");
-		status = EXIT_FAILURE;
-		goto fail_read;
-	}
 
-	PgfCat* cat = pgf_pgf_cat(pgf, catname);
+void
+doit(PgfPGF* pgf, const Options* opts, GuPool* pool, GuExn* exn)
+{
+	PgfCat* cat = pgf_pgf_cat(pgf, opts->catname);
 	if (!cat) {
-		fprintf(stderr, "Unknown start category: %s", argv[2]);
-		status = EXIT_FAILURE;
-		goto fail_cat;
+		gu_raise_i(exn, GuStr, "Bad -c option, or no startcat in PGF");
+		return;
+	}
+	PgfConcr* from_concr = pgf_pgf_concr(pgf, opts->from, pool);
+	if (!from_concr) {
+		from_concr = pgf_pgf_concr_by_lang(pgf, opts->from, pool);
+	}
+	if (!from_concr) {
+		gu_raise_i(exn, GuStr, "Unknown source language");
+		return;
 	}
 
-	// Look up the source and destination concrete categories
-	PgfConcr* from_concr =
-		gu_map_get(pgf->concretes, &from_lang, PgfConcr*);
-	PgfConcr* to_concr =
-		gu_map_get(pgf->concretes, &to_lang, PgfConcr*);
-	if (!from_concr || !to_concr) {
-		fprintf(stderr, "Unknown language");
-		status = EXIT_FAILURE;
-		goto fail_concr;
+	PgfConcr* to_concr = pgf_pgf_concr(pgf, opts->to, pool);
+	if (!to_concr) {
+		to_concr = pgf_pgf_concr_by_lang(pgf, opts->to, pool);
+	}
+	if (!to_concr) {
+		gu_raise_i(exn, GuStr, "Unknown target language");
+		return;
+	}
+
+	PgfCtntId from_ctnt =
+		pgf_concr_cat_ctnt_id(from_concr, cat, opts->from_ctnt);
+	if (from_ctnt == PGF_CTNT_ID_BAD) {
+		gu_raise_i(exn, GuStr, "Bad source constituent");
+		return;
+	}
+
+	PgfCtntId to_ctnt =
+		pgf_concr_cat_ctnt_id(to_concr, cat, opts->to_ctnt);
+	if (to_ctnt == PGF_CTNT_ID_BAD) {
+		gu_raise_i(exn, GuStr, "Bad target constituent");
+		return;
 	}
 
 	// Create the parser for the source category
@@ -100,15 +133,14 @@ int main(int argc, char* argv[]) {
 	// The interactive translation loop.
 	// XXX: This currently reads stdin directly, so it doesn't support
 	// encodings properly. TODO: use a locale reader for input
-	while (true) {
+	while (gu_ok(exn)) {
 		fprintf(stdout, "> ");
 		fflush(stdout);
 		char buf[4096];
 		char* line = fgets(buf, sizeof(buf), stdin);
 		if (line == NULL) {
 			if (ferror(stdin)) {
-				fprintf(stderr, "Input error\n");
-				status = EXIT_FAILURE;
+				gu_raise_i(exn, GuStr, "Input Error");
 			}
 			break;
 		} else if (line[0] == '\0') {
@@ -117,15 +149,14 @@ int main(int argc, char* argv[]) {
 		}
 		// We create a temporary pool for translating a single
 		// sentence, so our memory usage doesn't increase over time.
-		GuPool* ppool = gu_new_pool();
+		GuPool* ppool = gu_local_pool();
 
 		// Begin parsing a sentence of the specified category
 		PgfParse* parse =
-			pgf_parser_parse(parser, cat, lin_idx, pool);
+			pgf_parser_parse(parser, cat, from_ctnt, ppool);
 		if (parse == NULL) {
-			fprintf(stderr, "Couldn't begin parsing");
-			status = EXIT_FAILURE;
-			break;
+			gu_raise_i(exn, GuStr, "Couldn't begin parsing");
+			goto end_loop;
 		}
 
 		// Just do utterly naive space-separated tokenization
@@ -136,9 +167,8 @@ int main(int argc, char* argv[]) {
 			// feed the token to get a new parse state
 			parse = pgf_parse_token(parse, tok_s, ppool);
 			if (!parse) {
-				fprintf(stderr,
-					"Unexpected token: \"%s\"\n", tok);
-				goto fail_parse;
+				gu_raise_i(exn, GuStr, "Unexpected token");
+				goto end_loop;
 			}
 			tok = strtok(NULL, " \n");
 		}
@@ -147,35 +177,74 @@ int main(int argc, char* argv[]) {
 		GuEnum* result = pgf_parse_result(parse, ppool);
 		PgfExpr expr;
 		while (gu_enum_next(result, &expr, ppool)) {
-			gu_putc(' ', wtr, err);
+			gu_putc(' ', wtr, exn);
 			// Write out the abstract syntax tree
-			pgf_expr_print(expr, wtr, err);
-			gu_putc('\n', wtr, err);
-
+			pgf_expr_print(expr, wtr, exn);
+			gu_putc('\n', wtr, exn);
+			if (!gu_ok(exn)) goto end_loop;
 			// Enumerate the concrete syntax trees corresponding
 			// to the abstract tree.
 			GuEnum* cts = pgf_lzr_concretize(lzr, expr, ppool);
 			PgfCncTree ctree;
 			while (gu_enum_next(cts, &ctree, ppool)) {
-				gu_puts("  ", wtr, err);
+				gu_puts("  ", wtr, exn);
 				// Linearize the concrete tree as a simple
 				// sequence of strings.
-				pgf_lzr_linearize_simple(lzr, ctree, lin_idx,
-							 wtr, err);
-				gu_putc('\n', wtr, err);
-				gu_writer_flush(wtr, err);
+				pgf_lzr_linearize_simple(lzr, ctree, to_ctnt,
+							 wtr, exn);
+				if (!gu_ok(exn)) goto end_loop;
+				gu_putc('\n', wtr, exn);
+				gu_writer_flush(wtr, exn);
 			}
 		}
-	fail_parse:
-		// Free all resources allocated during parsing and linearization
+	end_loop:
 		gu_pool_free(ppool);
 	}
-fail_concr:
-fail_cat:
-fail_read:
-	fclose(infile);
-fail:
+}
+
+static void usage(const char* progname)
+{
+	fprintf(stdout, "\
+Usage: %s [OPTIONS]... FROM TO PGF-FILE\n\
+Translate phrases of PGF grammar PGF-FILE from FROM to TO, where FROM and TO\n\
+are either languages or names of concrete grammars.\n\
+\n\
+Options:\n\
+	-c CAT	Translate from category CAT instead of the default category\n\
+	-t	Show abstract syntax expressions\n\
+	-F CTNT	Parse from constituent CTNT\n\
+	-T CTNT	Linearize to constituent CTNT\n\
+", progname);
+
+}
+
+int main(int argc, char* argv[])
+{
+	// Set the character locale, so we can produce proper output.
+	setlocale(LC_CTYPE, "");
+	GuPool* pool = gu_new_pool();
+	// Create an exception frame that catches all errors.
+	GuExn* exn = gu_top_exn(pool);
+	Options* opts = parse_options(argc, argv, pool, exn);
+	if (!gu_ok(exn)) {
+		usage(argv[0]);
+		goto end;
+	}
+	PgfPGF* pgf = read_pgf(opts->filename, pool, exn);
+	if (!gu_ok(exn)) goto end;
+	doit(pgf, opts, pool, exn);
+	if (!gu_ok(exn)) goto end;
+end:;
+	int status = EXIT_FAILURE;
+	GuType* exn_type = gu_exn_caught(exn);
+	if (!exn_type) {
+		status = EXIT_SUCCESS;
+	} else if (exn_type == gu_type(GuStr)) {
+		const GuStr* strp = gu_exn_caught_data(exn);
+		fprintf(stderr, "Error: %s\n", *strp);
+	} else {
+		fprintf(stderr, "Error\n");
+	} 
 	gu_pool_free(pool);
 	return status;
 }
-

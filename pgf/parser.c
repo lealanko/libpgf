@@ -270,9 +270,9 @@ pgf_parsing_get_contss(PgfParsing* parsing, PgfCCat* cat)
 {
 	PgfItemSets contss = gu_map_get(parsing->conts_map, cat, PgfItemSets);
 	if (gu_seq_is_null(contss)) {
-		size_t n_lins = cat->cnccat->n_lins;
-		contss = gu_new_seq(PgfItemSet*, n_lins, parsing->pool);
-		for (size_t i = 0; i < n_lins; i++) {
+		size_t n_ctnts = cat->cnccat->n_ctnts;
+		contss = gu_new_seq(PgfItemSet*, n_ctnts, parsing->pool);
+		for (size_t i = 0; i < n_ctnts; i++) {
 			gu_seq_set(contss, PgfItemSet*, i, NULL);
 		}
 		gu_map_put(parsing->conts_map, cat, PgfItemSets, contss);
@@ -284,7 +284,7 @@ pgf_parsing_get_contss(PgfParsing* parsing, PgfCCat* cat)
 static PgfItemSet*
 pgf_parsing_get_conts(PgfParsing* parsing, PgfCCat* cat, size_t lin_idx)
 {
-	gu_require(lin_idx < cat->cnccat->n_lins);
+	gu_require(lin_idx < cat->cnccat->n_ctnts);
 	PgfItemSets contss = pgf_parsing_get_contss(parsing, cat);
 	PgfItemSet* conts = gu_seq_get(contss, PgfItemSet*, lin_idx);
 	if (!conts) {
@@ -881,23 +881,21 @@ pgf_parse_result(PgfParse* parse, GuPool* pool)
 }
 
 
-
-// TODO: make Cat the key to CncCat
 PgfParse*
-pgf_parser_parse(PgfParser* parser, PgfCat* cat, size_t lin_idx, GuPool* pool)
+pgf_parser_parse(PgfParser* parser, PgfCat* cat, PgfCtntId lin_idx, GuPool* pool)
 {
 	gu_require(cat->pgf == parser->concr->pgf);
 	PgfParse* parse = pgf_new_parse(parser, pool);
 	GuPool* tmp_pool = gu_new_pool();
 	PgfParsing* parsing = pgf_new_parsing(parse, pool, tmp_pool);
 	PgfCncCat* cnccat =
-		gu_map_get(parser->concr->cnccats, &cat->cid, PgfCncCat*);
+		gu_map_get(parser->concr->cnccats, cat, PgfCncCat*);
 	if (!cnccat) {
 		// No concrete productions, but a valid category. Just return
 		// the empty parse. XXX: Or should we raise error?
 		return parse;
 	}
-	gu_assert(lin_idx < cnccat->n_lins);
+	gu_require(lin_idx >= 0 && (size_t)lin_idx < cnccat->n_ctnts);
 	size_t n_ccats = gu_seq_length(cnccat->cats);
 	for (size_t i = 0; i < n_ccats; i++) {
 		PgfCCat* ccat = gu_seq_get(cnccat->cats, PgfCCat*, i);

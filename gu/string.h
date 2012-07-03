@@ -32,6 +32,8 @@ typedef GU_OPAQUE GuString;
 /// An empty string.
 extern const GuString gu_empty_string;
 
+extern const GuString gu_null_string;
+
 /// Create a string from a C string.
 GuString
 gu_str_string(const char* str, GuPool* pool);
@@ -63,8 +65,13 @@ gu_string_copy(GuString string, GuPool* pool);
 bool
 gu_string_eq(GuString s1, GuString s2);
 
-/** @return `true` iff `s1` and `s2` represent the same sequences of code points.
+/**< @return `true` iff `s1` and `s2` represent the same sequences of code points.
  */
+
+bool
+gu_string_is_null(GuString s);
+
+
 
 
 /** @name Formatting

@@ -43,6 +43,18 @@ m4_pushdef([AC_DEFINE],[ORIG_DEFINE([GU_$1],[$2],[$3])])
 AC_C_ASCII
 m4_popdef([AC_DEFINE])
 
+
+
+dnl check for getopt, needed by pgf-translate
+AC_CHECK_HEADER([unistd.h],
+  AC_CHECK_DECL([getopt],
+    AC_CHECK_FUNC([getopt])))
+
+AM_CONDITIONAL([BUILD_PGF_TRANSLATE], [test x$ac_cv_func_getopt = xyes])
+
+
+
+
 dnl Doxygen support
 DX_PS_FEATURE(OFF)	
 DX_PDF_FEATURE(OFF)	

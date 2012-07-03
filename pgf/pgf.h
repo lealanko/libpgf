@@ -74,8 +74,18 @@ pgf_concr_id(PgfConcr* concr);
 GuString
 pgf_concr_lang(PgfConcr* concr);
 
+typedef int PgfCtntId;
+
+enum {
+	PGF_CTNT_ID_BAD = -1
+};
+
+
 GuStrings
-pgf_concr_cat_labels(PgfConcr* concr, PgfCat* cat, GuPool* pool);
+pgf_concr_cat_ctnts(PgfConcr* concr, PgfCat* cat, GuPool* pool);
+
+PgfCtntId
+pgf_concr_cat_ctnt_id(PgfConcr* concr, PgfCat* cat, GuString ctnt);
 
 
 

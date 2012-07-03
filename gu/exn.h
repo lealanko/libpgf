@@ -169,11 +169,11 @@ gu_exn_raise_debug_(GuExn* err, GuType* type,
  * The returned #GuExnData object's `data` member is initially `NULL`.
  */
 
-#define gu_raise_new(exn, T, POOL, EXPR)				\
+#define gu_raise_new(exn, T, POOL_VAR, EXPR)				\
 	GU_BEGIN							\
 	GuExnData* gu_raise_err_ = gu_raise(exn, T);		\
 	if (gu_raise_err_) {						\
-		GuPool* POOL = gu_raise_err_->pool;			\
+		GuPool* POOL_VAR = gu_raise_err_->pool;			\
 		gu_raise_err_->data = EXPR;				\
 	}								\
 	GU_END

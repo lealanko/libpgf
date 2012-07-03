@@ -28,6 +28,20 @@ pgf_literal_cat(PgfLiteral lit)
 	}
 }
 
+PgfCtntId
+pgf_cnccat_ctnt_id_(PgfCncCat* cnccat, GuString ctnt)
+{
+	size_t len = gu_seq_length(cnccat->ctnts);
+	GuString* ctnts = gu_seq_data(cnccat->ctnts);
+	for (size_t i = 0; i < len; i++) {
+		if (gu_string_eq(ctnt, ctnts[i])) {
+			return (PgfCtntId)i;
+		}
+	}
+	return PGF_CTNT_ID_BAD;
+}
+
+
 GU_DEFINE_KIND(PgfContext, reference);
 GU_DEFINE_TYPE(PgfPGFCtx, PgfContext, gu_type(PgfPGF));
 
@@ -85,9 +99,9 @@ GU_DEFINE_TYPE(
 	PgfCncCat, struct,
 	GU_MEMBER(PgfCncCat, cid, PgfCId),
 	GU_MEMBER(PgfCncCat, cats, PgfCCatIds),
-	GU_MEMBER(PgfCncCat, n_lins, size_t),
+	GU_MEMBER(PgfCncCat, n_ctnts, size_t),
 	GU_MEMBER(PgfCncCat, lindefs, PgfFunIds),
-	GU_MEMBER(PgfCncCat, labels, GuStrings));
+	GU_MEMBER(PgfCncCat, ctnts, GuStrings));
 
 // GU_DEFINE_TYPE(PgfSequence, GuList, gu_ptr_type(PgfSymbol));
 // GU_DEFINE_TYPE(PgfSequence, GuList, gu_type(PgfSymbol));
@@ -215,15 +229,19 @@ GU_DEFINE_TYPE(
 GU_DEFINE_TYPE(
 	PgfPrintNames, PgfCIdMap, gu_type(GuString), NULL);
 
+GU_DEFINE_TYPE(PgfCatId, alias, gu_type(PgfCat));
+GU_DEFINE_TYPE(PgfCncCatMap, GuAddrMap,
+	       gu_type(PgfCatId),
+	       gu_ptr_type(PgfCncCat),
+	       &gu_null_struct);
+	       
+
 GU_DEFINE_TYPE(
 	PgfConcr, struct, 
 	GU_MEMBER(PgfConcr, cflags, PgfFlagsP),
 	GU_MEMBER_P(PgfConcr, printnames, PgfPrintNames),
-	GU_MEMBER_V(PgfConcr, cnccats,
-		    GU_TYPE_LIT(pointer, PgfCIdMap*,
-				GU_TYPE_LIT(PgfCIdMap, _, 
-					    gu_ptr_type(PgfCncCat),
-					    &gu_null_struct))));
+	GU_MEMBER_P(PgfConcr, cnccats, PgfCncCatMap));
+
 
 GU_DEFINE_TYPE(
 	PgfPGF, referenced,
@@ -238,3 +256,4 @@ GU_DEFINE_TYPE(
 					    gu_ptr_type(PgfConcr),
 					    &gu_null_struct)))));
 
+	

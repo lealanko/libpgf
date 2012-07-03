@@ -96,15 +96,21 @@ libpgf_la_SOURCES = \
 	pgf/reader.c \
 	pgf/linearize.c
 
+if BUILD_PGF_TRANSLATE
+
+PGF_TRANSLATE = utils/pgf-translate
+utils_pgf_translate_SOURCES = utils/pgf-translate.c
+utils_pgf_translate_LDADD = libpgf.la libgu.la
+
+endif
+
 bin_PROGRAMS = \
 	utils/pgf2yaml \
-	utils/pgf-translate
+	$(PGF_TRANSLATE)
 
 utils_pgf2yaml_SOURCES = utils/pgf2yaml.c
 utils_pgf2yaml_LDADD = libpgf.la libgu.la 
 
-utils_pgf_translate_SOURCES = utils/pgf-translate.c
-utils_pgf_translate_LDADD = libpgf.la libgu.la
 
 noinst_PROGRAMS = \
 	test/test-write

@@ -70,5 +70,17 @@ gu_exn_raise_(GuExn* base, GuType* type)
 	return gu_exn_raise_debug_(base, type, NULL, NULL, -1);
 }
 
+GuType*
+gu_exn_caught(GuExn* exn)
+{
+	return exn->caught;
+}
+
+const void*
+gu_exn_caught_data(GuExn* exn)
+{
+	return exn->data.data;
+}
+
 
 GU_DEFINE_TYPE(GuErrno, signed, _);

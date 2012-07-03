@@ -69,11 +69,10 @@ pgf_lzr_concretize(PgfLzr* lzr, PgfExpr expr, GuPool* pool);
  *
  * @name Linearizing concrete syntax trees
  *
- * An individual concrete syntax tree has several different
- * linearizations, corresponding to the various fields and cases of
- * corresponding GF values. The number of these linearizations, called
- * the \e dimension of the tree, can be retrieved with
- * #pgf_cnc_tree_dimension.
+ * An individual concrete syntax tree has several different constituents,
+ * corresponding to the various fields and cases of corresponding GF values.
+ * The number of these constituents can be retrieved with
+ * #pgf_cnc_tree_n_ctnts.
  *  
  * A single linearization of a concrete syntax tree is performed by
  * #pgf_lzr_linearize. The linearization is realized as a sequence of
@@ -92,7 +91,7 @@ struct PgfLinFuncs
 	void (*symbol_tokens)(PgfLinFuncs** self, PgfTokens toks);
 
 	void (*symbol_expr)(PgfLinFuncs** self, 
-			    int argno, PgfExpr expr, int lin_idx);
+			    int argno, PgfExpr expr, PgfCtntId ctnt);
 
 	/// Begin application
 	void (*expr_apply)(PgfLinFuncs** self, PgfCId cid, int n_args);
@@ -110,19 +109,19 @@ struct PgfLinFuncs
 
 /// Linearize a concrete syntax tree.
 void
-pgf_lzr_linearize(PgfLzr* lzr, PgfCncTree ctree, size_t lin_idx,
+pgf_lzr_linearize(PgfLzr* lzr, PgfCncTree ctree, PgfCtntId ctnt,
 		  PgfLinFuncs** fnsp);
 
 
 /// Linearize a concrete syntax tree as space-separated tokens.
 void
 pgf_lzr_linearize_simple(PgfLzr* lzr, PgfCncTree ctree,
-			 size_t lin_idx, GuWriter* wtr, GuExn* err);
+			 PgfCtntId ctnt, GuWriter* wtr, GuExn* err);
 
 
 /// Return the dimension of a concrete syntax tree.
 int
-pgf_cnc_tree_dimension(PgfCncTree ctree);
+pgf_cnc_tree_n_ctnts(PgfCncTree ctree);
 /**<
  * @param ctree A concrete syntax tree.
  *

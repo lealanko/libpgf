@@ -41,5 +41,6 @@
 #include <gu/variant.h>
 #include <gu/intern.h>
 #include <gu/prime.h>
+#include <gu/log.h>
 
 #endif // LIBGU_H_

@@ -453,7 +453,7 @@ pgf_lzr_concretize(PgfLzr* lzr, PgfExpr expr, GuPool* pool)
 
 
 int
-pgf_cnc_tree_dimension(PgfCncTree ctree)
+pgf_cnc_tree_n_ctnts(PgfCncTree ctree)
 {
 	GuVariantInfo cti = gu_variant_open(ctree);
 	switch (cti.tag) {
@@ -461,7 +461,7 @@ pgf_cnc_tree_dimension(PgfCncTree ctree)
 		return 1;
 	case PGF_CNC_TREE_APP: {
 		PgfCncTreeApp* fapp = cti.data;
-		return gu_seq_length(fapp->fun->lins);
+		return (int) gu_seq_length(fapp->fun->lins);
 	}
 	default:
 		gu_impossible();
@@ -470,11 +470,11 @@ pgf_cnc_tree_dimension(PgfCncTree ctree)
 }
 
 void
-pgf_lzr_linearize(PgfLzr* lzr, PgfCncTree ctree, size_t lin_idx, PgfLinFuncs** fnsp)
+pgf_lzr_linearize(PgfLzr* lzr, PgfCncTree ctree, PgfCtntId lin_idx, PgfLinFuncs** fnsp)
 {
 	PgfLinFuncs* fns = *fnsp;
 	GuVariantInfo cti = gu_variant_open(ctree);
-
+	gu_require(lin_idx >= 0);
 	switch (cti.tag) {
 	case PGF_CNC_TREE_LIT: {
 		gu_require(lin_idx == 0);
@@ -491,6 +491,7 @@ pgf_lzr_linearize(PgfLzr* lzr, PgfCncTree ctree, size_t lin_idx, PgfLinFuncs** f
 		if (fns->expr_apply) {
 			fns->expr_apply(fnsp, fun->fun, n_args);
 		}
+		gu_require((size_t) lin_idx < gu_seq_length(fun->lins));
 		PgfSequence seq = gu_seq_get(fun->lins, PgfSequence, lin_idx);
 		size_t nsyms = gu_seq_length(seq);
 		PgfSymbol* syms = gu_seq_data(seq);
@@ -566,7 +567,7 @@ static PgfLinFuncs pgf_file_lin_funcs = {
 
 void
 pgf_lzr_linearize_simple(PgfLzr* lzr, PgfCncTree ctree,
-			 size_t lin_idx, GuWriter* wtr, GuExn* err)
+			 PgfCtntId lin_idx, GuWriter* wtr, GuExn* err)
 {
 	PgfSimpleLin flin = {
 		.funcs = &pgf_file_lin_funcs,

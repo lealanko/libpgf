@@ -13,7 +13,25 @@ pgf_pgf_concr(PgfPGF* pgf, GuString cid, GuPool* pool)
 	// only loaded when needed.
 	return gu_map_get(pgf->concretes, &cid, PgfConcr*);
 }
-	
+
+PgfConcr*
+pgf_pgf_concr_by_lang(PgfPGF* pgf, GuString lang, GuPool* opool)
+{
+	GuPool* pool = gu_local_pool();
+	GuEnum* concrs = pgf_pgf_concrs(pgf, pool);
+	PgfConcr* concr = NULL;
+	PgfConcr* ret = NULL;
+	while (gu_enum_next(concrs, &concr, NULL)) {
+		GuString clang = pgf_concr_lang(concr);
+		if (gu_string_eq(clang, lang)) {
+			ret = concr;
+			break;
+		}
+	}
+	gu_pool_free(pool);
+	return ret;
+}
+
 
 GuString
 pgf_concr_id(PgfConcr* concr)
@@ -24,7 +42,7 @@ pgf_concr_id(PgfConcr* concr)
 GuString
 pgf_concr_lang(PgfConcr* concr)
 {
-	GuString ret = gu_empty_string;
+	GuString ret = gu_null_string;
 	GuPool* pool = gu_local_pool();
 	GuString key = gu_str_string("language", pool);
 	PgfLiteral lit = gu_map_get(concr->cflags, &key, PgfLiteral);
@@ -47,15 +65,29 @@ end:
 	return ret;
 }
 
-GuStrings
-pgf_concr_cat_labels(PgfConcr* concr, PgfCat* cat, GuPool* pool)
+PgfCtntId
+pgf_concr_cat_ctnt_id(PgfConcr* concr, PgfCat* cat, GuString ctnt)
 {
 	gu_require(cat->pgf == concr->pgf);
-	PgfCncCat* cnccat = gu_map_get(concr->cnccats, &cat->cid, PgfCncCat*);
+	PgfCncCat* cnccat = gu_map_get(concr->cnccats, cat, PgfCncCat*);
+	if (!cnccat) {
+		return PGF_CTNT_ID_BAD;
+	}
+	if (gu_string_is_null(ctnt)) {
+		return cnccat->n_ctnts == 1 ? 0 : PGF_CTNT_ID_BAD;
+	}
+	return pgf_cnccat_ctnt_id_(cnccat, ctnt);
+}
+
+GuStrings
+pgf_concr_cat_ctnts(PgfConcr* concr, PgfCat* cat, GuPool* pool)
+{
+	gu_require(cat->pgf == concr->pgf);
+	PgfCncCat* cnccat = gu_map_get(concr->cnccats, cat, PgfCncCat*);
 	if (!cnccat) {
 		return gu_null_seq;
 	}
-	return GU_SEQ_COPY(cnccat->labels, GuString, pool);
+	return GU_SEQ_COPY(cnccat->ctnts, GuString, pool);
 }
 
 GuEnum*
@@ -69,6 +101,9 @@ pgf_pgf_concrs(PgfPGF* pgf, GuPool* pool)
 PgfCat*
 pgf_pgf_cat(PgfPGF* pgf, PgfCId cid)
 {
+	if (gu_string_is_null(cid)) {
+		return pgf_pgf_startcat(pgf);
+	}
 	return gu_map_get(pgf->abstract.cats, &cid, PgfCat*);
 }
 

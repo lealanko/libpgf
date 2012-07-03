@@ -130,6 +130,14 @@ gu_map_type_make(GuMapType* mtype, GuPool* pool);
 		.default_value = dv_					\
 	}
 
+extern GU_DECLARE_KIND(GuAddrMap);
+typedef GuType_GuMap GuType_GuAddrMap;
+
+#define GU_TYPE_INIT_GuAddrMap(KIND, MAP_T, KEY_T, VAL_T, DEFAULT)	\
+	GU_TYPE_INIT_GuMap(KIND, MAP_T,				\
+			   KEY_T, NULL,				\
+			   VAL_T, DEFAULT)
+
 #endif
 
 #endif // GU_MAP_H_

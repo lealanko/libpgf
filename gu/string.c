@@ -11,6 +11,8 @@
 
 const GuString gu_empty_string = { 1 };
 
+const GuString gu_null_string = { (uintptr_t)(void*)NULL };
+
 struct GuStringBuf {
 	GuByteBuf* bbuf;
 	GuWriter* wtr;
@@ -211,6 +213,12 @@ gu_str_string(const char* str, GuPool* pool)
 	gu_pool_free(tmp_pool);
 	return s;
 #endif
+}
+
+bool
+gu_string_is_null(GuString s)
+{
+	return (s.w_ == (uintptr_t)(void*)NULL);
 }
 
 GuWord

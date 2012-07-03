@@ -31,6 +31,7 @@
 #ifndef LIBPGF_H_
 #define LIBPGF_H_
 
+#include <libgu.h>
 #include <pgf/pgf.h>
 #include <pgf/expr.h>
 #include <pgf/reader.h>

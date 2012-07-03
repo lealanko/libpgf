@@ -406,6 +406,6 @@ gu_map_type_make(GuMapType* mtype, GuPool* pool)
 }
 
 GU_DEFINE_KIND(GuMap, abstract);
-// GU_DEFINE_KIND(GuIntMap, GuMap);
+GU_DEFINE_KIND(GuAddrMap, GuMap);
 
 
