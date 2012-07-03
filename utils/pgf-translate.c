@@ -178,9 +178,11 @@ doit(PgfPGF* pgf, const Options* opts, GuPool* pool, GuExn* exn)
 		PgfExpr expr;
 		while (gu_enum_next(result, &expr, ppool)) {
 			gu_putc(' ', wtr, exn);
-			// Write out the abstract syntax tree
-			pgf_expr_print(expr, wtr, exn);
-			gu_putc('\n', wtr, exn);
+			if (opts->show_expr) {
+				// Write out the abstract syntax tree
+				pgf_expr_print(expr, wtr, exn);
+				gu_putc('\n', wtr, exn);
+			}
 			if (!gu_ok(exn)) goto end_loop;
 			// Enumerate the concrete syntax trees corresponding
 			// to the abstract tree.
