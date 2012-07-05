@@ -177,9 +177,9 @@ doit(PgfPGF* pgf, const Options* opts, GuPool* pool, GuExn* exn)
 		GuEnum* result = pgf_parse_result(parse, ppool);
 		PgfExpr expr;
 		while (gu_enum_next(result, &expr, ppool)) {
-			gu_putc(' ', wtr, exn);
 			if (opts->show_expr) {
 				// Write out the abstract syntax tree
+				gu_putc(' ', wtr, exn);
 				pgf_expr_print(expr, wtr, exn);
 				gu_putc('\n', wtr, exn);
 			}
@@ -207,7 +207,7 @@ doit(PgfPGF* pgf, const Options* opts, GuPool* pool, GuExn* exn)
 static void usage(const char* progname)
 {
 	fprintf(stdout, "\
-Usage: %s [OPTIONS]... FROM TO PGF-FILE\n\
+Usage: %s [OPTIONS]... PGF-FILE FROM TO\n\
 Translate phrases of PGF grammar PGF-FILE from FROM to TO, where FROM and TO\n\
 are either languages or names of concrete grammars.\n\
 \n\
