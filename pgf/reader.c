@@ -280,11 +280,6 @@ pgf_read_into_map(GuMapType* mtype, PgfReader* rdr, GuMap* map, GuPool* pool)
 		} else {
 			key = pgf_read_new(rdr, mtype->key_type, 
 					   rdr->opool);
-			// XXX: this is a hack currently required
-			// by CatIds not supporting __gfVar etc.
-			if (!key) {
-				continue;
-			}
 		}
 		gu_return_on_exn(rdr->err, );
 		rdr->curr_key = key;
@@ -649,7 +644,12 @@ pgf_read_new_PgfCatId(GuType* type, PgfReader* rdr, GuPool* pool)
 	if (!gu_ok(rdr->err)) return NULL;
 	PgfCat* cat = gu_map_get(pgf->abstract.cats, &cid, PgfCat*);
 	if (!cat) {
-		// XXX: handle __gfVar and literals properly
+		cat = gu_new(PgfCat, rdr->opool);
+		cat->pgf = pgf;
+		cat->cid = cid;
+		cat->context = gu_empty_seq();
+		cat->functions = gu_empty_seq();
+		gu_map_put(pgf->abstract.cats, &cid, PgfCat*, cat);
 	}
 	return cat;
 }
