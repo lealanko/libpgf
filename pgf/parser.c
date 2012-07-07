@@ -1,12 +1,7 @@
 // Copyright 2011-2012 University of Helsinki. Released under LGPL3.
 
-#include <pgf/parser.h>
-#include <gu/choice.h>
-#include <gu/seq.h>
-#include <gu/assert.h>
-#include <gu/log.h>
-#include <gu/generic.h>
-#include <gu/file.h>
+#include <libpgf.h>
+#include "data.h"
 
 typedef struct PgfItem PgfItem;
 

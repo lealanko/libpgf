@@ -105,6 +105,8 @@ pgf_pgf_concr_by_lang(PgfPGF* pgf, GuString lang, GuPool* pool);
 /// A single lexical token			      
 typedef GuString PgfToken;			      
 
+typedef GuSeq PgfTokens;  // -> PgfToken
+
 
 
 #include <gu/type.h>

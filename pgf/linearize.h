@@ -1,9 +1,8 @@
 // Copyright 2010-2012 University of Helsinki. Released under LGPL3.
 
-#include <gu/type.h>
-#include <gu/dump.h>
-#include <gu/enum.h>
-#include <pgf/data.h>
+#include <libgu.h>
+#include <pgf/pgf.h>
+#include <pgf/expr.h>
 
 /// Linearization of abstract syntax trees.
 /// @file
@@ -46,7 +45,7 @@ pgf_new_lzr(PgfConcr* cnc, GuPool* pool);
  *
  * @name Enumerating concrete syntax trees
  *
- * Because of the \c variants construct in GF, there may be several
+ * Because of the `variants` construct in GF, there may be several
  * possible concrete syntax trees that correspond to a given abstract
  * syntax tree. These can be enumerated with #pgf_lzr_concretize and
  * #gu_enum_next.

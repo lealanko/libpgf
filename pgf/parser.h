@@ -3,8 +3,8 @@
 #ifndef PGF_PARSER_H_
 #define PGF_PARSER_H_
 
-#include <gu/enum.h>
-#include <pgf/data.h>
+#include <libgu.h>
+#include <pgf/pgf.h>
 #include <pgf/expr.h>
 
 /// Parsing
@@ -67,7 +67,8 @@ pgf_parser_parse(PgfParser* parser, PgfCat* cat, PgfCtntId ctnt,
  * @param cat The abstract category to parse. This must be from the same
  * #PgfPGF as the concrete category used to create the parser.
  *
- * @param lin_idx The index of the field of the concrete category to parse
+ * @param ctnt The index of the constituent in the concrete category to parse.
+ * Given a label, this can be looked up with #pgf_concr_cat_ctnt_id.
  *
  * @pool
  *

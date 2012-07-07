@@ -42,5 +42,7 @@
 #include <gu/intern.h>
 #include <gu/prime.h>
 #include <gu/log.h>
+#include <gu/choice.h>
+#include <gu/generic.h>
 
 #endif // LIBGU_H_

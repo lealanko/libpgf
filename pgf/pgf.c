@@ -3,7 +3,7 @@
 #include <pgf/pgf.h>
 #include <gu/log.h>
 #include <gu/variant.h>
-#include "pgf/data.h"
+#include "data.h"
 
 
 PgfConcr*

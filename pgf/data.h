@@ -59,7 +59,6 @@ extern GU_DECLARE_TYPE(PgfCncCat, struct);
 typedef GuVariant PgfPatt;
 typedef GuSeq PgfPatts;
 			      
-typedef GuSeq PgfTokens;  // -> PgfToken
 extern GU_DECLARE_TYPE(PgfTokens, GuSeq);
 
 

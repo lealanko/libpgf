@@ -92,16 +92,14 @@ dumps it to the standard output in [YAML] format.
 The `pgf-translate` program translates sentences of one language in a PGF
 grammar into another. It is invoked:
 
-	pgf-translate PGF CAT FROM_LANG TO_LANG
+	pgf-translate PGF-FILE FROM TO
 
-Where `PGF` is a PGF file, `CAT` is the name of the category whose sentences
-are to be translated, and `FROM_LANG` and `TO_LANG` are names of concrete
-grammars within the PGF file.
-
-The program prompts for a line containing a full sentence of the
-specified category in the source language, and displays the syntax trees
-and destination language linearizations of all possible parses of that
-sentence. 
+Where `PGF-FILE` is a PGF file, and `FROM` and `TO` are language codes
+or names of concrete grammars within the PGF file. The program prompts
+for a line containing a full sentence of the start category in the
+source language, and displays the destination language linearizations of
+all possible parses of that sentence. Run the program with no arguments
+for information on some further options.
 
 
 libgu
