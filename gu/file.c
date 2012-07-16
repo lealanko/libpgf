@@ -52,12 +52,12 @@ struct GuFileInStream {
 };
 
 static size_t 
-gu_file_input(GuInStream* stream, uint8_t* buf, size_t sz, GuExn* err)
+gu_file_input(GuInStream* stream, GuSlice buf, GuExn* err)
 {
 	GuFileInStream* fis = gu_container(stream, GuFileInStream, stream);
 	errno = 0;
-	size_t got = fread(buf, 1, sz, fis->file);
-	if (got < sz) {
+	size_t got = fread(buf.p, 1, buf.sz, fis->file);
+	if (got < buf.sz) {
 		if (ferror(fis->file)) {
 			gu_raise_errno(err);
 		}

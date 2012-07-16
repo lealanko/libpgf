@@ -150,7 +150,8 @@ gu_in_utf8_(GuIn* in, GuExn* err)
 	size_t len = c < 0xc0 ? 0 : c < 0xe0 ? 1 : c < 0xf0 ? 2 : 3;
 	uint8_t buf[4];
 	buf[0] = c;
-	size_t got = gu_in_some(in, &buf[1], len, len, err);
+	GuSlice req = { &buf[1], len };
+	size_t got = gu_in_some(in, req, len, err);
 	if (got < len) {
 		if (gu_ok(err)) {
 			// If reading the extra bytes causes EOF, it is an

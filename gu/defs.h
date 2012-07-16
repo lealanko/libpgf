@@ -216,4 +216,24 @@ typedef union {
 #define GU_NORETURN GU_SPLINT(noreturn) GU_GNUC_ATTR(noreturn)
 #define GU_MODIFIES(x) GU_SPLINT(modifies x)
 
+
+
+typedef struct GuSlice GuSlice;
+
+struct GuSlice {
+	uint8_t* p;
+	size_t sz;
+};
+
+typedef struct GuCSlice GuCSlice;
+
+struct GuCSlice {
+	const uint8_t* p;
+	size_t sz;
+};
+
+
+
+
+
 #endif // GU_DEFS_H_

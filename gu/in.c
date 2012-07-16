@@ -43,11 +43,11 @@ gu_in_begin_buffering(GuIn* in, GuExn* err)
 	if (!in->stream->begin_buffer) {
 		return false;
 	}
-	size_t sz = 0;
-	const uint8_t* new_buf = 
-		in->stream->begin_buffer(in->stream, &sz, err);
-	if (new_buf && sz > 0) {
-		in->buf_end = &new_buf[sz];
+	GuCSlice new_buf = 
+		in->stream->begin_buffer(in->stream, err);
+	size_t sz = new_buf.sz;
+	if (gu_ok(err) && sz > 0) {
+		in->buf_end = &new_buf.p[sz];
 		in->buf_curr = -(ptrdiff_t) sz;
 		in->buf_size = sz;
 		return true;
@@ -56,9 +56,9 @@ gu_in_begin_buffering(GuIn* in, GuExn* err)
 }
 
 static size_t
-gu_in_input(GuIn* in, uint8_t* dst, size_t sz, GuExn* err)
+gu_in_input(GuIn* in, GuSlice dst, GuExn* err)
 {
-	if (sz == 0) {
+	if (dst.sz == 0) {
 		return 0;
 	}
 	gu_in_end_buffering(in, err);
@@ -67,7 +67,7 @@ gu_in_input(GuIn* in, uint8_t* dst, size_t sz, GuExn* err)
 	}
 	GuInStream* stream = in->stream;
 	if (stream->input) {
-		size_t len = stream->input(stream, dst, sz, err);
+		size_t len = stream->input(stream, dst, err);
 		in->stream_pos += len;
 		return len;
 	}
@@ -75,18 +75,19 @@ gu_in_input(GuIn* in, uint8_t* dst, size_t sz, GuExn* err)
 }
 
 size_t
-gu_in_some(GuIn* in, uint8_t* dst, size_t min_sz, size_t max_sz, GuExn* err)
+gu_in_some(GuIn* in, GuSlice dst, size_t min_sz, GuExn* err)
 {
-	gu_require(min_sz <= max_sz);
-	gu_require(max_sz <= PTRDIFF_MAX);
+	gu_require(min_sz <= dst.sz);
+	gu_require(dst.sz <= PTRDIFF_MAX);
 	size_t got = 0;
 	if (gu_in_begin_buffering(in, err)) {
-		got = GU_MIN(max_sz, (size_t)(-in->buf_curr));
-		memcpy(dst, &in->buf_end[in->buf_curr], got);
+		got = GU_MIN(dst.sz, (size_t)(-in->buf_curr));
+		memcpy(dst.p, &in->buf_end[in->buf_curr], got);
 		in->buf_curr += got;
 	} else if (!gu_ok(err)) return 0;
 	while (got < min_sz) {
-		size_t igot = gu_in_input(in, &dst[got], max_sz - got, err);
+		GuSlice req = { &dst.p[got], dst.sz - got };
+		size_t igot = gu_in_input(in, req, err);
 		if (igot == 0) break; // EOF
 		got += igot;
 	}
@@ -94,26 +95,27 @@ gu_in_some(GuIn* in, uint8_t* dst, size_t min_sz, size_t max_sz, GuExn* err)
 }
 
 void
-gu_in_bytes_(GuIn* in, uint8_t* dst, size_t sz, GuExn* err)
+gu_in_bytes_(GuIn* in, GuSlice dst, GuExn* err)
 {
-	size_t got = gu_in_some(in, dst, sz, sz, err);
+	size_t got = gu_in_some(in, dst, dst.sz, err);
 	if (!gu_ok(err)) return;
-	if (got < sz) {
+	if (got < dst.sz) {
 		gu_raise(err, GuEOF);
 	}
 }
 
-const uint8_t*
-gu_in_begin_span(GuIn* in, uint8_t* fallback, size_t *sz_inout, GuExn* err)
+GuCSlice
+gu_in_begin_span(GuIn* in, GuSlice req, GuExn* err)
 {
+	GuCSlice ret;
 	if (!gu_in_begin_buffering(in, err)) {
-		size_t req = *sz_inout;
-		size_t got = gu_in_input(in, fallback, req, err);
-		*sz_inout = got;
-		return fallback;
+		ret.p = req.p;
+		ret.sz = gu_in_input(in, req, err);
+	} else {
+		ret.p = &in->buf_end[in->buf_curr];
+		ret.sz = (size_t) -in->buf_curr;
 	}
-	*sz_inout = (size_t) -in->buf_curr;
-	return &in->buf_end[in->buf_curr];
+	return ret;
 }
 
 void
@@ -135,7 +137,8 @@ gu_in_u8_(GuIn* in, GuExn* err)
 		return in->buf_end[in->buf_curr++];
 	}
 	uint8_t u = 0;
-	size_t r = gu_in_input(in, &u, 1, err);
+	GuSlice req = { &u, 1 };
+	size_t r = gu_in_input(in, req, err);
 	if (r < 1) {
 		if (gu_ok(err)) {
 			gu_raise(err, GuEOF);
@@ -149,7 +152,8 @@ static uint64_t
 gu_in_be(GuIn* in, GuExn* err, int n)
 {
 	uint8_t buf[8];
-	gu_in_bytes(in, buf, n, err);
+	GuSlice req = { buf, n };
+	gu_in_bytes(in, req, err);
 	uint64_t u = 0;
 	for (int i = 0; i < n; i++) {
 		u = u << 8 | buf[i];
@@ -161,7 +165,8 @@ static uint64_t
 gu_in_le(GuIn* in, GuExn* err, int n)
 {
 	uint8_t buf[8];
-	gu_in_bytes(in, buf, n, err);
+	GuSlice req = { buf, n };
+	gu_in_bytes(in, req, err);
 	uint64_t u = 0;
 	for (int i = 0; i < n; i++) {
 		u = u << 8 | buf[i];
@@ -308,12 +313,12 @@ struct GuProxyInStream {
 	GuIn* real_in;
 };
 
-static const uint8_t*
-gu_proxy_in_begin_buffer(GuInStream* self, size_t* sz_out, GuExn* err)
+static GuCSlice
+gu_proxy_in_begin_buffer(GuInStream* self, GuExn* err)
 {
 	GuProxyInStream* pis = gu_container(self, GuProxyInStream, stream);
-	*sz_out = 0;
-	return gu_in_begin_span(pis->real_in, NULL, sz_out, err);
+	GuSlice req = { NULL, 0 };
+	return gu_in_begin_span(pis->real_in, req, err);
 }
 
 static void
@@ -324,10 +329,10 @@ gu_proxy_in_end_buffer(GuInStream* self, size_t sz, GuExn* err)
 }
 
 static size_t
-gu_proxy_in_input(GuInStream* self, uint8_t* dst, size_t sz, GuExn* err)
+gu_proxy_in_input(GuInStream* self, GuSlice dst, GuExn* err)
 {
 	GuProxyInStream* pis = gu_container(self, GuProxyInStream, stream);
-	return gu_in_some(pis->real_in, dst, 1, sz, err);
+	return gu_in_some(pis->real_in, dst, 1, err);
 }
 
 GuInStream*
@@ -356,18 +361,18 @@ struct GuBufferedInStream {
 	uint8_t buf[];
 };
 
-static const uint8_t*
-gu_buffered_in_begin_buffer(GuInStream* self, size_t* sz_out, GuExn* err)
+static GuCSlice
+gu_buffered_in_begin_buffer(GuInStream* self, GuExn* err)
 {
 	GuBufferedInStream* bis = 
 		gu_container(self, GuBufferedInStream, stream);
 	if (bis->curr == bis->have) {
 		bis->curr = 0;
-		bis->have = gu_in_some(bis->in, bis->buf, 1, bis->alloc, err);
-		if (!gu_ok(err)) return NULL;
+		GuSlice req = { bis->buf, bis->alloc };
+		bis->have = gu_in_some(bis->in, req, 1, err);
+		if (!gu_ok(err)) return (GuCSlice) { NULL, 0 };
 	}
-	*sz_out = bis->have - bis->curr;
-	return &bis->buf[bis->curr];
+	return (GuCSlice) { &bis->buf[bis->curr], bis->have - bis->curr };
 }
 
 static void
@@ -380,11 +385,11 @@ gu_buffered_in_end_buffer(GuInStream* self, size_t consumed, GuExn* err)
 }
 
 static size_t
-gu_buffered_in_input(GuInStream* self, uint8_t* dst, size_t sz, GuExn* err)
+gu_buffered_in_input(GuInStream* self, GuSlice dst, GuExn* err)
 {
 	GuBufferedInStream* bis = 
 		gu_container(self, GuBufferedInStream, stream);
-	return gu_in_some(bis->in, dst, 1, sz, err);
+	return gu_in_some(bis->in, dst, 1, err);
 }
 
 GuIn*
@@ -405,31 +410,32 @@ gu_new_buffered_in(GuIn* in, size_t buf_sz, GuPool* pool)
 typedef struct GuDataIn GuDataIn;
 
 struct GuDataIn {
-	GuInStream stream; 
-	const uint8_t* data;
-	size_t sz;
+	GuInStream stream;
+	GuCSlice data;
 };
 
-static const uint8_t*
-gu_data_in_begin_buffer(GuInStream* self, size_t* sz_out, GuExn* err)
+static GuCSlice
+gu_data_in_begin_buffer(GuInStream* self, GuExn* err)
 {
 	GuDataIn* di = gu_container(self, GuDataIn, stream);
-	const uint8_t* buf = di->data;
-	if (buf) {
-		*sz_out = di->sz;
-		di->data = NULL;
-		di->sz = 0;
-	}
-	return buf;
+	return di->data;
+}
+
+static void
+gu_data_in_end_buffer(GuInStream* self, size_t consumed, GuExn* err)
+{
+	GuDataIn* di = gu_container(self, GuDataIn, stream);
+	di->data.p += consumed;
+	di->data.sz -= consumed;
 }
 
 GuIn*
-gu_data_in(const uint8_t* data, size_t sz, GuPool* pool)
+gu_data_in(GuCSlice data, GuPool* pool)
 {
 	GuDataIn* di = gu_new_s(pool, GuDataIn,
 				.stream.begin_buffer = gu_data_in_begin_buffer,
-				.data = data,
-				.sz = sz);
+				.stream.end_buffer = gu_data_in_end_buffer,
+				.data = data);
 	return gu_new_in(&di->stream, pool);
 }
 
@@ -437,7 +443,7 @@ extern inline uint8_t
 gu_in_u8(GuIn* restrict in, GuExn* err);
 
 extern inline void
-gu_in_bytes(GuIn* in, uint8_t* buf, size_t sz, GuExn* err);
+gu_in_bytes(GuIn* in, GuSlice buf, GuExn* err);
 
 extern inline int
 gu_in_peek_u8(GuIn* restrict in);

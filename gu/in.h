@@ -10,11 +10,9 @@
 typedef struct GuInStream GuInStream;
 
 struct GuInStream {
-	const uint8_t* (*begin_buffer)(GuInStream* self, size_t* sz_out, 
-				       GuExn* err);
+	GuCSlice (*begin_buffer)(GuInStream* self, GuExn* err);
 	void (*end_buffer)(GuInStream* self, size_t consumed, GuExn* err);
-	size_t (*input)(GuInStream* self, uint8_t* buf, size_t max_sz, 
-			GuExn* err);
+	size_t (*input)(GuInStream* self, GuSlice buf, GuExn* err);
 };
 
 typedef struct GuIn GuIn;
@@ -38,8 +36,8 @@ gu_new_in(GuInStream* stream, GuPool* pool);
 GuInStream*
 gu_in_proxy_stream(GuIn* in, GuPool* pool);
 
-const uint8_t*
-gu_in_begin_span(GuIn* in, uint8_t* fallback, size_t *sz_inout, GuExn* err);
+GuCSlice
+gu_in_begin_span(GuIn* in, GuSlice req, GuExn* err);
 
 void
 gu_in_end_span(GuIn* in, size_t consumed);
@@ -48,21 +46,20 @@ size_t
 gu_in_tell(GuIn* in);
 
 size_t
-gu_in_some(GuIn* in, uint8_t* buf, size_t min_len, size_t max_len, GuExn* err);
+gu_in_some(GuIn* in, GuSlice buf, size_t min_len, GuExn* err);
 
 inline void
-gu_in_bytes(GuIn* in, uint8_t* buf, size_t sz, GuExn* err)
+gu_in_bytes(GuIn* in, GuSlice buf, GuExn* err)
 {
-	gu_require(sz < PTRDIFF_MAX);
+	gu_require(buf.sz < PTRDIFF_MAX);
 	ptrdiff_t curr = in->buf_curr;
-	ptrdiff_t new_curr = curr + (ptrdiff_t) sz;
+	ptrdiff_t new_curr = curr + (ptrdiff_t) buf.sz;
 	if (GU_UNLIKELY(new_curr > 0)) {
-		extern void gu_in_bytes_(GuIn* in, uint8_t* buf, size_t sz, 
-					 GuExn* err);
-		gu_in_bytes_(in, buf, sz, err);
+		extern void gu_in_bytes_(GuIn* in, GuSlice buf, GuExn* err);
+		gu_in_bytes_(in, buf, err);
 		return;
 	}
-	memcpy(buf, &in->buf_end[curr], sz);
+	memcpy(buf.p, &in->buf_end[curr], buf.sz);
 	in->buf_curr = new_curr;
 }
 
@@ -142,7 +139,7 @@ GuIn*
 gu_new_buffered_in(GuIn* in, size_t sz, GuPool* pool);
 
 GuIn*
-gu_data_in(const uint8_t* buf, size_t size, GuPool* pool);
+gu_data_in(GuCSlice buf, GuPool* pool);
 
 
 extern GU_DECLARE_TYPE(GuEOF, abstract);

@@ -18,7 +18,7 @@ gu_make_seq(size_t elem_size, size_t len, GuPool* pool);
 	gu_make_seq(sizeof(T), (N), (POOL))
 
 static inline size_t
-gu_seq_length(GuSeq seq)
+gu_seq_length_(GuSeq seq)
 {
 	GuWord w = seq.w_;
 	size_t tag = gu_tagged_tag(w);
@@ -29,6 +29,8 @@ gu_seq_length(GuSeq seq)
 	return tag;
 }
 
+#define gu_seq_length gu_seq_length_
+
 static inline bool
 gu_seq_is_empty(GuSeq seq)
 {
@@ -36,7 +38,7 @@ gu_seq_is_empty(GuSeq seq)
 }
 
 static inline void*
-gu_seq_data(GuSeq seq)
+gu_seq_data_(GuSeq seq)
 {
 	GuWord w = seq.w_;
 	int tag = gu_tagged_tag(w);
@@ -49,6 +51,8 @@ gu_seq_data(GuSeq seq)
 	}
 	return ptr;
 }
+
+#define gu_seq_data gu_seq_data_
 
 static inline bool
 gu_seq_is_null(GuSeq seq)

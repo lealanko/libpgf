@@ -72,29 +72,6 @@ gu_string_buf_freeze(GuStringBuf* sb, GuPool* pool)
 	return gu_utf8_string(data, len, pool);
 }
 
-GuReader*
-gu_string_reader(GuString s, GuPool* pool)
-{
-	GuWord w = s.w_;
-	uint8_t* buf = NULL;
-	size_t len = 0;
-	if (w & 1) {
-		len = (w & 0xff) >> 1;
-		buf = gu_new_n(uint8_t, len, pool);
-		for (int i = len - 1; i >= 0; i--) {
-			w >>= 8;
-			buf[i] = w & 0xff;
-		}
-	} else {
-		uint8_t* p = (void*) w;
-		len = (p[0] == 0) ? ((size_t*) p)[-1] : p[0];
-		buf = &p[1];
-	}
-	GuIn* in = gu_data_in(buf, len, pool);
-	GuReader* rdr = gu_new_utf8_reader(in, pool);
-	return rdr;
-}
-
 static bool
 gu_string_is_long(GuString s) 
 {
@@ -108,24 +85,32 @@ gu_string_is_stable(GuString s)
 }
 
 static size_t
-gu_string_long_length(GuString s)
+gu_string_long_size(GuString s)
 {
 	gu_assert(gu_string_is_long(s));
 	uint8_t* p = (void*) s.w_;
-	uint8_t len = p[0];
-	if (len > 0) {
-		return len;
+	uint8_t sz = p[0];
+	if (sz > 0) {
+		return sz;
 	}
 	return ((size_t*) p)[-1];
 }
 
-size_t
-gu_string_length(GuString s)
+static size_t
+gu_string_short_size(GuString s)
+{
+	gu_assert(!gu_string_is_long(s));
+	return (s.w_ & 0xff) >> 1;
+}
+
+static size_t
+gu_string_size(GuString s)
 {
 	if (gu_string_is_long(s)) {
-		return gu_string_long_length(s);
+		return gu_string_long_size(s);
+	} else {
+		return gu_string_short_size(s);
 	}
-	return (s.w_ & 0xff) >> 1;
 }
 
 static uint8_t*
@@ -141,37 +126,83 @@ gu_string_copy(GuString string, GuPool* pool)
 {
 	if (gu_string_is_long(string)) {
 		uint8_t* data = gu_string_long_data(string);
-		size_t len = gu_string_long_length(string);
-		return gu_utf8_string(data, len, pool);
+		size_t sz = gu_string_long_size(string);
+		return gu_utf8_string(data, sz, pool);
 	} else {
 		return string;
 	}
+}
+
+static void
+gu_string_short_write_data(GuString s, uint8_t* buf)
+{
+	gu_require(!gu_string_is_long(s));
+	GuWord w = s.w_;
+	size_t sz = (w & 0xff) >> 1;
+	for (int i = sz - 1; i >= 0; i--) {
+		w >>= 8;
+		buf[i] = w & 0xff;
+	}
+}
+
+static void
+gu_string_write_data(GuString s, uint8_t* buf)
+{
+	if (gu_string_is_long(s)) {
+		size_t sz = gu_string_long_size(s);
+		uint8_t* data = gu_string_long_data(s);
+		memcpy(buf, data, sz);
+	} else {
+		gu_string_short_write_data(s, buf);
+	}
+}
+
+
+GuBytes
+gu_string_utf8(GuString s, GuPool* pool)
+{
+	size_t sz = gu_string_size(s);
+	GuBytes bytes = gu_new_seq(uint8_t, sz, pool);
+	uint8_t* data = gu_seq_data(bytes);
+	gu_string_write_data(s, data);
+	return bytes;
 }
 
 
 void
 gu_string_write(GuString s, GuWriter* wtr, GuExn* err)
 {
-	GuWord w = s.w_;
 	uint8_t buf[sizeof(GuWord)];
 	uint8_t* src;
-	size_t sz;
-	if (w & 1) {
-		sz = (w & 0xff) >> 1;
-		gu_assert(sz <= sizeof(GuWord));
-		size_t i = sz;
-		while (i > 0) {
-			w >>= 8;
-			buf[--i] = w & 0xff;
-		}
-		src = buf;
+	size_t sz = gu_string_size(s);
+	if (gu_string_is_long(s)) {
+		src = gu_string_long_data(s);
 	} else {
-		uint8_t* p = (void*) w;
-		sz = (p[0] == 0) ? ((size_t*) p)[-1] : p[0];
-		src = &p[1];
+		gu_assert(sz <= sizeof(GuWord));
+		gu_string_write_data(s, buf);
+		src = buf;
 	}
 	gu_utf8_write(src, sz, wtr, err);
 }
+
+GuReader*
+gu_string_reader(GuString s, GuPool* pool)
+{
+	GuCSlice buf;
+	if (gu_string_is_long(s)) {
+		buf.sz = gu_string_long_size(s);
+		buf.p = gu_string_long_data(s);
+	} else {
+		buf.sz = gu_string_short_size(s);
+		uint8_t* p = gu_new_n(uint8_t, buf.sz, pool);
+		buf.p = p;
+		gu_string_short_write_data(s, p);
+	}
+	GuIn* in = gu_data_in(buf, pool);
+	GuReader* rdr = gu_new_utf8_reader(in, pool);
+	return rdr;
+}
+
 
 GuString
 gu_format_string_v(const char* fmt, va_list args, GuPool* pool)
@@ -227,9 +258,9 @@ gu_string_hash(GuString s)
 	if (s.w_ & 1) {
 		return s.w_;
 	}
-	size_t len = gu_string_length(s);
+	size_t sz = gu_string_size(s);
 	uint8_t* data = gu_string_long_data(s);
-	return gu_hash_bytes(0, data, len);
+	return gu_hash_bytes(0, data, sz);
 }
 
 bool
@@ -238,14 +269,14 @@ gu_string_eq(GuString s1, GuString s2)
 	if (s1.w_ == s2.w_) {
 		return true;
 	} else if (gu_string_is_long(s1) && gu_string_is_long(s2)) {
-		size_t len1 = gu_string_long_length(s1);
-		size_t len2 = gu_string_long_length(s2);
-		if (len1 != len2) {
+		size_t sz1 = gu_string_long_size(s1);
+		size_t sz2 = gu_string_long_size(s2);
+		if (sz1 != sz2) {
 			return false;
 		}
 		uint8_t* data1 = gu_string_long_data(s1);
 		uint8_t* data2 = gu_string_long_data(s2);
-		return (memcmp(data1, data2, len1) == 0);
+		return (memcmp(data1, data2, sz1) == 0);
 	}
 	return false;
 

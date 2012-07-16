@@ -6,6 +6,7 @@
 #include <gu/bits.h>
 #include <gu/read.h>
 #include <gu/write.h>
+#include <gu/seq.h>
 
 /** @file
  *
@@ -47,6 +48,9 @@ gu_ucs_string(const GuUCS* ubuf, size_t len, GuPool* pool);
 GuString
 gu_utf8_string(const uint8_t* buf, size_t sz, GuPool* pool);
 
+
+GuBytes
+gu_string_utf8(GuString str, GuPool* pool);
 
 /// Copy a string.
 GuString
@@ -122,6 +126,10 @@ gu_string_is_stable(GuString string);
 
 
 
+typedef GuSeq GuStrings;
+// typedef GuBuf GuStringBuf;
+
+
 #endif // GU_STRING_H_
 
 /** @name Miscellaneous
@@ -163,14 +171,6 @@ typedef GuType_GuMap GuType_GuStringMap;
 # endif
 #endif
 
-
-#if defined(GU_SEQ_H_) && !defined(GU_STRING_H_SEQ_)
-#define GU_STRING_H_SEQ_
-
-typedef GuSeq GuStrings;
-// typedef GuBuf GuStringBuf;
-
-#endif
 
 
 #if defined(GU_MAP_H_) && !defined(GU_STRING_H_MAP_)

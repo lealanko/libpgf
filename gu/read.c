@@ -35,15 +35,14 @@ struct GuLocaleInStream {
 };
 
 static size_t
-gu_locale_reader_input(GuInStream* self, uint8_t* utf8_buf, size_t max_sz,
-		       GuExn* err)
+gu_locale_reader_input(GuInStream* self, GuSlice utf8_buf, GuExn* err)
 {
 	GuLocaleInStream* lis = (GuLocaleInStream*) self;
-	uint8_t* dst_cur = utf8_buf;
-	uint8_t* dst_end = &dst_cur[max_sz];
+	uint8_t* dst_cur = utf8_buf.p;
+	uint8_t* dst_end = &dst_cur[utf8_buf.sz];
 	size_t frag_len = lis->utf8_frag_end - lis->utf8_frag_cur;
 	if (frag_len) {
-		size_t clen = GU_MIN(frag_len, max_sz);
+		size_t clen = GU_MIN(frag_len, utf8_buf.sz);
 		memcpy(dst_cur, lis->utf8_frag_cur, clen);
 		lis->utf8_frag_cur += clen;
 		return clen;
@@ -56,11 +55,11 @@ read_again:;
 	GuUCS ucs_buf[BUF_SIZE];
 	size_t mbs_max = (dst_end - dst_cur + 3) / 4;
 	uint8_t fallback[BUF_SIZE];
-	size_t mbs_len = GU_MIN(mbs_max, BUF_SIZE);
-	const char* mbs_buf = (const char*)
-		gu_in_begin_span(lis->in, fallback, &mbs_len, err);
+	GuSlice req = { fallback, GU_MIN(mbs_max, BUF_SIZE) };
+	GuCSlice mbs = gu_in_begin_span(lis->in, req, err);
 	if (!gu_ok(err)) return 0;
-	mbs_len = GU_MIN(mbs_len, mbs_max);
+	size_t mbs_len = GU_MIN(mbs.sz, mbs_max);
+	const char* mbs_buf = (const char*) mbs.p;
 	size_t mbs_cur = 0;
 	size_t ucs_len = 0;
 	while (mbs_cur < mbs_len) {
@@ -112,7 +111,7 @@ read_again:;
 		dst_cur += dst_rem;
 		lis->utf8_frag_cur = &lis->utf8_frag[dst_rem];
 	}
-	return dst_cur - utf8_buf;
+	return dst_cur - utf8_buf.p;
 }
 
 GuReader*
