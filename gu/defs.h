@@ -175,7 +175,7 @@ typedef union {
 } GuMaxAlign;
 
 #define gu_alloca(N)				\
-	(((union { GuMaxAlign align_; uint8_t buf_[N]; }){{0}}).buf_)
+	((uint8_t*)(GuMaxAlign[(N+sizeof(GuMaxAlign)-1)/sizeof(GuMaxAlign)]){{0}})
 
 
 #ifdef GU_OPTIMIZE_SIZE

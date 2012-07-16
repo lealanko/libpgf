@@ -88,23 +88,21 @@ gu_mem_padovan(size_t min)
 	return a;
 }
 
-void*
-gu_mem_buf_realloc(void* old_buf, size_t min_size, size_t* real_size_out)
+GuSlice
+gu_mem_buf_realloc(void* old_buf, size_t min_size)
 {
 	size_t min_blocks = ((min_size + gu_malloc_overhead - 1) /
 			     gu_mem_unit_size) + 1;
 	size_t blocks = gu_mem_padovan(min_blocks);
 	size_t size = blocks * gu_mem_unit_size - gu_malloc_overhead;
 	void* buf = gu_mem_realloc(old_buf, size);
-	if (real_size_out) {
-		*real_size_out = buf ? size : 0;
-	}
-	return buf;
+	return gu_slice(buf, buf ? size : 0);
 }
-void*
-gu_mem_buf_alloc(size_t min_size, size_t* real_size_out)
+
+GuSlice
+gu_mem_buf_alloc(size_t min_size)
 {
-	return gu_mem_buf_realloc(NULL, min_size, real_size_out);
+	return gu_mem_buf_realloc(NULL, min_size);
 }
 
 void
@@ -144,26 +142,26 @@ struct GuPool {
 };
 
 static GuPool*
-gu_init_pool(uint8_t* buf, size_t sz)
+gu_init_pool(GuSlice buf)
 {
-	gu_require(gu_aligned((uintptr_t) (void*) buf, gu_alignof(GuPool)));
-	gu_require(sz >= sizeof(GuPool));
-	GuPool* pool = (GuPool*) buf;
+	gu_require(gu_aligned((uintptr_t) (void*) buf.p, gu_alignof(GuPool)));
+	gu_require(buf.sz >= sizeof(GuPool));
+	GuPool* pool = (GuPool*) buf.p;
 	pool->flags = 0;
-	pool->curr_size = sz;
+	pool->curr_size = buf.sz;
 	pool->curr_buf = (uint8_t*) pool;
 	pool->chunks = NULL;
 	pool->finalizers = NULL;
 	pool->left_edge = offsetof(GuPool, init_buf);
-	pool->right_edge = sz;
+	pool->right_edge = buf.sz;
 	VG(VALGRIND_CREATE_MEMPOOL(pool, 0, false));
 	return pool;
 }
 
 GuPool*
-gu_local_pool_(uint8_t* buf, size_t sz)
+gu_local_pool_(GuSlice buf)
 {
-	GuPool* pool = gu_init_pool(buf, sz);
+	GuPool* pool = gu_init_pool(buf);
 	pool->flags |= GU_POOL_LOCAL;
 	gu_debug("%p", pool);
 	return pool;
@@ -173,8 +171,8 @@ GuPool*
 gu_new_pool(void)
 {
 	size_t sz = GU_FLEX_SIZE(GuPool, init_buf, gu_mem_pool_initial_size);
-	uint8_t* buf = gu_mem_buf_alloc(sz, &sz);
-	GuPool* pool = gu_init_pool(buf, sz);
+	GuSlice data = gu_mem_buf_alloc(sz);
+	GuPool* pool = gu_init_pool(data);
 	gu_debug("%p", pool);
 	return pool;
 }
@@ -185,15 +183,15 @@ gu_pool_expand(GuPool* pool, size_t req)
 	size_t real_req = GU_MAX(req, GU_MIN(((size_t)pool->curr_size) + 1,
 					     gu_mem_chunk_max_size));
 	gu_assert(real_req >= sizeof(GuMemChunk));
-	size_t size = 0;
-	GuMemChunk* chunk = gu_mem_buf_alloc(real_req, &size);
+	GuSlice slice = gu_mem_buf_alloc(real_req);
+	GuMemChunk* chunk = (GuMemChunk*) slice.p;
 	chunk->next = pool->chunks;
 	pool->chunks = chunk;
 	pool->curr_buf = (uint8_t*) chunk;
 	pool->left_edge = offsetof(GuMemChunk, data);
-	pool->right_edge = pool->curr_size = size;
+	pool->right_edge = pool->curr_size = slice.sz;
 	// size should always fit in uint16_t
-	gu_assert((size_t) pool->right_edge == size); 
+	gu_assert((size_t) pool->right_edge == slice.sz);
 }
 
 static size_t

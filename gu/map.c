@@ -157,25 +157,24 @@ gu_map_resize(GuMap* map)
 		gu_twin_prime_sup(GU_MAX(11, map->data.n_occupied * 4 / 3 + 1));
 
 	size_t key_size = map->key_size;
-	size_t key_alloc = 0;
-	data->keys = gu_mem_buf_alloc(req_entries * key_size, &key_alloc);
-
+	GuSlice keys = gu_mem_buf_alloc(req_entries * key_size);
+	data->keys = keys.p;
+	size_t n_entries = keys.sz / key_size;
+		
 	size_t value_size = map->value_size;
-	size_t value_alloc = 0;
 	if (value_size) {
-		data->values = gu_mem_buf_alloc(req_entries * value_size,
-						    &value_alloc);
-		memset(data->values, 0, value_alloc);
+		GuSlice values = gu_mem_buf_alloc(req_entries * value_size);
+		data->values = values.p;
+		memset(data->values, 0, values.sz);
+		n_entries = GU_MIN(n_entries, values.sz / value_size);
 	}
 	
-	data->n_entries = gu_twin_prime_inf(value_size ?
-					    GU_MIN(key_alloc / key_size,
-						   value_alloc / value_size)
-					    : key_alloc / key_size);
+	data->n_entries = gu_twin_prime_inf(n_entries);
+	
 	switch (map->kind) {
 	case GU_MAP_GENERIC:
 	case GU_MAP_WORD:
-		memset(data->keys, 0, key_alloc);
+		memset(data->keys, 0, key_size * n_entries);
 		break;
 	case GU_MAP_ADDR:
 		for (size_t i = 0; i < data->n_entries; i++) {

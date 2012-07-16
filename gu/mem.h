@@ -66,12 +66,12 @@ gu_new_pool(void);
 
 /// @private
 GuPool*
-gu_local_pool_(uint8_t* init_buf, size_t sz);
+gu_local_pool_(GuSlice init_buf);
 
 /// Create a stack-allocated memory pool.
 #define gu_local_pool()				\
-	gu_local_pool_(gu_alloca(GU_LOCAL_POOL_INIT_SIZE_),	\
-		       GU_LOCAL_POOL_INIT_SIZE_)
+	gu_local_pool_(gu_slice(gu_alloca(GU_LOCAL_POOL_INIT_SIZE_),	\
+				GU_LOCAL_POOL_INIT_SIZE_))
 /**<
  * @return A memory pool whose first chunk is allocated directly from
  * the stack. This makes its creation faster, and more suitable for
@@ -307,8 +307,8 @@ gu_pool_free(GU_ONLY GuPool* pool);
  */
 
 /// Allocate a new memory buffer.
-GU_ONLY void*
-gu_mem_buf_alloc(size_t min_size, size_t* real_size);
+GuSlice
+gu_mem_buf_alloc(size_t min_size);
 /**<
  * @param min_size
  * The minimum acceptable size for a returned memory block.
@@ -326,12 +326,11 @@ gu_mem_buf_alloc(size_t min_size, size_t* real_size);
 
 
 /// Resize or reallocate a memory buffer
-GU_ONLY void*
+GuSlice
 gu_mem_buf_realloc(
 	GU_NULL GU_ONLY GU_RETURNED
 	void* buf,
-	size_t min_size,
-	size_t* real_size_out);
+	size_t min_size);
 /**<
  *
  * @param buf

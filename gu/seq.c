@@ -116,10 +116,9 @@ gu_buf_require(GuBuf* buf, size_t req_len)
 		return;
 	}
 	size_t req_size = buf->elem_size * req_len;
-	size_t real_size;
-	buf->data = gu_mem_buf_realloc(buf->data, req_size,
-				       &real_size);
-	buf->avail_len = real_size / buf->elem_size;
+	GuSlice data = gu_mem_buf_realloc(buf->data, req_size);
+	buf->data = data.p;
+	buf->avail_len = data.sz / buf->elem_size;
 }
 
 void*
