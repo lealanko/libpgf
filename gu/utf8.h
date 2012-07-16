@@ -6,6 +6,7 @@
 #include <gu/in.h>
 #include <gu/out.h>
 #include <gu/ucs.h>
+#include <gu/str.h>
 
 inline GuUCS
 gu_in_utf8(GuIn* in, GuExn* err)
@@ -63,7 +64,7 @@ inline void
 gu_str_out_utf8(const char* str, GuOut* out, GuExn* err)
 {
 #ifdef GU_CHAR_ASCII
-	gu_out_bytes(out, (const uint8_t*) str, strlen(str), err);
+	gu_out_bytes(out, gu_str_cslice(str), err);
 #else
 	extern void 
 		gu_str_out_utf8_(const char* str, GuOut* out, GuExn* err);

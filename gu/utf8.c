@@ -182,11 +182,10 @@ void
 gu_out_utf8_long_(GuUCS ucs, GuOut* out, GuExn* err)
 {
 	uint8_t buf[4];
-	size_t req = 4;
-	uint8_t* span = gu_out_begin_span(out, buf, &req, err);
+	GuSlice span = gu_out_begin_span(out, gu_slice(buf, 4), err);
 	if (!gu_ok(err)) return;
-	size_t sz = gu_utf8_encode_one_unsafe(ucs, span);
-	gu_out_end_span(out, span, sz, err);
+	size_t sz = gu_utf8_encode_one_unsafe(ucs, span.p);
+	gu_out_end_span(out, gu_slice(span.p, sz), err);
 }
 
 extern inline void
@@ -201,12 +200,11 @@ gu_utf32_out_utf8(const GuUCS* src, size_t len, GuOut* out, GuExn* err)
 	while (src_curr < src_end) {
 		const GuUCS* src_tmp = src_curr;
 		uint8_t buf[4];
-		size_t dst_sz = 4;
-		uint8_t* dst = gu_out_begin_span(out, buf, &dst_sz, err);
+		GuSlice dst = gu_out_begin_span(out, gu_slice(buf, 4), err);
 		if (!gu_ok(err)) break;
-		uint8_t* dst_curr = dst;
-		gu_utf8_encode(&src_tmp, src_end, &dst_curr, &dst[dst_sz]);
-		gu_out_end_span(out, dst, dst_curr - dst, err);
+		uint8_t* dst_curr = dst.p;
+		gu_utf8_encode(&src_tmp, src_end, &dst_curr, &dst.p[dst.sz]);
+		gu_out_end_span(out, gu_slice(dst.p, dst_curr - dst.p), err);
 		if (!gu_ok(err)) break;
 		src_curr = src_tmp;
 	}

@@ -10,12 +10,12 @@ struct GuFileOutStream {
 };
 
 static size_t
-gu_file_output(GuOutStream* stream, const uint8_t* buf, size_t len, GuExn* err)
+gu_file_output(GuOutStream* stream, GuCSlice src, GuExn* err)
 {
 	GuFileOutStream* fos = gu_container(stream, GuFileOutStream, stream);
 	errno = 0;
-	size_t wrote = fwrite(buf, 1, len, fos->file);
-	if (wrote < len) {
+	size_t wrote = fwrite(src.p, 1, src.sz, fos->file);
+	if (wrote < src.sz) {
 		if (ferror(fos->file)) {
 			gu_raise_errno(err);
 		}

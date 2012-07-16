@@ -193,19 +193,18 @@ struct GuBufOut
 };
 
 static size_t
-gu_buf_out_output(GuOutStream* stream, const uint8_t* src, size_t sz,
-		  GuExn* err)
+gu_buf_out_output(GuOutStream* stream, GuCSlice src, GuExn* err)
 {
 	GuBufOut* bout = gu_container(stream, GuBufOut, stream);
 	GuBuf* buf = bout->buf;
-	gu_assert(sz % buf->elem_size == 0);
-	size_t len = sz / buf->elem_size;
-	gu_buf_push_n(bout->buf, src, len);
+	gu_assert(src.sz % buf->elem_size == 0);
+	size_t len = src.sz / buf->elem_size;
+	gu_buf_push_n(bout->buf, src.p, len);
 	return len;
 }
 
-static uint8_t*
-gu_buf_outbuf_begin(GuOutStream* stream, size_t req, size_t* sz_out, GuExn* err)
+static GuSlice
+gu_buf_outbuf_begin(GuOutStream* stream, size_t req, GuExn* err)
 {
 	GuBufOut* bout = gu_container(stream, GuBufOut, stream);
 	GuBuf* buf = bout->buf;
@@ -214,8 +213,7 @@ gu_buf_outbuf_begin(GuOutStream* stream, size_t req, size_t* sz_out, GuExn* err)
 	gu_buf_require(buf, len + (req + esz - 1) / esz);
 	size_t avail = buf->avail_len;
 	gu_assert(len <= avail);
-	*sz_out = esz * (avail - len);
-	return &buf->data[len * esz];
+	return (GuSlice) { &buf->data[len * esz], esz * (avail - len) };
 }
 
 static void

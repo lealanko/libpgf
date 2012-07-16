@@ -225,12 +225,48 @@ struct GuSlice {
 	size_t sz;
 };
 
+inline GuSlice
+gu_slice(uint8_t* p, size_t sz)
+{
+	return (GuSlice) { p, sz };
+}
+
+inline GuSlice
+gu_null_slice(void)
+{
+	return gu_slice(NULL, 0);
+}
+
+#define GU_local_slice(LEN) gu_slice((uint8_t[LEN]){0}, (LEN))
+
 typedef struct GuCSlice GuCSlice;
 
 struct GuCSlice {
 	const uint8_t* p;
 	size_t sz;
 };
+
+inline GuCSlice
+gu_cslice(const uint8_t* p, size_t sz)
+{
+	return (GuCSlice) { p, sz };
+}
+
+inline GuCSlice
+gu_null_cslice(void)
+{
+	return gu_cslice(NULL, 0);
+}
+
+inline GuCSlice
+gu_slice_cslice(GuSlice slice)
+{
+	return gu_cslice(slice.p, slice.sz);
+}
+
+bool
+gu_cslice_eq(GuCSlice s1, GuCSlice s2);
+
 
 
 

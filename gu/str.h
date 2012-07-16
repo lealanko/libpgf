@@ -28,4 +28,14 @@ char* gu_vasprintf(const char* fmt, va_list args, GuPool* pool);
 
 char* gu_asprintf(GuPool* pool, const char* fmt, ...);
 
+inline GuSlice gu_str_slice(char* str)
+{
+	return (GuSlice) { (uint8_t*) str, strlen(str) };
+}
+
+inline GuCSlice gu_str_cslice(const char* cstr)
+{
+	return (GuCSlice) { (const uint8_t*) cstr, strlen(cstr) };
+}
+
 #endif // GU_STR_H_

@@ -12,11 +12,9 @@ typedef struct GuOut GuOut;
 typedef struct GuOutStream GuOutStream;
 
 struct GuOutStream {
-	uint8_t* (*begin_buf)(GuOutStream* self, size_t req, size_t* sz_out,
-			      GuExn* err);
+	GuSlice (*begin_buf)(GuOutStream* self, size_t req, GuExn* err);
 	void (*end_buf)(GuOutStream* self, size_t span, GuExn* err);
-	size_t (*output)(GuOutStream* self, const uint8_t* buf, size_t size,
-			 GuExn* err);
+	size_t (*output)(GuOutStream* self, GuCSlice buf, GuExn* err);
 	void (*flush)(GuOutStream* self, GuExn* err);
 };
 
@@ -54,39 +52,36 @@ gu_new_buffered_out(GuOut* out, size_t buf_sz, GuPool* pool);
 GuOut*
 gu_out_buffered(GuOut* out, GuPool* pool);
 
-uint8_t*
-gu_out_begin_span(GuOut* out, uint8_t* fallback, size_t* sz_inout,
-		  GuExn* err);
+GuSlice
+gu_out_begin_span(GuOut* out, GuSlice fallback, GuExn* err);
 
 void
-gu_out_end_span(GuOut* out, uint8_t* span, size_t sz, GuExn* err);
+gu_out_end_span(GuOut* out, GuSlice span, GuExn* err);
 
 size_t
-gu_out_bytes_(GuOut* restrict out, const uint8_t* restrict src, 
-	      size_t len, GuExn* err);
+gu_out_bytes_(GuOut* restrict out, GuCSlice src, GuExn* err);
 
 inline bool
-gu_out_try_buf_(GuOut* restrict out, const uint8_t* restrict src, size_t len)
+gu_out_try_buf_(GuOut* restrict out, GuCSlice src)
 {
-	gu_require(len <= PTRDIFF_MAX);
+	gu_require(src.sz <= PTRDIFF_MAX);
 	ptrdiff_t curr = out->buf_curr;
-	ptrdiff_t new_curr = curr + (ptrdiff_t) len;
+	ptrdiff_t new_curr = curr + (ptrdiff_t) src.sz;
 	if (GU_UNLIKELY(new_curr > 0)) {
 		return false;
 	}
-	memcpy(&out->buf_end[curr], src, len);
+	memcpy(&out->buf_end[curr], src.p, src.sz);
 	out->buf_curr = new_curr;
 	return true;
 }
 
 inline size_t
-gu_out_bytes(GuOut* restrict out, const uint8_t* restrict src, size_t len, 
-	     GuExn* err)
+gu_out_bytes(GuOut* restrict out, GuCSlice src, GuExn* err)
 {
-	if (GU_LIKELY(gu_out_try_buf_(out, src, len))) {
-		return len;
+	if (GU_LIKELY(gu_out_try_buf_(out, src))) {
+		return src.sz;
 	}
-	return gu_out_bytes_(out, src, len, err);
+	return gu_out_bytes_(out, src, err);
 }
 
 void

@@ -54,11 +54,11 @@ gu_out_begin_buf(GuOut* out, size_t req, GuExn* err)
 		}
 	}
 	if (stream->begin_buf) {
-		size_t sz = 0;
-		uint8_t* buf = stream->begin_buf(stream, req, &sz, err);
+		GuSlice buf = stream->begin_buf(stream, req, err);
+		size_t sz = buf.sz;
 		gu_assert(sz <= PTRDIFF_MAX);
-		if (buf) {
-			out->buf_end = &buf[sz];
+		if (sz) {
+			out->buf_end = &buf.p[sz];
 			out->buf_curr = -(ptrdiff_t) sz;
 			out->buf_size = sz;
 			return true;
@@ -92,20 +92,20 @@ gu_new_out(GuOutStream* stream, GuPool* pool)
 }
 
 extern inline bool
-gu_out_try_buf_(GuOut* out, const uint8_t* src, size_t len);
+gu_out_try_buf_(GuOut* out, GuCSlice src);
 
 
 extern inline size_t
-gu_out_bytes(GuOut* out, const uint8_t* buf, size_t len, GuExn* err);
+gu_out_bytes(GuOut* out, GuCSlice src, GuExn* err);
 
 static size_t
-gu_out_output(GuOut* out, const uint8_t* src, size_t len, GuExn* err)
+gu_out_output(GuOut* out, GuCSlice src, GuExn* err)
 {
 	gu_out_end_buf(out, err);
 	if (!gu_ok(err)) {
 		return 0;
 	}
-	return out->stream->output(out->stream, src, len, err);
+	return out->stream->output(out->stream, src, err);
 }
 
 
@@ -126,49 +126,46 @@ gu_out_flush(GuOut* out, GuExn* err)
 	}
 }
 
-uint8_t*
-gu_out_begin_span(GuOut* out, uint8_t* fallback, size_t* sz_inout, GuExn* err)
+GuSlice
+gu_out_begin_span(GuOut* out, GuSlice fallback, GuExn* err)
 {
-	size_t req = *sz_inout;
-	if ((!gu_out_is_buffering(out) && !gu_out_begin_buf(out, req, err)) ||
-	    (size_t)(-out->buf_curr) < req) {
-		if (!gu_ok(err)) return NULL;
+	if ((!gu_out_is_buffering(out)
+	     && !gu_out_begin_buf(out, fallback.sz, err))
+	    || (size_t)(-out->buf_curr) < fallback.sz) {
+		if (!gu_ok(err)) return gu_null_slice();
 		return fallback;
 	}
-	*sz_inout = -out->buf_curr;
-	return &out->buf_end[out->buf_curr];
+	return gu_slice(&out->buf_end[out->buf_curr], -out->buf_curr);
 }
 
 void
-gu_out_end_span(GuOut* out, uint8_t* span, size_t sz, GuExn* err)
+gu_out_end_span(GuOut* out, GuSlice span, GuExn* err)
 {
 	if (gu_out_is_buffering(out) &&
-	    span == &out->buf_end[out->buf_curr]) {
-		gu_assert(span == &out->buf_end[out->buf_curr]);
-		ptrdiff_t new_curr = (ptrdiff_t) sz + out->buf_curr;
+	    span.p == &out->buf_end[out->buf_curr]) {
+		ptrdiff_t new_curr = (ptrdiff_t) span.sz + out->buf_curr;
 		gu_require(new_curr <= 0);
 		out->buf_curr = new_curr;
 	} else {
 		// The span is a fallback buffer, not stream buffer
-		gu_out_bytes_(out, span, sz, err);
+		gu_out_bytes_(out, gu_slice_cslice(span), err);
 	}
 }
 
 size_t
-gu_out_bytes_(GuOut* restrict out, const uint8_t* restrict src, size_t len, 
-	      GuExn* err)
+gu_out_bytes_(GuOut* restrict out, GuCSlice src, GuExn* err)
 {
 	if (!gu_ok(err)) {
 		return 0;
-	} else if (gu_out_try_buf_(out, src, len)) {
-		return len;
+	} else if (gu_out_try_buf_(out, src)) {
+		return src.sz;
 	}
-	if (gu_out_begin_buf(out, len, err)) {
-		if (gu_out_try_buf_(out, src, len)) {
-			return len;
+	if (gu_out_begin_buf(out, src.sz, err)) {
+		if (gu_out_try_buf_(out, src)) {
+			return src.sz;
 		}
 	} else if (!gu_ok(err)) return 0;
-	return gu_out_output(out, src, len, err);
+	return gu_out_output(out, src, err);
 }
 
 
@@ -179,7 +176,7 @@ void gu_out_u8_(GuOut* restrict out, uint8_t u, GuExn* err)
 			return;
 		}
 	} else if (!gu_ok(err)) return;
-	gu_out_output(out, &u, 1, err);
+	gu_out_output(out, gu_cslice(&u, 1), err);
 }
 
 
@@ -212,14 +209,13 @@ struct GuProxyOutStream {
 };
 
 
-static uint8_t*
-gu_proxy_out_buf_begin(GuOutStream* self, size_t req, size_t* sz_out,
-		       GuExn* err)
+static GuSlice
+gu_proxy_out_buf_begin(GuOutStream* self, size_t req, GuExn* err)
 {
-	GuProxyOutStream* pos =
-		gu_container(self, GuProxyOutStream, stream);
-	pos->buf = gu_out_begin_span(pos->real_out, NULL, sz_out, err);
-	return pos->buf;
+	GuProxyOutStream* pos = gu_container(self, GuProxyOutStream, stream);
+	GuSlice ret = gu_out_begin_span(pos->real_out, gu_null_slice(), err);
+	pos->buf = ret.p;
+	return ret;
 }
 
 static void
@@ -227,16 +223,15 @@ gu_proxy_out_buf_end(GuOutStream* self, size_t sz, GuExn* err)
 {
 	GuProxyOutStream* pos =
 		gu_container(self, GuProxyOutStream, stream);
-	gu_out_end_span(pos->real_out, pos->buf, sz, err);
+	gu_out_end_span(pos->real_out, gu_slice(pos->buf, sz), err);
 }
 
 static size_t
-gu_proxy_out_output(GuOutStream* self, const uint8_t* src, size_t sz,
-		    GuExn* err)
+gu_proxy_out_output(GuOutStream* self, GuCSlice src, GuExn* err)
 {
 	GuProxyOutStream* pos =
 		gu_container(self, GuProxyOutStream, stream);
-	return gu_out_bytes(pos->real_out, src, sz, err);
+	return gu_out_bytes(pos->real_out, src, err);
 }
 
 static void
@@ -269,14 +264,12 @@ struct GuBufferedOutStream {
 	uint8_t buf[];
 };
 
-static uint8_t*
-gu_buffered_out_buf_begin(GuOutStream* self, size_t req, size_t* sz_out,
-			  GuExn* err)
+static GuSlice
+gu_buffered_out_buf_begin(GuOutStream* self, size_t req, GuExn* err)
 {
 	GuBufferedOutStream* b =
 		gu_container(self, GuBufferedOutStream, pstream.stream);
-	*sz_out = b->sz;
-	return b->buf;
+	return gu_slice(b->buf, b->sz);
 }
 
 static void
@@ -285,7 +278,7 @@ gu_buffered_out_buf_end(GuOutStream* self, size_t sz, GuExn* err)
 	GuBufferedOutStream* b =
 		gu_container(self, GuBufferedOutStream, pstream.stream);
 	gu_require(sz <= b->sz);
-	gu_out_bytes(b->pstream.real_out, b->buf, sz, err);
+	gu_out_bytes(b->pstream.real_out, gu_cslice(b->buf, sz), err);
 }
 
 GuOut

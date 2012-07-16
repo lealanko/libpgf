@@ -18,6 +18,8 @@ struct GuStringBuf {
 	GuWriter* wtr;
 };
 
+typedef uint8_t GuShortData[sizeof(GuWord)];
+
 GuStringBuf*
 gu_string_buf(GuPool* pool)
 {
@@ -36,31 +38,31 @@ gu_string_buf_writer(GuStringBuf* sb)
 }
 
 GuString
-gu_utf8_string(const uint8_t* buf, size_t sz, GuPool* pool)
+gu_utf8_string(GuCSlice buf, GuPool* pool)
 {
-	if (sz < GU_MIN(sizeof(GuWord), 128)) {
+	if (buf.sz < GU_MIN(sizeof(GuWord), 128)) {
 		GuWord w = 0;
-		for (size_t n = 0; n < sz; n++) {
-			w = w << 8 | buf[n];
+		for (size_t n = 0; n < buf.sz; n++) {
+			w = w << 8 | buf.p[n];
 		}
-		w = w << 8 | (sz << 1) | 1;
+		w = w << 8 | (buf.sz << 1) | 1;
 		return (GuString) { w };
 	}
 	uint8_t* p = NULL;
-	if (sz < 256) {
-		p = gu_malloc_aligned(pool, 1 + sz, 2);
-		p[0] = (uint8_t) sz;
+	if (buf.sz < 256) {
+		p = gu_malloc_aligned(pool, 1 + buf.sz, 2);
+		p[0] = (uint8_t) buf.sz;
 	} else {
 		uint8_t* p =
-			gu_malloc_prefixed(pool, gu_alignof(size_t),
-					   sizeof(size_t), 1, 1 + sizeof(sz));
-		((size_t*) p)[-1] = sz;
+			gu_malloc_prefixed(pool,
+					   gu_alignof(size_t), sizeof(size_t),
+					   1, 1 + buf.sz);
+		((size_t*) p)[-1] = buf.sz;
 		p[0] = 0;
 	}
-	memcpy(&p[1], buf, sz);
+	memcpy(&p[1], buf.p, buf.sz);
 	return (GuString) { (GuWord) (void*) p };
 }
-
 
 
 GuString
@@ -69,102 +71,62 @@ gu_string_buf_freeze(GuStringBuf* sb, GuPool* pool)
 	gu_writer_flush(sb->wtr, gu_null_exn());
 	uint8_t* data = gu_buf_data(sb->bbuf);
 	size_t len = gu_buf_length(sb->bbuf);
-	return gu_utf8_string(data, len, pool);
-}
-
-static bool
-gu_string_is_long(GuString s) 
-{
-	return !(s.w_ & 1);
+	return gu_utf8_string(gu_cslice(data, len), pool);
 }
 
 bool
 gu_string_is_stable(GuString s)
 {
-	return !gu_string_is_long(s);
+	return ((s.w_ & 1) == 1);
 }
 
-static size_t
-gu_string_long_size(GuString s)
+static GuCSlice
+gu_string_open(GuString s, GuShortData* short_data)
 {
-	gu_assert(gu_string_is_long(s));
-	uint8_t* p = (void*) s.w_;
-	uint8_t sz = p[0];
-	if (sz > 0) {
-		return sz;
-	}
-	return ((size_t*) p)[-1];
-}
-
-static size_t
-gu_string_short_size(GuString s)
-{
-	gu_assert(!gu_string_is_long(s));
-	return (s.w_ & 0xff) >> 1;
-}
-
-static size_t
-gu_string_size(GuString s)
-{
-	if (gu_string_is_long(s)) {
-		return gu_string_long_size(s);
+	GuCSlice ret;
+	GuWord w = s.w_;
+	if (!(w & 1)) {
+		// long string
+		uint8_t* p = (void*) w;
+		ret.p = &p[1];
+		ret.sz = p[0];
+		if (!ret.sz) {
+			ret.sz = ((size_t*) p)[-1];
+		}
 	} else {
-		return gu_string_short_size(s);
+		ret.sz = (w & 0xff) >> 1;
+		uint8_t* p = *short_data;
+		ret.p = p;
+		if (p) {
+			for (int i = ret.sz - 1; i >= 0; i--) {
+				w >>= 8;
+				p[i] = w & 0xff;
+			}
+		}
 	}
+	return ret;
 }
 
-static uint8_t*
-gu_string_long_data(GuString s)
-{
-	gu_require(gu_string_is_long(s));
-	uint8_t* p = (void*) s.w_;
-	return &p[1];
-}
 
 GuString
 gu_string_copy(GuString string, GuPool* pool)
 {
-	if (gu_string_is_long(string)) {
-		uint8_t* data = gu_string_long_data(string);
-		size_t sz = gu_string_long_size(string);
-		return gu_utf8_string(data, sz, pool);
-	} else {
+	if (gu_string_is_stable(string)) {
 		return string;
 	}
-}
-
-static void
-gu_string_short_write_data(GuString s, uint8_t* buf)
-{
-	gu_require(!gu_string_is_long(s));
-	GuWord w = s.w_;
-	size_t sz = (w & 0xff) >> 1;
-	for (int i = sz - 1; i >= 0; i--) {
-		w >>= 8;
-		buf[i] = w & 0xff;
-	}
-}
-
-static void
-gu_string_write_data(GuString s, uint8_t* buf)
-{
-	if (gu_string_is_long(s)) {
-		size_t sz = gu_string_long_size(s);
-		uint8_t* data = gu_string_long_data(s);
-		memcpy(buf, data, sz);
-	} else {
-		gu_string_short_write_data(s, buf);
-	}
+	GuCSlice data = gu_string_open(string, NULL);
+	return gu_utf8_string(data, pool);
 }
 
 
 GuBytes
 gu_string_utf8(GuString s, GuPool* pool)
 {
-	size_t sz = gu_string_size(s);
-	GuBytes bytes = gu_new_seq(uint8_t, sz, pool);
-	uint8_t* data = gu_seq_data(bytes);
-	gu_string_write_data(s, data);
+	GuShortData short_data;
+	GuCSlice data = gu_string_open(s, &short_data);
+	GuBytes bytes = gu_new_seq(uint8_t, data.sz, pool);
+	uint8_t* seq_data = gu_seq_data(bytes);
+	memcpy(seq_data, data.p, data.sz);
 	return bytes;
 }
 
@@ -172,31 +134,20 @@ gu_string_utf8(GuString s, GuPool* pool)
 void
 gu_string_write(GuString s, GuWriter* wtr, GuExn* err)
 {
-	uint8_t buf[sizeof(GuWord)];
-	uint8_t* src;
-	size_t sz = gu_string_size(s);
-	if (gu_string_is_long(s)) {
-		src = gu_string_long_data(s);
-	} else {
-		gu_assert(sz <= sizeof(GuWord));
-		gu_string_write_data(s, buf);
-		src = buf;
-	}
-	gu_utf8_write(src, sz, wtr, err);
+	GuShortData short_data;
+	GuCSlice data = gu_string_open(s, &short_data);
+	gu_utf8_write(data, wtr, err);
 }
 
 GuReader*
 gu_string_reader(GuString s, GuPool* pool)
 {
-	GuCSlice buf;
-	if (gu_string_is_long(s)) {
-		buf.sz = gu_string_long_size(s);
-		buf.p = gu_string_long_data(s);
-	} else {
-		buf.sz = gu_string_short_size(s);
+	GuShortData short_data;
+	GuCSlice buf = gu_string_open(s, &short_data);
+	if (buf.p == short_data) {
 		uint8_t* p = gu_new_n(uint8_t, buf.sz, pool);
+		memcpy(p, short_data, buf.sz);
 		buf.p = p;
-		gu_string_short_write_data(s, p);
 	}
 	GuIn* in = gu_data_in(buf, pool);
 	GuReader* rdr = gu_new_utf8_reader(in, pool);
@@ -232,7 +183,7 @@ GuString
 gu_str_string(const char* str, GuPool* pool)
 {
 #ifdef GU_CHAR_ASCII
-	return gu_utf8_string((const uint8_t*) str, strlen(str), pool);
+	return gu_utf8_string(gu_str_cslice(str), pool);
 #else
 	GuPool* tmp_pool = gu_local_pool();
 	GuStringBuf* sb = gu_string_buf(tmp_pool);
@@ -258,9 +209,8 @@ gu_string_hash(GuString s)
 	if (s.w_ & 1) {
 		return s.w_;
 	}
-	size_t sz = gu_string_size(s);
-	uint8_t* data = gu_string_long_data(s);
-	return gu_hash_bytes(0, data, sz);
+	GuCSlice data = gu_string_open(s, NULL);
+	return gu_hash_bytes(0, data.p, data.sz);
 }
 
 bool
@@ -268,18 +218,10 @@ gu_string_eq(GuString s1, GuString s2)
 {
 	if (s1.w_ == s2.w_) {
 		return true;
-	} else if (gu_string_is_long(s1) && gu_string_is_long(s2)) {
-		size_t sz1 = gu_string_long_size(s1);
-		size_t sz2 = gu_string_long_size(s2);
-		if (sz1 != sz2) {
-			return false;
-		}
-		uint8_t* data1 = gu_string_long_data(s1);
-		uint8_t* data2 = gu_string_long_data(s2);
-		return (memcmp(data1, data2, sz1) == 0);
 	}
-	return false;
-
+	GuCSlice data1 = gu_string_open(s1, NULL);
+	GuCSlice data2 = gu_string_open(s2, NULL);
+	return gu_cslice_eq(data1, data2);
 }
 
 

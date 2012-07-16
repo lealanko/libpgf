@@ -370,9 +370,9 @@ gu_buffered_in_begin_buffer(GuInStream* self, GuExn* err)
 		bis->curr = 0;
 		GuSlice req = { bis->buf, bis->alloc };
 		bis->have = gu_in_some(bis->in, req, 1, err);
-		if (!gu_ok(err)) return (GuCSlice) { NULL, 0 };
+		if (!gu_ok(err)) return gu_null_cslice();
 	}
-	return (GuCSlice) { &bis->buf[bis->curr], bis->have - bis->curr };
+	return gu_cslice(&bis->buf[bis->curr], bis->have - bis->curr);
 }
 
 static void

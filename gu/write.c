@@ -91,19 +91,20 @@ gu_locale_writer_flush_ucs_buf(GuLocaleOutStream* los, GuExn* err)
 	*src_end = L'\0';
 	while (src_curr < src_end) {
 #ifdef GU_UCS_WCHAR
-		uint8_t buf[MB_LEN_MAX + 1];
-		size_t sz = MB_LEN_MAX + 1;
-		uint8_t* span = gu_out_begin_span(los->out, buf, &sz, err);
+		enum { SZ = MB_LEN_MAX + 1 };
+		uint8_t buf[SZ];
+		GuSlice span =
+			gu_out_begin_span(los->out, gu_slice(buf, SZ), err);
 		const GuUCS* src_orig = src_curr;
 		const GuUCS* next = &src_curr[wcslen(src_curr)];
 		if (!gu_ok(err)) return;
-		size_t n = wcsrtombs((char*) span, &src_curr, sz, &los->ps);
+		size_t n = wcsrtombs((char*) span.p, &src_curr, span.sz, &los->ps);
 		while (n == (size_t) -1) {
 			// Encoding error. Just replace the offending
 			// character and try again.
 			*(GuUCS*) src_curr = L'?';
 			src_curr = src_orig;
-			n = wcsrtombs((char*) span, &src_curr, sz,
+			n = wcsrtombs((char*) span.p, &src_curr, span.sz,
 				      &los->ps);
 		}
 		if (src_curr == NULL) {
@@ -114,20 +115,19 @@ gu_locale_writer_flush_ucs_buf(GuLocaleOutStream* los, GuExn* err)
 		}
 #else
 		uint8_t buf[32];
-		size_t sz = 32;
-		uint8_t* span = gu_out_begin_span(los->out, buf, &sz, err);
-		size_t n = GU_MIN(sz, (size_t) (src_end - src_curr));
+		GuSlice span = gu_out_begin_span(los->out, gu_slice(buf, 32), err);
+		size_t n = GU_MIN(span.sz, (size_t) (src_end - src_curr));
 		for (size_t i = 0; i < n; i++) {
 			GuUCS u = src_curr[i];
 			char c = gu_ucs_char(u);
 			if (c == '\0' && u != 0) {
 				c = '?';
 			}
-			span[i] = (uint8_t) c;
+			span.p[i] = (uint8_t) c;
 		}
 		src_curr += n;
 #endif
-		gu_out_end_span(los->out, span, n, err);
+		gu_out_end_span(los->out, gu_slice(span.p, n), err);
 		if (!gu_ok(err)) return;
 	}
 	los->ucs_buf_curr = los->ucs_buf;
@@ -143,12 +143,11 @@ gu_locale_writer_flush(GuOutStream* os, GuExn* err)
 }
 
 size_t
-gu_locale_writer_output(GuOutStream* os, const uint8_t* utf8_src, size_t sz, 
-			GuExn* exn)
+gu_locale_writer_output(GuOutStream* os, GuCSlice utf8_src, GuExn* exn)
 {
 	GuLocaleOutStream* los = (GuLocaleOutStream*) os;
-	const uint8_t* src = utf8_src;
-	const uint8_t* src_end = &src[sz];
+	const uint8_t* src = utf8_src.p;
+	const uint8_t* src_end = &src[utf8_src.sz];
 	GuUCS* dst_end = &los->ucs_buf[GU_LOCALE_WRITER_BUF_SIZE];
 	while (true) {
 		gu_utf8_decode_unsafe(&src, src_end, &los->ucs_buf_curr, dst_end);
@@ -198,5 +197,5 @@ extern inline void
 gu_puts(const char* str, GuWriter* wtr, GuExn* err);
 
 extern inline size_t
-gu_utf8_write(const uint8_t* src, size_t sz, GuWriter* wtr, GuExn* err);
+gu_utf8_write(GuCSlice utf8, GuWriter* wtr, GuExn* err);
 

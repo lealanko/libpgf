@@ -43,9 +43,9 @@ gu_puts(const char* str, GuWriter* wtr, GuExn* err)
 }
 
 inline size_t
-gu_utf8_write(const uint8_t* src, size_t sz, GuWriter* wtr, GuExn* err)
+gu_utf8_write(GuCSlice src, GuWriter* wtr, GuExn* err)
 {
-	return gu_out_bytes(&wtr->out_, src, sz, err);
+	return gu_out_bytes(&wtr->out_, src, err);
 }
 
 void
