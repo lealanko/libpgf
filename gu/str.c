@@ -82,3 +82,7 @@ gu_asprintf(GuPool* pool, const char* fmt, ...)
 	va_end(args);
 	return str;
 }
+
+extern inline GuSlice gu_str_slice(char* str);
+extern inline GuCSlice gu_str_cslice(const char* cstr);
+
