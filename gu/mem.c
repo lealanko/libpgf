@@ -288,6 +288,13 @@ gu_malloc_aligned(GuPool* pool, size_t size, size_t align)
 	return ret;
 }
 
+GuSlice
+gu_malloc_slice(GuPool* pool, size_t sz)
+{
+	void* p = gu_malloc(pool, sz);
+	return gu_slice(p, sz);
+}
+
 
 void 
 gu_pool_finally(GuPool* pool, GuFinalizer* finalizer)

@@ -126,6 +126,9 @@ gu_malloc(GuPool* pool, size_t size) {
  * alignment, allocated from `pool`.
  */
 
+GuSlice
+gu_malloc_slice(GuPool* pool, size_t size);
+
 #include <string.h>
 
 //@private
