@@ -1,12 +1,15 @@
 from codecs import utf_8_encode, utf_8_decode
-
+from io import RawIOBase, BufferedIOBase, TextIOBase, UnsupportedOperation
 from util import *
 from ffi import *
 
 gu = Library('libgu.so.0', "gu_")
 
 class Abstract(Structure, CBase):
-    pass
+    @classproperty
+    def default_spec(self):
+        return cref(self)
+
 
 class Pool(Abstract):
     alive = True
@@ -32,8 +35,8 @@ class Pool(Abstract):
     def __exit__(self, *exc):
         self._close()
 
-Pool.new = gu.new_pool.static(ref(Pool))
-Pool._free = gu.pool_free(None, ref(Pool))
+Pool.new = gu.new_pool.static(Pool)
+Pool._free = gu.pool_free(None, Pool)
 
 
 class CSlice(CStructure):
@@ -45,6 +48,21 @@ class CSlice(CStructure):
         if idx < 0 or idx >= self.sz:
             raise ValueError
         return self.p[idx]
+    def __len__(self):
+        return self.sz
+    def _array(self):
+        return cast(self.p, Address)[c_byte * self.sz]
+    
+    @classmethod
+    def copy_buffer(cls, buf):
+        arr = create_string_buffer(buf, len(buf))
+        return cls.of_buffer(arr)
+
+    @classmethod
+    def of_buffer(cls, buf):
+        sz = len(buf)
+        arr = (c_uint8 * sz).from_buffer(buf)
+        return cls(p=cast(arr, c_uint8_p), sz=sz)
 
 class Slice(CSlice):
     def __setitem__(self, idx, value):
@@ -52,40 +70,50 @@ class Slice(CSlice):
             raise ValueError
         self.p[idx] = value
     def array(self):
-        return cast(self.p, Address)[c_byte * self.sz]
+        return self._array()
 
 class BytesCSlice(instance(Spec)):
     c_type = CSlice
 
-    def from_c(c_val):
+    def to_py(c_val):
         return c_val.bytes()
     
-    def to_c(b):
+    def as_c(b):
         yield CSlice(p=cast(b, c_uint8_p), sz=len(b))
 
-class ArraySlice(instance(Spec)):
-    c_type = Slice
+class _CSliceSpec(instance(ProxySpec)):
+    sot = cspec(CSlice)
+    def wrap(c_val):
+        # XXX: return read-only memoryview, once possible
+        return c_val.bytes()
+    def unwrap(buf):
+        # XXX: accept read-only buffer, once possible
+        return buf if isinstance(buf, CSlice) else CSlice.copy_buffer(buf)
 
-    def from_c(c_val):
+CSlice.default_spec = _CSliceSpec
+    
+class _SliceSpec(instance(ProxySpec)):
+    sot = cspec(Slice)
+    def wrap(c_val):
         return c_val.array()
+    def unwrap(buf):
+        return buf if isinstance(buf, Slice) else Slice.of_buffer(buf)
 
-    def to_c(a):
-        yield Slice(p=cast(a, c_uint8_p), sz=len(a))
-
+Slice.default_spec = _SliceSpec
 
 class _Pool_o(instance(CSpec)):
     c_type = IPOINTER(Pool)
     is_dep = True
 
-    def to_c(p):
+    def as_c(p):
         if p is None:
             p = Pool()
         yield byref(p)
 
-    def from_c(c):
+    def to_py(c):
         return c[0]
 
-Pool.out = dep(default(ref(Pool), lambda: Pool()))
+Pool.Out = dep(default(Pool, lambda: Pool()))
     
 
 
@@ -105,13 +133,13 @@ class Kind(CStructure, delay=True):
     @classproperty
     @memo
     def spec(cls):
-        return type_spec(ref(cls))
+        return type_spec(cref(cls))
 
     # TODO: autocreate c_type for GuTypes that haven't been explicitly
     # bound
         
 
-Kind.super = Field(ref(Kind))
+Kind.super = Field(cref(Kind))
 Kind.init()
 
 _gu_types = dict()
@@ -198,35 +226,45 @@ class Exn(Abstract):
             kind = Type
         return cls.new(exn, kind, pool)
 
-Exn.new = gu.new_exn.static(ref(Exn), ref(Exn), Kind.spec, Pool.out)
-Exn.caught = gu.exn_caught(Type.spec, ref(Exn))
-Exn.caught_data = gu.exn_caught_data(Address, ref(Exn))
+Exn.new = gu.new_exn.static(Exn, Exn, Kind.spec, Pool.Out)
+Exn.caught = gu.exn_caught(Type.spec, Exn)
+Exn.caught_data = gu.exn_caught_data(Address, Exn)
 
 # Temporary wrapper until we integrate libgu exception types into the
 # python exception hierarchy
 class GuException(Exception):
     pass
 
-class ExnSpec(instance(ProxySpec)):
-    sot = ref(Exn)
-    def to_c(e):
+class _CurrentExnSpec(instance(ProxySpec)):
+    sot = Exn
+    def as_c(e):
         if e is None:
             e = Exn()
-        for c in ExnSpec.spec.to_c(e):
+        for c in Exn.Out.spec.as_c(e):
             yield c
         t = e.caught()
         if t:
             addr = e.caught_data()
             s = spec(t)
+            val = None
             if addr:
                 val = s.from_addr(addr)
                 val.add_dep(e) # More precisely: the pool of e
-            else:
-                val = s.c_type
-            raise GuException(val)
+            raise GuException(s.c_type, val)
+
+    def as_py(c, ctx):
+        try:
+            yield []
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            # TODO: convert e to GuException
+            pass
+
+Exn.Out = _CurrentExnSpec
 
 class ExnData(CStructure):
-    pool = Field(ref(Pool))
+    pool = Field(Pool)
     data = Field(Address)
 
     
@@ -242,7 +280,6 @@ class OpaqueType(CStructureType):
 
 class Opaque(CStructure, metaclass=OpaqueType):
     w_ = Field(c_uintptr)
-
 
 
 class SeqType(CStructType):
@@ -265,10 +302,10 @@ class Seq(Opaque):
         return cast(self._data(), POINTER(self.elemspec.c_type))
 
     def __getitem__(self, idx):
-        return self.elemspec.from_c(self._elemdata()[idx])
+        return self.elemspec.to_py(self._elemdata()[idx])
 
     def __setitem__(self, idx, val):
-        self._elemdata()[idx] = self.elemspec.to_c(val)
+        self._elemdata()[idx] = self.elemspec.as_c(val)
 
 Seq._data = gu.seq_data(c_void_p, Seq)
 Seq.length = gu.seq_length(c_size_t, Seq)
@@ -288,18 +325,25 @@ class String(Opaque):
         return cls.from_utf8(b, pool)
 
     def __str__(self):
-        b = self.utf8()
-        s, _ = utf_8_decode(b._arr())
+        slc = self.utf8()
+        s, _ = utf_8_decode(slc)
         return s
 
     def __eq__(self, other):
         return self.eq(other)
 
-String.from_utf8 = gu.utf8_string.static(String, BytesCSlice, Pool.out)
-String.utf8 = gu.string_utf8(Bytes, String, Pool.out)
+String.from_utf8 = gu.utf8_string.static(cspec(String), BytesCSlice, Pool.Out)
+String.utf8 = gu.string_utf8(Slice, cspec(String), Pool.Out)
+
+class _StringSpec(instance(ProxySpec)):
+    sot = cspec(String)
+    def unwrap(s):
+        return String(s) if isinstance(s, str) else s
+    def wrap(s):
+        return str(s)
+
+String.default_spec = _StringSpec
 String.eq = gu.string_eq(c_bool, String, String)
-
-
 
 #
 # In
@@ -311,13 +355,170 @@ class EOF(Abstract):
 AbstractType.bind(EOF, 'GuEOF')
 
 
-class In(Opaque):
-    def bytes(self, sz):
-        arr = create_string_buffer(sz)
-        self._bytes(arr)
+class In(Abstract):
+    # BufferedIOBase methods
+    def read(self, sz):
+        arr = bytearray(sz)
+        self.bytes(arr)
         return bytes(arr)
 
-In.from_data = gu.data_in.static(ref(In), dep(BytesCSlice), Pool.out)
-In._bytes = gu.in_bytes(None, ref(In), ArraySlice, ExnSpec)
+    def readinto(self, buf):
+        slc = Slice.of_buffer(buf)
+        self.bytes(slc)
 
+    def read1(self, sz):
+        raise UnsupportedOperation
+
+    def write(b):
+        raise UnsupportedOperation
+
+    def detach(b):
+        # Could be supported in principle.
+        raise UnsupportedOperation
+        
+In.from_data = gu.data_in.static(In, dep(BytesCSlice), Pool.Out)
+In.bytes = gu.in_bytes(None, In, Slice, Exn.Out)
+In.new_buffered = gu.new_buffered_in.static(In, dep(In), c_size_t, Pool.Out)
+BufferedIOBase.register(In)
+
+@memo
+def bridge(base):
+    class Bridge(base):
+        py = Field(py_object)
+    Bridge.__name__ = base.__name__ + "Bridge"
+    return Bridge
+
+def wrap_method(base, attr):
+    b = bridge(base)
+    def wrapper(ref, *args):
+        return getattr(pun(ref, b).py, attr)(*args)
+    wrapper.__name__ = attr
+    field = getattr(base, attr)
+    return field.spec.c_type(wrapper)
+
+class BridgeSpec(Spec):
+    def to_c(self, x, ctx):
+        b = bridge(self.c_type)
+        br = b()
+        for m in self.wrap_fields:
+            meth = wrap_method(self.c_type, m)
+            setattr(br, m, meth)
+        br.py = self.wrapper(x)
+        return br
+
+    def to_py(c):
+        return pun(c, bridge(self.c_type)).py
+
+
+class InStream(CStructure, delay=True):
+    pass
+
+InStream._begin_buffer_dummy = Field(fn(None))
+InStream._end_buffer_dummy = Field(fn(None))
+InStream.input = Field(fn(c_size_t, ref(InStream), Slice, Exn.Out))
+InStream.init()
+
+
+class InStreamWrapper(Object):
+    def input(self, slc):
+        print("read %r" % len(slc))
+        return self.stream.readinto(slc)
+
+class InStreamBridge(instance(BridgeSpec)):
+    c_type = InStream
+    wrap_fields = ['input']
+    def wrapper(i):
+        return InStreamWrapper(stream=i)
+
+In.new = gu.new_in.static(In, dep(ref(InStreamBridge)), Pool.Out)
+
+
+
+
+class OutStream(CStructure, delay=True):
+    pass
+
+OutStream._begin_buffer_dummy = Field(fn(None))
+OutStream._end_buffer_dummy = Field(fn(None))
+OutStream.output = Field(fn(c_size_t, ref(OutStream), CSlice, Exn.Out))
+OutStream.flush = Field(fn(None, ref(OutStream), Exn.Out))
+OutStream.init()
+
+c_output = wrap_method(OutStream, 'output')
+c_flush = wrap_method(OutStream, 'flush')
+
+class OutStreamWrapper(Object):
+    def output(self, cslc):
+        return self.stream.write(cslc)
+    def flush(self):
+        self.stream.flush()
+
+class OutStreamBridge(instance(BridgeSpec)):
+    c_type = OutStream
+    wrap_fields = ['output', 'flush']
+    def wrapper(o):
+        return OutStreamWrapper(stream=o)
+
+class Out(Abstract):
+    def write(self, buf):
+        self.bytes(buf)
+
+Out.new = gu.new_out.static(Out, dep(ref(OutStreamBridge)), Pool.Out)
+Out.bytes = gu.out_bytes(None, Out, CSlice, Exn.Out)
+Out.flush = gu.out_flush(None, Out, Exn.Out)
+    
+BufferedIOBase.register(Out)
+
+
+
+class WriterOutStreamWrapper(Object):
+    def output(self, cslc):
+        s,_ = utf_8_decode(cslc)
+        return self.stream.write(s)
+    def flush(self):
+        self.stream.flush()
+
+class WriterOutStreamBridge(instance(BridgeSpec)):
+    c_type = OutStream
+    wrap_fields = ['output', 'flush']
+    def wrapper(o):
+        return WriterOutStreamWrapper(stream=o)
+
+class Writer(Abstract):
+    def write(self, s):
+        b, _ = utf_8_encode(s)
+        utf8_write(b, self)
+
+Writer.new = gu.new_writer.static(Writer, dep(ref(WriterOutStreamBridge)), Pool.Out)
+Writer.flush = gu.writer_flush(None, Writer, Exn.Out)
+utf8_write = gu.utf8_write.static(c_size_t, CSlice, Writer, Exn.Out)
+
+
+
+
+#
+#
+#
+
+class Enum(Abstract):
+    def __iter__(self):
+        return self
+    def __next__(self):
+        pool = Pool()
+        ret = self._elem_spec.c_type()
+        got = self.next(address(ret), pool)
+        if not got:
+            raise StopIteration
+        # XXX: this isn't enough for structured data, e.g. pointers or
+        # transparent structures.
+        ret._add_dep(pool)
+        return self._elem_spec.to_py(ret)
+
+Enum.next = gu.enum_next(c_bool, Enum, c_void_p, Pool)
+
+@memo
+def enum(sot):
+    class ElemEnum(Enum):
+        _elem_spec = spec(sot)
+    return ElemEnum
 

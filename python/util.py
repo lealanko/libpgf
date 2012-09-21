@@ -11,9 +11,13 @@ def memo(f):
     cache = WeakKeyDictionary()
     @wraps(f)
     def g(x):
-        if x not in cache:
-            cache[x] = f(x)
-        return cache[x]
+        try:
+            val = cache[x]
+        except TypeError:
+            val = f(x)
+        except KeyError:
+            val = cache[x] = f(x)
+        return val
     return g
 
 class Instance(type):

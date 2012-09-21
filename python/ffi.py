@@ -4,7 +4,7 @@ from ctypes import *
 
 from itertools import chain, repeat
 from contextlib import contextmanager
-from collections import OrderedDict
+from collections import OrderedDict, Callable
 
 from util import *
 
@@ -43,7 +43,19 @@ class Spec(Object):
     is_dep = False
 
     def from_addr(self, addr):
-        return self.from_c(addr[c_type])
+        return self.to_py(addr[c_type])
+
+    def as_py(self, c, ctx):
+        yield [self.to_py(c)]
+
+    def as_c(self, r):
+        yield self.to_c(r, None)
+
+    def to_py(self, c):
+        raise NotImplementedError
+
+    def to_c(self, c, ctx):
+        raise NotImplementedError
 
 class ProxySpec(Spec):
     @property
@@ -59,12 +71,19 @@ class ProxySpec(Spec):
     def c_type(self):
         return self.wrap_type(self.spec.c_type)
 
-    def to_c(self, x):
-        for a in self.spec.to_c(self.unwrap(x)):
+    def to_c(self, x, ctx):
+        return self.wrap_c(self.spec.to_c(self.unwrap(x), ctx))
+
+    def as_c(self, x):
+        for a in self.spec.as_c(self.unwrap(x)):
             yield self.wrap_c(a)
 
-    def from_c(self, c):
-        return self.wrap(self.spec.from_c(self.unwrap_c(c)))
+    def to_py(self, c):
+        return self.wrap(self.spec.to_py(self.unwrap_c(c)))
+
+    def as_py(self, c, ctx):
+        for l in self.spec.as_py(self.unwrap_c(c), ctx):
+            yield [self.wrap(a) for a in l]
 
     def id_wrap(self, x):
         return x
@@ -108,7 +127,7 @@ class Address(c_void_p):
 
 class Library:
     def __init__(self, soname, prefix):
-        self.dll = CDLL(soname)
+        self.dll = CDLL(soname, mode=RTLD_GLOBAL)
         self.prefix = prefix
 
     def __getattr__(self, name):
@@ -119,6 +138,10 @@ class Library:
 
 def address(cobj):
     return cast(byref(cobj), Address)
+
+def pun(cobj, ctype):
+    assert issubclass(ctype, type(cobj)) or isinstance(cobj, ctype)
+    return ctype.from_address(addressof(cobj))
 
 class CSpec(Spec):
     def check(self, a):
@@ -137,13 +160,13 @@ class CSpec(Spec):
                                     a, self.c_type)
         return a
 
-    def to_c(self, a):
-        yield self.check(a)
-
-    def from_c(self, a):
+    def to_py(self, a):
         return self.check(a)
 
+    def to_c(self, a, ctx):
+        return self.check(a)
 
+@memo
 def cspec(t):
     return CSpec(c_type = t)
 
@@ -151,7 +174,10 @@ def spec(sot):
     if isinstance(sot, Spec):
         return sot
     elif isinstance(sot, type) and issubclass(sot, CData):
-        return cspec(sot)
+        try:
+            return sot.default_spec
+        except AttributeError:
+            return cspec(sot)
     elif sot is None:
         return cspec(sot)
     else:
@@ -179,25 +205,42 @@ class RefSpec(ProxySpec):
     def wrap_type(self, c_type):
         return POINTER(c_type)
 
-    def from_c(self, c):
+    def to_py(self, c):
         if c:
-            return self.spec.from_c(self.find_ref(c))
+            return self.spec.to_py(self.find_ref(c))
         else:
             return None
+
+    def as_py(self, c, ctx):
+        if c:
+            for a in self.spec.as_py(self.find_ref(c), ctx):
+                yield a
+        else:
+            yield [None]
 
     def find_ref(self, c):
         return get_ref(self.spec.c_type, c)
 
-    def to_c(self, r):
+    def to_c(self, r, ctx):
+        if r is None:
+            return self.c_type()
+        else:
+            return byref(r)
+
+    def as_c(self, r):
         if r is None:
             yield self.c_type()
         else:
-            yield byref(r)
+            for a in ProxySpec.as_c(self, r):
+                yield byref(a)
 
-@memo        
+#@memo        
 def ref(sot):
     return RefSpec(sot=sot)
 
+def cref(t):
+    return ref(cspec(t))
+    
 
 class CBase(CData):
     _deps = []
@@ -208,36 +251,67 @@ class CBase(CData):
             self._deps = []
         self._deps.append(dep)
 
+class Context:
+    pass
+
 class CFuncPtrBase(CBase):
     static = False
+
+    def __new__(cls, *args):
+        if len(args) == 1 and isinstance(args[0], Callable):
+            return CFuncPtr.__new__(cls, partial(cls.callback, args[0]))
+        else:
+            return CFuncPtr.__new__(cls, *args)
+
+    @classmethod
+    def callback(cls, fn, *c_args):
+        if len(c_args) != len(cls.argspecs):
+            raise TypeError('illegal number of arguments')
+        spec_it = zip(cls.argspecs, c_args)
+        ctx = Context()
+        def wrap_args(py_args):
+            try:
+                spec, arg = next(spec_it)
+            except StopIteration:
+                spec, arg = None, None
+            if spec is None:
+                py_ret = fn(*py_args)
+                return cls.resspec.to_c(py_ret, ctx)
+            else:
+                with contextmanager(spec.as_py)(arg, ctx) as py:
+                    return wrap_args(py_args + py)
+        try:
+            return wrap_args([])
+        except Exception as e:
+            return cls.resspec.c_type()
+            
     def __get__(self, instance, owner):
         if instance and not self.static:
             return partial(self, instance)
         return self
     def __call__(self, *args):
-        c_ret = None
         if len(args) > len(self.argspecs):
             raise TypeError('too many arguments')
         spec_it = zip(self.argspecs,
                       args + (None,) * (len(self.argspecs) - len(args)))
-        c_args = []
-        def wrap_args():
-            nonlocal c_args, c_ret
+        def wrap_args(c_args):
             try:
                 spec, arg = next(spec_it)
             except StopIteration:
+                spec, arg = None, None
+            if spec is None:
                 c_ret = CFuncPtr.__call__(self, *c_args)
-                ret = self.resspec.from_c(c_ret)
+                ret = self.resspec.to_py(c_ret)
                 if isinstance(ret, CBase):
                     deps = []
                     for s, a in zip(self.argspecs, c_args):
                         if isinstance(s, Spec) and s.is_dep:
                             ret._add_dep(a)
                 return ret
-            with contextmanager(spec.to_c)(arg) as c:
-                c_args.append(c)
-                return wrap_args()
-        return wrap_args()
+            else:
+                with contextmanager(spec.as_c)(arg) as c:
+                    return wrap_args(c_args + [c])
+        return wrap_args([])
 
 
 
@@ -269,10 +343,10 @@ class SpecField:
         self.field = field
         self.spec = spec
     def __get__(self, instance, owner):
-        if not instance:
+        if instance is None:
             return self
         c = self.field.__get__(instance, owner)
-        return self.spec.from_c(c)
+        return self.spec.to_py(c)
     def __set__(self, instance, value):
         c = self.field.__set__(instance, value)
         
@@ -313,4 +387,5 @@ class CStructureType(CStructType):
 
 class CStructure(Structure, CBase, metaclass=CStructureType):
     pass
+
 
