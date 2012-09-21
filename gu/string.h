@@ -48,8 +48,7 @@ gu_ucs_string(const GuUCS* ubuf, size_t len, GuPool* pool);
 GuString
 gu_utf8_string(GuCSlice data, GuPool* pool);
 
-
-GuBytes
+GuSlice
 gu_string_utf8(GuString str, GuPool* pool);
 
 /// Copy a string.

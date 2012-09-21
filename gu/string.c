@@ -119,17 +119,15 @@ gu_string_copy(GuString string, GuPool* pool)
 }
 
 
-GuBytes
+GuSlice
 gu_string_utf8(GuString s, GuPool* pool)
 {
 	GuShortData short_data;
 	GuCSlice data = gu_string_open(s, &short_data);
-	GuBytes bytes = gu_new_seq(uint8_t, data.sz, pool);
-	uint8_t* seq_data = gu_seq_data(bytes);
-	memcpy(seq_data, data.p, data.sz);
-	return bytes;
+	GuSlice ret = gu_malloc_slice(pool, data.sz);
+	memcpy(ret.p, data.p, data.sz);
+	return ret;
 }
-
 
 void
 gu_string_write(GuString s, GuWriter* wtr, GuExn* err)
