@@ -380,7 +380,7 @@ gu_buffered_in_end_buffer(GuInStream* self, size_t consumed, GuExn* err)
 {
 	GuBufferedInStream* bis = 
 		gu_container(self, GuBufferedInStream, stream);
-	gu_require(consumed < bis->have - bis->curr);
+	gu_require(consumed <= bis->have - bis->curr);
 	bis->curr += consumed;
 }
 
@@ -404,6 +404,7 @@ gu_new_buffered_in(GuIn* in, size_t buf_sz, GuPool* pool)
 	};
 	bis->have = bis->curr = 0;
 	bis->alloc = buf_sz;
+	bis->in = in;
 	return gu_new_in(&bis->stream, pool);
 }
 
