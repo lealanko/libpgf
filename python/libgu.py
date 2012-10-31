@@ -355,6 +355,9 @@ class EOF(Abstract):
 AbstractType.bind(EOF, 'GuEOF')
 
 
+
+
+
 class In(Abstract):
     # BufferedIOBase methods
     def read(self, sz):
@@ -388,21 +391,27 @@ def bridge(base):
     Bridge.__name__ = base.__name__ + "Bridge"
     return Bridge
 
-def wrap_method(base, attr):
+def wrap_method(base, funs, attr):
     b = bridge(base)
     def wrapper(ref, *args):
         return getattr(pun(ref, b).py, attr)(*args)
     wrapper.__name__ = attr
-    field = getattr(base, attr)
+    field = getattr(funs, attr)
     return field.spec.c_type(wrapper)
 
 class BridgeSpec(Spec):
+    @memo
+    def bridge_funs(self):
+        funs = self.funs_type()
+        for m in self.wrap_fields:
+            meth = wrap_method(self.c_type, self.funs_type, m)
+            setattr(funs, m, meth)
+        return funs
+    
     def to_c(self, x, ctx):
         b = bridge(self.c_type)
         br = b()
-        for m in self.wrap_fields:
-            meth = wrap_method(self.c_type, m)
-            setattr(br, m, meth)
+        br.funs = self.bridge_funs()
         br.py = self.wrapper(x)
         return br
 
@@ -410,13 +419,16 @@ class BridgeSpec(Spec):
         return pun(c, bridge(self.c_type)).py
 
 
-class InStream(CStructure, delay=True):
+class InStreamFuns(CStructure, delay=True):
     pass
 
-InStream._begin_buffer_dummy = Field(fn(None))
-InStream._end_buffer_dummy = Field(fn(None))
-InStream.input = Field(fn(c_size_t, ref(InStream), Slice, Exn.Out))
-InStream.init()
+class InStream(CStructure):
+    funs = Field(ref(InStreamFuns))
+
+InStreamFuns._begin_buffer_dummy = Field(fn(None))
+InStreamFuns._end_buffer_dummy = Field(fn(None))
+InStreamFuns.input = Field(fn(c_size_t, ref(InStream), Slice, Exn.Out))
+InStreamFuns.init()
 
 
 class InStreamWrapper(Object):
@@ -426,6 +438,7 @@ class InStreamWrapper(Object):
 
 class InStreamBridge(instance(BridgeSpec)):
     c_type = InStream
+    funs_type = InStreamFuns
     wrap_fields = ['input']
     def wrapper(i):
         return InStreamWrapper(stream=i)
@@ -435,17 +448,17 @@ In.new = gu.new_in.static(In, dep(ref(InStreamBridge)), Pool.Out)
 
 
 
-class OutStream(CStructure, delay=True):
+class OutStreamFuns(CStructure, delay=True):
     pass
 
-OutStream._begin_buffer_dummy = Field(fn(None))
-OutStream._end_buffer_dummy = Field(fn(None))
-OutStream.output = Field(fn(c_size_t, ref(OutStream), CSlice, Exn.Out))
-OutStream.flush = Field(fn(None, ref(OutStream), Exn.Out))
-OutStream.init()
+class OutStream(CStructure):
+    funs = Field(ref(OutStreamFuns))
 
-c_output = wrap_method(OutStream, 'output')
-c_flush = wrap_method(OutStream, 'flush')
+OutStreamFuns._begin_buffer_dummy = Field(fn(None))
+OutStreamFuns._end_buffer_dummy = Field(fn(None))
+OutStreamFuns.output = Field(fn(c_size_t, ref(OutStream), CSlice, Exn.Out))
+OutStreamFuns.flush = Field(fn(None, ref(OutStream), Exn.Out))
+OutStreamFuns.init()
 
 class OutStreamWrapper(Object):
     def output(self, cslc):
@@ -455,6 +468,7 @@ class OutStreamWrapper(Object):
 
 class OutStreamBridge(instance(BridgeSpec)):
     c_type = OutStream
+    funs_type = OutStreamFuns
     wrap_fields = ['output', 'flush']
     def wrapper(o):
         return OutStreamWrapper(stream=o)
@@ -480,6 +494,7 @@ class WriterOutStreamWrapper(Object):
 
 class WriterOutStreamBridge(instance(BridgeSpec)):
     c_type = OutStream
+    funs_type = OutStreamFuns
     wrap_fields = ['output', 'flush']
     def wrapper(o):
         return WriterOutStreamWrapper(stream=o)

@@ -21,7 +21,7 @@ CPointerType = type(Pointer)
 CFuncPtrType = type(CFuncPtr)
 CStructType = type(Structure)
 CDataType = type(CData)        
-
+CArgObject = type(byref(c_int(0)))
 
 
 class TypeRefTable(InternTable):
@@ -348,7 +348,10 @@ class SpecField:
         c = self.field.__get__(instance, owner)
         return self.spec.to_py(c)
     def __set__(self, instance, value):
-        c = self.field.__set__(instance, value)
+        c = self.spec.to_c(value, None)
+        if isinstance(c, CArgObject):
+            c = pointer(c._obj)
+        self.field.__set__(instance, c)
         
 
 class CStructureType(CStructType):
