@@ -470,27 +470,23 @@ pgf_cnc_tree_n_ctnts(PgfCncTree ctree)
 }
 
 void
-pgf_lzr_linearize(PgfLzr* lzr, PgfCncTree ctree, PgfCtntId lin_idx, PgfLinFuncs** fnsp)
+pgf_lzr_linearize(PgfLzr* lzr, PgfCncTree ctree, PgfCtntId lin_idx,
+		  PgfPresenter* prtr)
 {
-	PgfLinFuncs* fns = *fnsp;
 	GuVariantInfo cti = gu_variant_open(ctree);
 	gu_require(lin_idx >= 0);
 	switch (cti.tag) {
 	case PGF_CNC_TREE_LIT: {
 		gu_require(lin_idx == 0);
 		PgfCncTreeLit* flit = cti.data;
-		if (fns->expr_literal) {
-			fns->expr_literal(fnsp, flit->lit);
-		}
+		gu_invoke_maybe(0, prtr, expr_literal, flit->lit);
 		break;
 	}
 	case PGF_CNC_TREE_APP: {
 		PgfCncTreeApp* fapp = cti.data;
 		PgfCncFun* fun = fapp->fun;
 		size_t n_args = gu_seq_length(fapp->args);
-		if (fns->expr_apply) {
-			fns->expr_apply(fnsp, fun->fun, n_args);
-		}
+		gu_invoke_maybe(0, prtr, expr_apply, fun->fun, n_args);
 		gu_require((size_t) lin_idx < gu_seq_length(fun->lins));
 		PgfSequence seq = gu_seq_get(fun->lins, PgfSequence, lin_idx);
 		size_t nsyms = gu_seq_length(seq);
@@ -506,23 +502,19 @@ pgf_lzr_linearize(PgfLzr* lzr, PgfCncTree ctree, PgfCtntId lin_idx, PgfLinFuncs*
 				PgfCncTree argf = gu_seq_get(fapp->args,
 							     PgfCncTree,
 							     sidx->d);
-				pgf_lzr_linearize(lzr, argf, sidx->r, fnsp);
+				pgf_lzr_linearize(lzr, argf, sidx->r, prtr);
 				break;
 			}
 			case PGF_SYMBOL_KS: {
 				PgfSymbolKS* ks = sym_i.data;
-				if (fns->symbol_tokens) {
-					fns->symbol_tokens(fnsp, ks->tokens);
-				}
+				gu_invoke_maybe(0, prtr, symbol_tokens, ks->tokens);
 				break;
 			}
 			case PGF_SYMBOL_KP: {
 				// TODO: correct prefix-dependencies
 				PgfSymbolKP* kp = sym_i.data;
-				if (fns->symbol_tokens) {
-					fns->symbol_tokens(fnsp,
-							   kp->default_form);
-				}
+				gu_invoke_maybe(0, prtr, symbol_tokens,
+						kp->default_form);
 				break;
 			}
 			default:
@@ -538,18 +530,18 @@ pgf_lzr_linearize(PgfLzr* lzr, PgfCncTree ctree, PgfCtntId lin_idx, PgfLinFuncs*
 
 
 
-typedef struct PgfSimpleLin PgfSimpleLin;
+typedef struct PgfSimplePrtr PgfSimplePrtr;
 
-struct PgfSimpleLin {
-	PgfLinFuncs* funcs;
+struct PgfSimplePrtr {
+	PgfPresenter prtr;
 	GuWriter* wtr;
 	GuExn* err;
 };
 
 static void
-pgf_file_lzn_symbol_tokens(PgfLinFuncs** funcs, PgfTokens toks)
+pgf_simple_prtr_symbol_tokens(PgfPresenter* prtr, PgfTokens toks)
 {
-	PgfSimpleLin* flin = gu_container(funcs, PgfSimpleLin, funcs);
+	PgfSimplePrtr* flin = gu_container(prtr, PgfSimplePrtr, prtr);
 	if (!gu_ok(flin->err)) {
 		return;
 	}
@@ -561,18 +553,18 @@ pgf_file_lzn_symbol_tokens(PgfLinFuncs** funcs, PgfTokens toks)
 	}
 }
 
-static PgfLinFuncs pgf_file_lin_funcs = {
-	.symbol_tokens = pgf_file_lzn_symbol_tokens
+static PgfPresenterFuns pgf_simple_prtr_funs = {
+	.symbol_tokens = pgf_simple_prtr_symbol_tokens
 };
 
 void
 pgf_lzr_linearize_simple(PgfLzr* lzr, PgfCncTree ctree,
 			 PgfCtntId lin_idx, GuWriter* wtr, GuExn* err)
 {
-	PgfSimpleLin flin = {
-		.funcs = &pgf_file_lin_funcs,
+	PgfSimplePrtr flin = {
+		.prtr.funs = &pgf_simple_prtr_funs,
 		.wtr = wtr,
 		.err = err
 	};
-	pgf_lzr_linearize(lzr, ctree, lin_idx, &flin.funcs);
+	pgf_lzr_linearize(lzr, ctree, lin_idx, &flin.prtr);
 }

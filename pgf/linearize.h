@@ -81,25 +81,30 @@ pgf_lzr_concretize(PgfLzr* lzr, PgfExpr expr, GuPool* pool);
  * @{
  */
 
+typedef struct PgfPresenter PgfPresenter;
 /// Callback functions for linearization.
-typedef struct PgfLinFuncs PgfLinFuncs;
+typedef struct PgfPresenterFuns PgfPresenterFuns;
 
-struct PgfLinFuncs
+struct PgfPresenter {
+	PgfPresenterFuns* funs;
+};
+
+struct PgfPresenterFuns
 {
 	/// Output tokens
-	void (*symbol_tokens)(PgfLinFuncs** self, PgfTokens toks);
+	void (*symbol_tokens)(PgfPresenter* self, PgfTokens toks);
 
-	void (*symbol_expr)(PgfLinFuncs** self, 
+	void (*symbol_expr)(PgfPresenter* self, 
 			    int argno, PgfExpr expr, PgfCtntId ctnt);
 
 	/// Begin application
-	void (*expr_apply)(PgfLinFuncs** self, PgfCId cid, int n_args);
+	void (*expr_apply)(PgfPresenter* self, PgfCId cid, int n_args);
 
 	/// Output literal
-	void (*expr_literal)(PgfLinFuncs** self, PgfLiteral lit);
+	void (*expr_literal)(PgfPresenter* self, PgfLiteral lit);
 
-	void (*abort)(PgfLinFuncs** self);
-	void (*finish)(PgfLinFuncs** self);
+	void (*abort)(PgfPresenter* self);
+	void (*finish)(PgfPresenter* self);
 };
 
 
@@ -109,7 +114,7 @@ struct PgfLinFuncs
 /// Linearize a concrete syntax tree.
 void
 pgf_lzr_linearize(PgfLzr* lzr, PgfCncTree ctree, PgfCtntId ctnt,
-		  PgfLinFuncs** fnsp);
+		  PgfPresenter* fnsp);
 
 
 /// Linearize a concrete syntax tree as space-separated tokens.
