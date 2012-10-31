@@ -33,12 +33,16 @@ gu_file_flush(GuOutStream* stream, GuExn* err)
 	}
 }
 
+static GuOutStreamFuns gu_file_out_funs = {
+	.output = gu_file_output,
+	.flush = gu_file_flush
+};
+
 GuOut*
 gu_file_out(FILE* file, GuPool* pool)
 {
 	GuFileOutStream* fos = gu_new_i(pool, GuFileOutStream,
-					.stream.output = gu_file_output,
-					.stream.flush = gu_file_flush,
+					.stream.funs = &gu_file_out_funs,
 					.file = file);
 	return gu_new_out(&fos->stream, pool);
 }

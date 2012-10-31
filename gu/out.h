@@ -10,14 +10,18 @@
 typedef struct GuOut GuOut;
 
 typedef struct GuOutStream GuOutStream;
+typedef struct GuOutStreamFuns GuOutStreamFuns;
 
-struct GuOutStream {
+struct GuOutStreamFuns {
 	GuSlice (*begin_buf)(GuOutStream* self, size_t req, GuExn* err);
 	void (*end_buf)(GuOutStream* self, size_t span, GuExn* err);
 	size_t (*output)(GuOutStream* self, GuCSlice buf, GuExn* err);
 	void (*flush)(GuOutStream* self, GuExn* err);
 };
 
+struct GuOutStream {
+	GuOutStreamFuns* funs;
+};
 
 struct GuOut {
 	uint8_t* restrict buf_end;
@@ -37,7 +41,7 @@ gu_new_out(GuOutStream* stream, GuPool* pool);
 inline bool
 gu_out_is_buffered(GuOut* out)
 {
-	return !!out->stream->begin_buf;
+	return !!out->stream->funs->begin_buf;
 }
 
 GuOutStream*

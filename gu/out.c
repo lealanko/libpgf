@@ -34,7 +34,7 @@ gu_out_end_buf(GuOut* out, GuExn* err)
 	}
 	GuOutStream* stream = out->stream;
 	size_t curr_len = ((ptrdiff_t)out->buf_size) + out->buf_curr;
-	stream->end_buf(stream, curr_len, err);
+	gu_invoke(stream, end_buf, curr_len, err);
 	out->buf_end = NULL;
 	out->buf_size = out->buf_curr = 0;
 }
@@ -53,8 +53,8 @@ gu_out_begin_buf(GuOut* out, size_t req, GuExn* err)
 			}
 		}
 	}
-	if (stream->begin_buf) {
-		GuSlice buf = stream->begin_buf(stream, req, err);
+	if (stream->funs->begin_buf) {
+		GuSlice buf = gu_invoke(stream, begin_buf, req, err);
 		size_t sz = buf.sz;
 		gu_assert(sz <= PTRDIFF_MAX);
 		if (sz) {
@@ -105,7 +105,7 @@ gu_out_output(GuOut* out, GuCSlice src, GuExn* err)
 	if (!gu_ok(err)) {
 		return 0;
 	}
-	return out->stream->output(out->stream, src, err);
+	return gu_invoke(out->stream, output, src, err);
 }
 
 
@@ -114,16 +114,13 @@ gu_out_output(GuOut* out, GuCSlice src, GuExn* err)
 void 
 gu_out_flush(GuOut* out, GuExn* err)
 {
-	GuOutStream* stream = out->stream;
 	if (out->buf_end) {
 		gu_out_end_buf(out, err);
 		if (!gu_ok(err)) {
 			return;
 		}
 	}
-	if (stream->flush) {
-		stream->flush(stream, err);
-	}
+	gu_invoke_maybe(0, out->stream, flush, err);
 }
 
 GuSlice
@@ -242,15 +239,19 @@ gu_proxy_out_flush(GuOutStream* self, GuExn* err)
 	gu_out_flush(pos->real_out, err);
 }
 
+static GuOutStreamFuns gu_proxy_out_funs = {
+	.begin_buf = gu_proxy_out_buf_begin,
+	.end_buf = gu_proxy_out_buf_end,
+	.output = gu_proxy_out_output,
+	.flush = gu_proxy_out_flush,
+};
+
 
 GuOutStream*
 gu_out_proxy_stream(GuOut* out, GuPool* pool)
 {
 	return &gu_new_s(pool, GuProxyOutStream,
-			 .stream.begin_buf = gu_proxy_out_buf_begin,
-			 .stream.end_buf = gu_proxy_out_buf_end,
-			 .stream.output = gu_proxy_out_output,
-			 .stream.flush = gu_proxy_out_flush,
+			 .stream.funs = &gu_proxy_out_funs,
 			 .real_out = out)->stream;
 }
 
@@ -281,6 +282,13 @@ gu_buffered_out_buf_end(GuOutStream* self, size_t sz, GuExn* err)
 	gu_out_bytes(b->pstream.real_out, gu_cslice(b->buf, sz), err);
 }
 
+static GuOutStreamFuns gu_buffered_out_funs = {
+	.begin_buf = gu_buffered_out_buf_begin,
+	.end_buf = gu_buffered_out_buf_end,
+	.output = gu_proxy_out_output,
+	.flush = gu_proxy_out_flush
+};
+
 GuOut
 gu_init_buffered_out(GuOut* out, size_t sz, GuPool* pool)
 {
@@ -289,12 +297,7 @@ gu_init_buffered_out(GuOut* out, size_t sz, GuPool* pool)
 	}
 	GuBufferedOutStream* b =
 		gu_new_flex(pool, GuBufferedOutStream, buf, sz);
-	b->pstream.stream = (GuOutStream) {
-		.begin_buf = gu_buffered_out_buf_begin,
-		.end_buf = gu_buffered_out_buf_end,
-		.output = gu_proxy_out_output,
-		.flush = gu_proxy_out_flush
-	};
+	b->pstream.stream.funs = &gu_buffered_out_funs;
 	b->pstream.real_out = out;
 	b->sz = sz;
 	return gu_init_out(&b->pstream.stream);

@@ -158,13 +158,18 @@ gu_locale_writer_output(GuOutStream* os, GuCSlice utf8_src, GuExn* exn)
 	return 0;
 }
 
+static GuOutStreamFuns gu_locale_writer_out_funs = {
+	.output = gu_locale_writer_output,
+	.flush = gu_locale_writer_flush,
+};
+	
+
 GuWriter*
 gu_new_locale_writer(GuOut* out, GuPool* pool)
 {
 	GuLocaleOutStream* los = gu_new_i(
 		pool, GuLocaleOutStream,
-		.stream.output = gu_locale_writer_output,
-		.stream.flush = gu_locale_writer_flush,
+		.stream.funs = &gu_locale_writer_out_funs,
 		.out = out);
 #ifdef GU_UCS_WCHAR
 	los->ps = (mbstate_t) { 0 };
