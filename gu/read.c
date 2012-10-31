@@ -114,14 +114,19 @@ read_again:;
 	return dst_cur - utf8_buf.p;
 }
 
+static GuInStreamFuns gu_locale_reader_in_funs = {
+	.input = gu_locale_reader_input
+};
+
 GuReader*
 gu_new_locale_reader(GuIn* locale_in, GuPool* pool)
 {
-	GuLocaleInStream* lis = gu_new_i(pool, GuLocaleInStream,
-					 .stream.input = gu_locale_reader_input,
-					 .in = locale_in,
-					 .ps = { 0 },
-					 .failed = false);
+	GuLocaleInStream* lis = gu_new_i(
+		pool, GuLocaleInStream,
+		.stream.funs = &gu_locale_reader_in_funs,
+		.in = locale_in,
+		.ps = { 0 },
+		.failed = false);
 	lis->utf8_frag_cur = lis->utf8_frag_end = lis->utf8_frag;
 	return gu_new_i(pool, GuReader, .in_ = gu_init_in(&lis->stream));
 }

@@ -20,9 +20,7 @@ gu_in_end_buffering(GuIn* in, GuExn* err)
 		return;
 	}
 	size_t len = ((ptrdiff_t) in->buf_size) + in->buf_curr;
-	if (in->stream->end_buffer) {
-		in->stream->end_buffer(in->stream, len, err);
-	}
+	gu_invoke_maybe(0, in->stream, end_buffer, len, err);
 	in->stream_pos += len;
 	in->buf_curr = 0;
 	in->buf_size = 0;
@@ -40,11 +38,10 @@ gu_in_begin_buffering(GuIn* in, GuExn* err)
 			if (!gu_ok(err)) return false;
 		}
 	}
-	if (!in->stream->begin_buffer) {
+	if (!in->stream->funs->begin_buffer) {
 		return false;
 	}
-	GuCSlice new_buf = 
-		in->stream->begin_buffer(in->stream, err);
+	GuCSlice new_buf = gu_invoke(in->stream, begin_buffer, err);
 	size_t sz = new_buf.sz;
 	if (gu_ok(err) && sz > 0) {
 		in->buf_end = &new_buf.p[sz];
@@ -65,13 +62,9 @@ gu_in_input(GuIn* in, GuSlice dst, GuExn* err)
 	if (!gu_ok(err)) {
 		return 0;
 	}
-	GuInStream* stream = in->stream;
-	if (stream->input) {
-		size_t len = stream->input(stream, dst, err);
-		in->stream_pos += len;
-		return len;
-	}
-	return 0;
+	size_t len = gu_invoke_maybe(0, in->stream, input, dst, err);
+	in->stream_pos += len;
+	return len;
 }
 
 size_t
@@ -335,14 +328,18 @@ gu_proxy_in_input(GuInStream* self, GuSlice dst, GuExn* err)
 	return gu_in_some(pis->real_in, dst, 1, err);
 }
 
+static GuInStreamFuns gu_proxy_in_funs = {
+	.begin_buffer = gu_proxy_in_begin_buffer,
+	.end_buffer = gu_proxy_in_end_buffer,
+	.input = gu_proxy_in_input
+};
+
 GuInStream*
 gu_in_proxy_stream(GuIn* in, GuPool* pool)
 {
 	return &gu_new_s(
 		pool, GuProxyInStream,
-		.stream.begin_buffer = gu_proxy_in_begin_buffer,
-		.stream.end_buffer = gu_proxy_in_end_buffer,
-		.stream.input = gu_proxy_in_input,
+		.stream.funs = &gu_proxy_in_funs,
 		.real_in = in)->stream;
 }
 
@@ -392,16 +389,18 @@ gu_buffered_in_input(GuInStream* self, GuSlice dst, GuExn* err)
 	return gu_in_some(bis->in, dst, 1, err);
 }
 
+static GuInStreamFuns gu_buffered_in_funs = {
+	.begin_buffer = gu_buffered_in_begin_buffer,
+	.end_buffer = gu_buffered_in_end_buffer,
+	.input = gu_buffered_in_input
+};
+
 GuIn*
 gu_new_buffered_in(GuIn* in, size_t buf_sz, GuPool* pool)
 {
 	GuBufferedInStream* bis = gu_new_flex(pool, GuBufferedInStream,
 					      buf, buf_sz);
-	bis->stream = (GuInStream) {
-		.begin_buffer = gu_buffered_in_begin_buffer,
-		.end_buffer = gu_buffered_in_end_buffer,
-		.input = gu_buffered_in_input
-	};
+	bis->stream.funs = &gu_buffered_in_funs;
 	bis->have = bis->curr = 0;
 	bis->alloc = buf_sz;
 	bis->in = in;
@@ -430,12 +429,17 @@ gu_data_in_end_buffer(GuInStream* self, size_t consumed, GuExn* err)
 	di->data.sz -= consumed;
 }
 
+static GuInStreamFuns
+gu_data_in_funs = {
+	.begin_buffer = gu_data_in_begin_buffer,
+	.end_buffer = gu_data_in_end_buffer
+};
+
 GuIn*
 gu_data_in(GuCSlice data, GuPool* pool)
 {
 	GuDataIn* di = gu_new_s(pool, GuDataIn,
-				.stream.begin_buffer = gu_data_in_begin_buffer,
-				.stream.end_buffer = gu_data_in_end_buffer,
+				.stream.funs = &gu_data_in_funs,
 				.data = data);
 	return gu_new_in(&di->stream, pool);
 }

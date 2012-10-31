@@ -65,11 +65,15 @@ gu_file_input(GuInStream* stream, GuSlice buf, GuExn* err)
 	return got;
 }
 
+static GuInStreamFuns gu_file_in_funs = {
+	.input = gu_file_input
+};
+
 GuIn*
 gu_file_in(FILE* file, GuPool* pool)
 {
 	GuFileInStream* fis = gu_new_s(pool, GuFileInStream,
-				       .stream.input = gu_file_input,
+				       .stream.funs = &gu_file_in_funs,
 				       .file = file);
 	return gu_new_in(&fis->stream, pool);
 }

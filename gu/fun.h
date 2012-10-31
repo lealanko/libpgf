@@ -66,9 +66,20 @@ struct GuClo3 {
 		typeof(OBJECT) obj_ = (OBJECT);		  \
 		obj_->funs->METHOD(obj_, __VA_ARGS__);	  \
 	})
+#define gu_invoke_maybe(DEFAULT, OBJECT, METHOD, ...)	\
+	({							\
+		typeof(OBJECT) obj_ = (OBJECT);			\
+		obj_->funs->METHOD				\
+			? obj_->funs->METHOD(obj_, __VA_ARGS__)	\
+			: (DEFAULT);				\
+	})
 #else
-#define gu_invoke(OBJECT, METHOD, ...)			  \
+#define gu_invoke(OBJECT, METHOD, ...)			\
 	((OBJECT)->funs->METHOD((OBJECT), __VA_ARGS))
+#define gu_invoke_maybe(DEFAULT, OBJECT, METHOD, ...)		\
+	((OBJECT)->funs->METHOD					\
+	 ? ((OBJECT)->funs->METHOD((OBJECT), __VA_ARGS))	\
+	 : (DEFAULT))
 #endif
 
 typedef const struct GuEq GuEq;

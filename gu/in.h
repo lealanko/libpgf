@@ -8,11 +8,16 @@
 #include <gu/assert.h>
 
 typedef struct GuInStream GuInStream;
+typedef struct GuInStreamFuns GuInStreamFuns;
 
-struct GuInStream {
+struct GuInStreamFuns {
 	GuCSlice (*begin_buffer)(GuInStream* self, GuExn* err);
 	void (*end_buffer)(GuInStream* self, size_t consumed, GuExn* err);
 	size_t (*input)(GuInStream* self, GuSlice buf, GuExn* err);
+};
+
+struct GuInStream {
+	GuInStreamFuns* funs;
 };
 
 typedef struct GuIn GuIn;
