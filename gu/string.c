@@ -231,19 +231,14 @@ gu_string_hasher_hash(GuHasher* self, GuHash h, const void* p)
 }
 
 static bool
-gu_string_eq_fn(GuEquality* self, const void* p1, const void* p2)
+gu_string_eq_fn(GuEq* self, const void* p1, const void* p2)
 {
 	const GuString* sp1 = p1;
 	const GuString* sp2 = p2;
 	return gu_string_eq(*sp1, *sp2);
 }
 
-GuHasher gu_string_hasher[1] = {
-	{
-		.eq = { gu_string_eq_fn },
-		.hash = gu_string_hasher_hash
-	}
-};
+GU_DEFINE_HASHER(gu_string_hasher, gu_string_hasher_hash, gu_string_eq_fn);
 
 
 GU_DEFINE_TYPE(GuString, GuOpaque, _);

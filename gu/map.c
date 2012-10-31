@@ -82,7 +82,7 @@ gu_map_lookup(GuMap* map, const void* key, size_t* idx_out)
 	switch (map->kind) {
 	case GU_MAP_GENERIC: {
 		GuHasher* hasher = map->hasher;
-		GuEquality* eq = (GuEquality*) hasher;
+		GuEq* eq = hasher->eq;
 		GuHash hash = gu_hasher_hash(hasher, key);
 		size_t idx = hash % n;
 		size_t offset = (hash % (n - 2)) + 1;
@@ -93,7 +93,7 @@ gu_map_lookup(GuMap* map, const void* key, size_t* idx_out)
 			    map->data.zero_idx != idx) {
 				*idx_out = idx;
 				return false;
-			} else if (eq->is_equal(eq, key, entry_key)) {
+			} else if (gu_eq(eq, key, entry_key)) {
 				*idx_out = idx;
 				return true;
 			}

@@ -24,19 +24,40 @@ gu_hash_byte(GuHash h, uint8_t u)
 GuHash
 gu_hash_bytes(GuHash h, const uint8_t* buf, size_t len);
 
+
+
 typedef const struct GuHasher GuHasher;
 
-struct GuHasher {
-	GuEquality eq;
+typedef const struct GuHasherFuns GuHasherFuns;
+
+struct GuHasherFuns {
 	GuHash (*hash)(GuHasher* self, GuHash h, const void* p);
 };
 
+struct GuHasher {
+	GuHasherFuns* funs;
+	GuEq* eq;
+};
+
 static inline GuHash
-gu_hasher_hash(GuHasher* hasher, const void* p)
+gu_hasher_hash(const GuHasher* hasher, const void* p)
 {
-	return hasher->hash(hasher, 0, p);
+	return gu_invoke(hasher, hash, 0, p);
 }
 
+#define GU_DEFINE_HASHER(NAME, HASH_FN, EQ_FN)				\
+	GuHasher NAME[1] = {						\
+		{							\
+			.funs = &(GuHasherFuns) {			\
+				.hash = HASH_FN				\
+			},						\
+			.eq = &(GuEq) {					\
+				 .funs = &(GuEqFuns) {			\
+					.is_equal = EQ_FN		\
+				}					\
+			}						\
+		}							\
+	}
 
 extern GuHasher gu_int32_hasher[1];
 

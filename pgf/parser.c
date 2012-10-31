@@ -240,7 +240,7 @@ struct PgfParsing {
 static bool
 pgf_tokens_equal(PgfParsing* parsing, PgfTokens toks1, PgfTokens toks2)
 {
-	return gu_eq(&parsing->parse->parser->tokens_hasher->eq,
+	return gu_eq(parsing->parse->parser->tokens_hasher->eq,
 		     &toks1, &toks2);
 }
 

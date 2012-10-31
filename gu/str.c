@@ -34,7 +34,7 @@ gu_str_eq(GuStr s1, GuStr s2)
 }
 
 static bool
-gu_str_is_equal(GuEquality* self, const void* p1, const void* p2)
+gu_str_is_equal(GuEq* self, const void* p1, const void* p2)
 {
 	const GuStr* sp1 = p1;
 	const GuStr* sp2 = p2;
@@ -51,12 +51,7 @@ gu_str_hasher_hash(GuHasher* self, GuHash h, const void* p)
 	return h;
 }
 
-GuHasher gu_str_hasher[1] = {
-	{
-		.eq = { .is_equal = gu_str_is_equal },
-		.hash = gu_str_hasher_hash
-	}
-};
+GU_DEFINE_HASHER(gu_str_hasher, gu_str_hasher_hash, gu_str_is_equal);
 
 GU_DEFINE_TYPE(GuStr, repr, _);
 

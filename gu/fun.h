@@ -58,16 +58,34 @@ struct GuClo3 {
 	void *env3;
 };
 
-typedef const struct GuEquality GuEquality;
 
-struct GuEquality {
-	bool (*is_equal)(GuEquality* self, const void* a, const void* b);
+
+#ifdef GU_GNUC
+#define gu_invoke(OBJECT, METHOD, ...)			  \
+	({						  \
+		typeof(OBJECT) obj_ = (OBJECT);		  \
+		obj_->funs->METHOD(obj_, __VA_ARGS__);	  \
+	})
+#else
+#define gu_invoke(OBJECT, METHOD, ...)			  \
+	((OBJECT)->funs->METHOD((OBJECT), __VA_ARGS))
+#endif
+
+typedef const struct GuEq GuEq;
+typedef struct GuEqFuns GuEqFuns;
+
+struct GuEqFuns {
+	bool (*is_equal)(GuEq* self, const void* a, const void* b);
+};
+
+struct GuEq {
+	GuEqFuns* funs;
 };
 
 static inline bool
-gu_eq(GuEquality* eq, const void* a, const void* b)
+gu_eq(GuEq* eq, const void* a, const void* b)
 {
-	return (a == b) || eq->is_equal(eq, a, b);
+	return (a == b) || gu_invoke(eq, is_equal, a, b);
 }
 
 #endif // GU_FUN_H_

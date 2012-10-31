@@ -21,10 +21,37 @@ gu_hash_word(GuHash h, GuWord w)
 	return gu_hash_bytes(h, (void*)&w, sizeof(GuWord));
 }
 
+typedef struct GuEqHasher GuEqHasher;
+
+struct GuEqHasher {
+	GuHasher hasher;
+	GuEq eq;
+};
+
+
+typedef struct GuEqHasherFuns GuEqHasherFuns;
+
+struct GuEqHasherFuns {
+	GuHasherFuns hasher;
+	GuEqFuns eq;
+};
+
+static void
+gu_eq_hasher_init(GuEqHasher* eqh, GuEqHasherFuns* funs)
+{
+	// Cast away the const.
+	struct GuHasher* hasher = (struct GuHasher*) &eqh->hasher;
+	struct GuEq* eq = (struct GuEq*) &eqh->eq;
+	hasher->funs = &funs->hasher;
+	hasher->eq = eq;
+	eq->funs = &funs->eq;
+}
+
+	
 
 #define DEFINE_INTEGER_HASHER(TYPE, NAME)				\
 static bool								\
-gu_##NAME##_eq_fn(GuEquality* self, const void* p1, const void* p2)	\
+gu_##NAME##_eq_fn(GuEq* self, const void* p1, const void* p2)	\
 {									\
 	const TYPE* ip1 = p1;						\
 	const TYPE* ip2 = p2;						\
@@ -37,12 +64,8 @@ gu_##NAME##_hash_fn(GuHasher* self, GuHash h, const void* p)		\
 	return gu_hash_word(h, (GuWord) *(const TYPE*) p);		\
 }									\
 									\
-GuHasher gu_##NAME##_hasher[1] = {					\
-	{								\
-		{ gu_##NAME##_eq_fn },					\
-		gu_##NAME##_hash_fn					\
-	}								\
-}
+GU_DEFINE_HASHER(gu_##NAME##_hasher,					\
+		 gu_##NAME##_hash_fn, gu_##NAME##_eq_fn)
 
 DEFINE_INTEGER_HASHER(int32_t, int32);
 DEFINE_INTEGER_HASHER(GuWord, word);
@@ -51,7 +74,7 @@ DEFINE_INTEGER_HASHER(uint8_t, uint8);
 
 
 static bool
-gu_addr_eq_fn(GuEquality* self, const void* p1, const void* p2)
+gu_addr_eq_fn(GuEq* self, const void* p1, const void* p2)
 {
 	return (p1 == p2);
 }
@@ -62,15 +85,10 @@ gu_addr_hash_fn(GuHasher* self, GuHash h, const void* p)
 	return gu_hash_word(h, (GuWord) p);
 }
 
-GuHasher gu_addr_hasher[1] = {
-	{
-		{ gu_addr_eq_fn },
-		gu_addr_hash_fn
-	}
-};
+GU_DEFINE_HASHER(gu_addr_hasher, gu_addr_hash_fn, gu_addr_eq_fn);
 
 static bool
-gu_shared_eq_fn(GuEquality* self, const void* p1, const void* p2)
+gu_shared_eq_fn(GuEq* self, const void* p1, const void* p2)
 {
 	const void* v1 = *(const void* const *) p1;
 	const void* v2 = *(const void* const *) p2;
@@ -84,28 +102,23 @@ gu_shared_hash_fn(GuHasher* self, GuHash h, const void* p)
 	return gu_hash_word(h, (GuWord) v);
 }
 
-GuHasher gu_shared_hasher[1] = {
-	{
-		{ gu_shared_eq_fn },
-		gu_shared_hash_fn
-	}
-};
+GU_DEFINE_HASHER(gu_shared_hasher, gu_shared_hash_fn, gu_shared_eq_fn);
 
 
 
 typedef struct GuSeqHasher GuSeqHasher;
 
 struct GuSeqHasher {
-	GuHasher hasher;
+	GuEqHasher eqh;
 	GuHasher* elem_hasher;
 	size_t elem_size;
 };
 
 static bool
-gu_seq_eq_fn(GuEquality* self, const void* p1, const void* p2)
+gu_seq_eq_fn(GuEq* self, const void* p1, const void* p2)
 {
-	GuSeqHasher* shasher = (GuSeqHasher*) self;
-	GuEquality* eeq = &shasher->elem_hasher->eq;
+	GuSeqHasher* shasher = gu_container(self, GuSeqHasher, eqh.eq);
+	GuEq* eeq = shasher->elem_hasher->eq;
 	GuSeq s1 = *(const GuSeq*) p1;
 	GuSeq s2 = *(const GuSeq*) p2;
 	size_t len = gu_seq_length(s1);
@@ -120,7 +133,7 @@ gu_seq_eq_fn(GuEquality* self, const void* p1, const void* p2)
 	for (size_t i = 0; i < len; i++) {
 		const void* ep1 = &d1[i * shasher->elem_size];
 		const void* ep2 = &d2[i * shasher->elem_size];
-		if (!eeq->is_equal(eeq, ep1, ep2)) {
+		if (!gu_eq(eeq, ep1, ep2)) {
 			return false;
 		}
 	}
@@ -131,17 +144,22 @@ gu_seq_eq_fn(GuEquality* self, const void* p1, const void* p2)
 static GuHash
 gu_seq_hash_fn(GuHasher* self, GuWord h, const void* p)
 {
-	GuSeqHasher* shasher = (GuSeqHasher*) self;
+	GuSeqHasher* shasher = gu_container(self, GuSeqHasher, eqh.hasher);
 	GuHasher* ehasher = shasher->elem_hasher;
 	GuSeq seq = *(const GuSeq*) p;
 	size_t len = gu_seq_length(seq);
 	h = gu_hash_word(h, len);
 	uint8_t* data = gu_seq_data(seq);
 	for (size_t i = 0; i < len; i++) {
-		h = ehasher->hash(ehasher, h, &data[i * shasher->elem_size]);
+		h = gu_invoke(ehasher, hash, h, &data[i * shasher->elem_size]);
 	}
 	return h;
 }
+
+static GuEqHasherFuns gu_seq_hasher_funs = {
+	.eq.is_equal = gu_seq_eq_fn,
+	.hasher.hash = gu_seq_hash_fn
+};
 
 static const void*
 gu_make_seq_hasher(GuInstance* self, GuGeneric* gen,
@@ -150,26 +168,27 @@ gu_make_seq_hasher(GuInstance* self, GuGeneric* gen,
 	GuSeqType* stype = gu_type_cast(type, GuSeq);
 	GuHasher* ehasher = gu_specialize(gen, stype->elem_type, pool);
 	size_t esize = gu_type_size(stype->elem_type);
-	return gu_new_i(pool, GuSeqHasher,
-			.hasher.eq.is_equal = gu_seq_eq_fn,
-			.hasher.hash = gu_seq_hash_fn,
-			.elem_hasher = ehasher,
-			.elem_size = esize);
+	GuSeqHasher* shasher = gu_new_i(pool, GuSeqHasher,
+					.elem_hasher = ehasher,
+					.elem_size = esize);
+	gu_eq_hasher_init(&shasher->eqh, &gu_seq_hasher_funs);
+	return &shasher->eqh.hasher;
 }
 
 
 typedef struct GuVariantHasher GuVariantHasher;
 
 struct GuVariantHasher {
-	GuHasher hasher;
+	GuEqHasher eqh;
 	GuSeq data_hashers;
 };
 
 
 static bool
-gu_variant_eq_fn(GuEquality* self, const void* p1, const void* p2)
+gu_variant_eq_fn(GuEq* self, const void* p1, const void* p2)
 {
-	GuVariantHasher* vhasher = (GuVariantHasher*) self;
+	GuVariantHasher* vhasher =
+		gu_container(self, GuVariantHasher, eqh.eq);
 	GuVariantInfo i1 = gu_variant_open(*(const GuVariant*) p1);
 	GuVariantInfo i2 = gu_variant_open(*(const GuVariant*) p2);
 	if (i1.tag != i2.tag) {
@@ -180,22 +199,28 @@ gu_variant_eq_fn(GuEquality* self, const void* p1, const void* p2)
 	}
 	GuHasher* dhasher =
 		gu_seq_get(vhasher->data_hashers, GuHasher*, i1.tag);
-	GuEquality* deq = &dhasher->eq;
-	return deq->is_equal(deq, i1.data, i2.data);
+	GuEq* deq = dhasher->eq;
+	return gu_invoke(deq, is_equal, i1.data, i2.data);
 }
 
 static GuHash
 gu_variant_hash_fn(GuHasher* self, GuWord h, const void* p)
 {
-	GuVariantHasher* vhasher = (GuVariantHasher*) self;
+	GuVariantHasher* vhasher =
+		gu_container(self, GuVariantHasher, eqh.hasher);
 	GuVariantInfo i = gu_variant_open(*(const GuVariant*) p);
 	h = gu_hash_word(h, i.tag);
 	if (!i.data || i.tag < 0) {
 		return ~h;
 	}
 	GuHasher* dhasher = gu_seq_get(vhasher->data_hashers, GuHasher*, i.tag);
-	return dhasher->hash(dhasher, h, i.data);
+	return gu_invoke(dhasher, hash, h, i.data);
 }
+
+static GuEqHasherFuns gu_variant_hasher_funs = {
+	.eq.is_equal = gu_variant_eq_fn,
+	.hasher.hash = gu_variant_hash_fn
+};
 
 static const void*
 gu_make_variant_hasher(GuInstance* self, GuGeneric* gen,
@@ -209,10 +234,10 @@ gu_make_variant_hasher(GuInstance* self, GuGeneric* gen,
 		dha[i] = gu_specialize(gen, vtype->ctors.elems[i].type,
 					pool);
 	}
-	return gu_new_i(pool, GuVariantHasher,
-			.hasher.eq.is_equal = gu_variant_eq_fn,
-			.hasher.hash = gu_variant_hash_fn,
-			.data_hashers = dhashers);
+	GuVariantHasher* vhasher = gu_new_i(pool, GuVariantHasher,
+					    .data_hashers = dhashers);
+	gu_eq_hasher_init(&vhasher->eqh, &gu_variant_hasher_funs);
+	return &vhasher->eqh.hasher;
 }
 
 typedef struct GuStructHasher GuStructHasher;
@@ -225,14 +250,14 @@ struct GuHasherMember {
 };
 
 struct GuStructHasher {
-	GuHasher hasher;
+	GuEqHasher eqh;
 	GuSeq members;
 };
 
 static bool
-gu_struct_eq_fn(GuEquality* self, const void* p1, const void* p2)
+gu_struct_eq_fn(GuEq* self, const void* p1, const void* p2)
 {
-	GuStructHasher* shasher = (GuStructHasher*) self;
+	GuStructHasher* shasher = gu_container(self, GuStructHasher, eqh.eq);
 	const uint8_t* u1 = p1;
 	const uint8_t* u2 = p2;
 	size_t n_members = gu_seq_length(shasher->members);
@@ -241,9 +266,8 @@ gu_struct_eq_fn(GuEquality* self, const void* p1, const void* p2)
 		GuHasherMember* m = &members[i];
 		const void* m1 = &u1[m->offset];
 		const void* m2 = &u2[m->offset];
-		GuEquality* eq = &m->hasher->eq;
-		bool is_eq = eq->is_equal(eq, m1, m2);
-		if (!is_eq) {
+		GuEq* eq = m->hasher->eq;
+		if (!gu_invoke(eq, is_equal, m1, m2)) {
 			return false;
 		}
 	}
@@ -253,16 +277,22 @@ gu_struct_eq_fn(GuEquality* self, const void* p1, const void* p2)
 static GuHash
 gu_struct_hash_fn(GuHasher* self, GuHash h, const void* p)
 {
-	GuStructHasher* shasher = (GuStructHasher*) self;
+	GuStructHasher* shasher =
+		gu_container(self, GuStructHasher, eqh.hasher);
 	const uint8_t* u = p;
 	size_t n_members = gu_seq_length(shasher->members);
 	GuHasherMember* members = gu_seq_data(shasher->members);
 	for (size_t i = 0; i < n_members; i++) {
 		GuHasherMember m = members[i];
-		h = m.hasher->hash(m.hasher, h, &u[m.offset]);
+		h = gu_invoke(m.hasher, hash, h, &u[m.offset]);
 	}
 	return h;
 }
+
+static GuEqHasherFuns gu_struct_hasher_funs = {
+	.eq.is_equal = gu_struct_eq_fn,
+	.hasher.hash = gu_struct_hash_fn
+};
 
 static const void*
 gu_make_struct_hasher(GuInstance* self, GuGeneric* gen,
@@ -277,37 +307,44 @@ gu_make_struct_hasher(GuInstance* self, GuGeneric* gen,
 		hms[i].offset = members[i].offset;
 		hms[i].hasher = gu_specialize(gen, members[i].type, pool);
 	}
-	return gu_new_i(pool, GuStructHasher,
-			.hasher.eq.is_equal = gu_struct_eq_fn,
-			.hasher.hash = gu_struct_hash_fn,
-			.members = hmembers);
+	GuStructHasher* shasher = gu_new_i(pool, GuStructHasher,
+					   .members = hmembers);
+	gu_eq_hasher_init(&shasher->eqh, &gu_struct_hasher_funs);
+	return shasher;
 }
 
 typedef struct GuPointerHasher GuPointerHasher;
 
 struct GuPointerHasher {
-	GuHasher hasher;
+	GuEqHasher eqh;
 	GuHasher* pointed_hasher;
 };
 
 static bool
-gu_ptr_eq_fn(GuEquality* self, const void* p1, const void* p2)
+gu_ptr_eq_fn(GuEq* self, const void* p1, const void* p2)
 {
-	GuPointerHasher* phasher = (GuPointerHasher*) self;
+	GuPointerHasher* phasher =
+		gu_container(self, GuPointerHasher, eqh.eq);
 	const void* v1 = *(const void* const *) p1;
 	const void* v2 = *(const void* const *) p2;
-	GuEquality* veq = &phasher->pointed_hasher->eq;
+	GuEq* veq = phasher->pointed_hasher->eq;
 	return (v1 && v2) ? gu_eq(veq, v1, v2) : v1 == v2;
 }
 
 static GuHash
 gu_ptr_hash_fn(GuHasher* self, GuHash h, const void* p)
 {
-	GuPointerHasher* phasher = (GuPointerHasher*) self;
+	GuPointerHasher* phasher =
+		gu_container(self, GuPointerHasher, eqh.hasher);
 	const void* v = *(const void* const *) p;
 	GuHasher* vhasher = phasher->pointed_hasher;
-	return v ? vhasher->hash(vhasher, h, v) : ~h; 
+	return v ? gu_invoke(vhasher, hash, h, v) : ~h; 
 }
+
+static GuEqHasherFuns gu_ptr_hasher_funs = {
+	.eq.is_equal = gu_ptr_eq_fn,
+	.hasher.hash = gu_ptr_hash_fn
+};
 
 static const void*
 gu_make_ptr_hasher(GuInstance* self, GuGeneric* gen,
@@ -316,10 +353,10 @@ gu_make_ptr_hasher(GuInstance* self, GuGeneric* gen,
 	GuPointerType* ptype = gu_type_cast(type, pointer);
 	GuHasher* pointed_hasher =
 		gu_specialize(gen, ptype->pointed_type, pool);
-	return gu_new_i(pool, GuPointerHasher,
-			.hasher.eq.is_equal = gu_ptr_eq_fn,
-			.hasher.hash = gu_ptr_hash_fn,
-			.pointed_hasher = pointed_hasher);
+	GuPointerHasher* phasher = gu_new_i(pool, GuPointerHasher,
+					    .pointed_hasher = pointed_hasher);
+	gu_eq_hasher_init(&phasher->eqh, &gu_ptr_hasher_funs);
+	return phasher;
 }
 
 
