@@ -1,5 +1,6 @@
 from weakref import *
 from functools import wraps, partial
+import collections
 
 class classproperty(object):
   def __init__(self, f):
@@ -54,3 +55,54 @@ class InternTable(WeakValueDictionary):
             self[key] = value
             return value
 
+
+
+class WeakKey(ref):
+    def __init__(self, obj, remove):
+        ref.__init__(self, obj, remove)
+        self.id = id(obj)
+
+    def __hash__(self):
+        return self.id
+
+    def __eq__(self, other):
+        return self() is other() and self() is not None
+
+class WeakDict(collections.MutableMapping):
+    def __init__(self):
+        self.dict = {}
+        def remove(w):
+            del self[w]
+        self.remove = remove
+
+    def wkey_(self, obj):
+        return WeakKey(obj, self.remove)
+
+    def __setitem__(self, key, value):
+        wkey = self.wkey_(key)
+        self.dict[wkey] = value
+
+    def __getitem__(self, key):
+        wkey = self.wkey_(key)
+        return self.dict[wkey]
+
+    def __delitem__(self, key):
+        del self.dict[key]
+
+    def get(self, key, value):
+        try:
+            return self[key]
+        except KeyError:
+            self[key] = value
+            return value
+
+    def __iter__(self):
+        for w in iter(self.dict):
+            v = w()
+            if v is not None:
+                yield v
+
+    def __len__(self):
+        return len(self.dict)
+                
+        

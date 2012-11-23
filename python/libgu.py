@@ -64,6 +64,10 @@ class CSlice(CStructure):
         arr = (c_uint8 * sz).from_buffer(buf)
         return cls(p=cast(arr, c_uint8_p), sz=sz)
 
+    def __iter__(self):
+        for i in range(self.sz):
+            yield self.p[i]
+
 class Slice(CSlice):
     def __setitem__(self, idx, value):
         if idx < 0 or ifx >= self.sz:
@@ -248,8 +252,8 @@ class _CurrentExnSpec(instance(ProxySpec)):
             s = spec(t)
             val = None
             if addr:
-                val = s.from_addr(addr)
-                val.add_dep(e) # More precisely: the pool of e
+                val = s.c_type.from_addr(addr)
+                add_dep(val, e) # More precisely: the pool of e
             raise GuException(s.c_type, val)
 
     def as_py(c, ctx):
@@ -284,7 +288,7 @@ class Opaque(CStructure, metaclass=OpaqueType):
 
 class SeqType(CStructType):
     def __new__(cls, name, parents, d):
-        d._elemptr_type = POINTER(d.elemspec.c_type)
+        d._elemptr_type = POINTER(d.elem_spec.c_type)
         return CStructType.__new__(cls, name, parents, d)
 
 
@@ -295,25 +299,68 @@ class SeqType(CStructType):
 
 class Seq(Opaque):
     def _arr(self):
-        arrtype = self.elemspec.c_type * self.length()
+        arrtype = self.elem_spec.c_type * self.length()
         return cast(self._data(), POINTER(arrtype))[0]
 
     def _elemdata(self):
-        return cast(self._data(), POINTER(self.elemspec.c_type))
+        return cast(self._data(), POINTER(self.elem_spec.c_type))
 
     def __getitem__(self, idx):
-        return self.elemspec.to_py(self._elemdata()[idx])
+        return self.elem_spec.to_py(self._elemdata()[idx])
 
     def __setitem__(self, idx, val):
-        self._elemdata()[idx] = self.elemspec.as_c(val)
+        self._elemdata()[idx] = self.elem_spec.to_c(val, None)
 
-Seq._data = gu.seq_data(c_void_p, Seq)
-Seq.length = gu.seq_length(c_size_t, Seq)
+    def to_list(self):
+        return list(self._arr())
 
-class Bytes(Seq):
-    elemspec = cspec(c_byte)
+    @classproperty
+    @memo
+    def default_spec(cls):
+        return _SeqSpec(elem_spec=cls.elem_spec)
+
+    @classmethod
+    def from_list(cls, list, pool=None):
+        espec = cls.elem_spec
+        sz = sizeof(espec.c_type)
+        n = len(list)
+        seq = Seq._make(sz, n, pool)
+        eseq = cls()
+        eseq.w_ = seq.w_
+        copy_deps(seq, eseq)
+        data = eseq._elemdata()
+        for i in range(n):
+            data[i] = espec.to_c(list[i], None)
+        return eseq
+        
+    @classproperty
+    @memo
+    def of(cls):
+        @memo
+        def of_(elem_sot):
+            class ElemSeq(cls):
+                elem_spec = spec(elem_sot)
+            return ElemSeq
+        return of_
+
+
+Seq._data = gu.seq_data(c_void_p, cspec(Seq))
+Seq.length = gu.seq_length(c_size_t, cspec(Seq))
+Seq._make = gu.make_seq.static(cspec(Seq), c_size_t, c_size_t, Pool.Out)
+
+class Bytes(Seq.of(cspec(c_byte))):
     def bytes(self):
         return bytes(self._arr())
+
+class _SeqSpec(Spec):
+    @property
+    def c_type(self):
+        return Seq.of(self.elem_spec)
+    def to_py(self, c):
+        return c.to_list()
+    def to_c(self, x, ctx):
+        return self.c_type.from_list(x)
+    
 
 #
 # String
@@ -344,6 +391,9 @@ class _StringSpec(instance(ProxySpec)):
 
 String.default_spec = _StringSpec
 String.eq = gu.string_eq(c_bool, String, String)
+
+Strings = Seq.of(String)
+
 
 #
 # In
@@ -418,6 +468,9 @@ class BridgeSpec(Spec):
     def to_py(c):
         return pun(c, bridge(self.c_type)).py
 
+    def wrapper(self, x):
+        return x
+
 
 class InStreamFuns(CStructure, delay=True):
     pass
@@ -433,7 +486,6 @@ InStreamFuns.init()
 
 class InStreamWrapper(Object):
     def input(self, slc):
-        print("read %r" % len(slc))
         return self.stream.readinto(slc)
 
 class InStreamBridge(instance(BridgeSpec)):

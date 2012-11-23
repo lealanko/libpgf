@@ -39,6 +39,19 @@ def get_ref(ctype, addr):
         t.ctype = ctype
     return t[addr]
 
+dep_table = WeakDict()
+def add_dep(key, value):
+    dep_table.get(key, []).append(value)
+
+def copy_deps(src, dst):
+    try:
+        deps = dep_table[src]
+    except KeyError:
+        pass
+    else:
+        dst_deps = dep_table.get(dst, [])
+        dst_deps += deps
+
 class Spec(Object):
     is_dep = False
 
@@ -240,16 +253,13 @@ def ref(sot):
 
 def cref(t):
     return ref(cspec(t))
+
+
+
     
 
 class CBase(CData):
-    _deps = []
     _refspec = None
-
-    def _add_dep(self, dep):
-        if '_deps' not in self.__dict__:
-            self._deps = []
-        self._deps.append(dep)
 
 class Context:
     pass
@@ -302,11 +312,9 @@ class CFuncPtrBase(CBase):
             if spec is None:
                 c_ret = CFuncPtr.__call__(self, *c_args)
                 ret = self.resspec.to_py(c_ret)
-                if isinstance(ret, CBase):
-                    deps = []
-                    for s, a in zip(self.argspecs, c_args):
-                        if isinstance(s, Spec) and s.is_dep:
-                            ret._add_dep(a)
+                for s, a in zip(self.argspecs, c_args):
+                    if isinstance(s, Spec) and s.is_dep:
+                        add_dep(ret, a)
                 return ret
             else:
                 with contextmanager(spec.as_c)(arg) as c:

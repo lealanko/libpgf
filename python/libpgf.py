@@ -21,11 +21,11 @@ class Pgf(Abstract):
     pass
 
 Pgf.read = pgf.read_pgf.static(Pgf, In, Pool.Out, Exn.Out)
-Pgf.startcat = pgf.pgf_startcat(Cat, Pgf)
-Pgf.cat = pgf.pgf_cat(Cat, Pgf, CId)
-Pgf.concr = pgf.pgf_concr(Concr, Pgf, CId, Pool.Out)
-Pgf.concr_by_lang = pgf.pgf_concr_by_lang(Concr, Pgf, String, Pool.Out)
-Pgf.concrs = pgf.pgf_concrs(ConcrEnum, Pgf, Pool.Out)
+Pgf.startcat = pgf.pgf_startcat(Cat, dep(Pgf))
+Pgf.cat = pgf.pgf_cat(Cat, dep(Pgf), CId)
+Pgf.concr = pgf.pgf_concr(Concr, dep(Pgf), CId, Pool.Out)
+Pgf.concr_by_lang = pgf.pgf_concr_by_lang(Concr, dep(Pgf), String, Pool.Out)
+Pgf.concrs = pgf.pgf_concrs(ConcrEnum, dep(Pgf), Pool.Out)
 
 class Parse(Abstract):
     pass
@@ -53,6 +53,32 @@ class CncTree(Opaque):
 
 CncTreeEnum = enum(CncTree)
 
+
+Token = String
+Tokens = Strings
+
+
+
+class PresenterFuns(CStructure, delay=True):
+    pass
+
+class Presenter(CStructure):
+    funs = Field(ref(PresenterFuns))
+
+PresenterFuns.symbol_tokens = Field(fn(None, ref(Presenter), Strings))
+PresenterFuns._symbol_expr_dummy = Field(fn(None))
+PresenterFuns._expr_apply_dummy = Field(fn(None))
+PresenterFuns._expr_literal_dummy = Field(fn(None))
+PresenterFuns._abort_dummy = Field(fn(None))
+PresenterFuns._finish_dummy = Field(fn(None))
+PresenterFuns.init()
+
+
+class PresenterBridge(instance(BridgeSpec)):
+    c_type = Presenter
+    funs_type = PresenterFuns
+    wrap_fields = ['symbol_tokens']
+
 class Lzr(Abstract):
     pass
 
@@ -61,6 +87,4 @@ Lzr.concretize = pgf.lzr_concretize(CncTreeEnum, Lzr, Expr, Pool.Out)
 Lzr.linearize_simple = pgf.lzr_linearize_simple(None, Lzr, CncTree, CtntId, 
                                                 Writer, Exn.Out)
 
-
-
-
+Lzr.linearize = pgf.lzr_linearize(None, Lzr, CncTree, CtntId, ref(PresenterBridge))
