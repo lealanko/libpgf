@@ -17,6 +17,8 @@
 
 unsigned gu_ceil2e(unsigned i);
 
+size_t gu_lowest_set_bit(size_t u);
+
 static inline int
 gu_sign(int i) {
 	return (i > 0) - (i < 0);

@@ -25,6 +25,26 @@ unsigned gu_ceil2e(unsigned u)
 	return u;
 }
 
+size_t gu_lowest_set_bit(size_t u)
+{
+	size_t c;
+#if SIZE_MAX > UINT32_MAX
+	u = (c = u & 0x00000000ffffffff) ? c : u;
+	u = (c = u & 0x0000ffff0000ffff) ? c : u;
+	u = (c = u & 0x00ff00ff00ff00ff) ? c : u;
+	u = (c = u & 0x0f0f0f0f0f0f0f0f) ? c : u;
+	u = (c = u & 0x3333333333333333) ? c : u;
+	u = (c = u & 0x5555555555555555) ? c : u;
+#else
+	u = (c = u & 0x0000ffff) ? c : u;
+	u = (c = u & 0x00ff00ff) ? c : u;
+	u = (c = u & 0x0f0f0f0f) ? c : u;
+	u = (c = u & 0x33333333) ? c : u;
+	u = (c = u & 0x55555555) ? c : u;
+#endif
+	return u;
+}
+
 GU_DEFINE_TYPE(GuIntDecodeExn, abstract, _);
 
 double 
