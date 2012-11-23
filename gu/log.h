@@ -26,7 +26,7 @@ void
 gu_plog_full(GuLogKind kind, const char* func, const char* file, int line,
 	     GuFmt* fmt, const void** fargs);
 
-#ifndef NDEBUG
+#if !defined(NDEBUG) && !defined(GU_OPTIMIZE_SIZE)
 
 #define gu_logv(kind_, fmt_, args_)					\
 	gu_log_full_v(kind_, __func__, __FILE__, __LINE__, fmt_, args_)
