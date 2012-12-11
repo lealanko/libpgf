@@ -198,9 +198,9 @@ gu_malloc_init(GuPool* pool, size_t size, const void* init)
 	})
 #else // GU_HAVE_STATEMENT_EXPRESSIONS
 #define gu_new_i(pool, TYPE, ...)					\
-	((type*)gu_malloc_init_aligned((pool), sizeof(TYPE),		\
-				       gu_alignof(type),		\
-				       &(type){ __VA_ARGS__ }))
+	((TYPE*)gu_malloc_init_aligned((pool), sizeof(TYPE),		\
+				       gu_alignof(TYPE),		\
+				       &(TYPE){ __VA_ARGS__ }))
 #endif // GU_HAVE_STATEMENT_EXPRESSIONS
 
 /** @def gu_new_i(pool, TYPE, ...)

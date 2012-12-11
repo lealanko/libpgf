@@ -75,10 +75,10 @@ struct GuClo3 {
 	})
 #else
 #define gu_invoke(OBJECT, METHOD, ...)			\
-	((OBJECT)->funs->METHOD((OBJECT), __VA_ARGS))
+	((OBJECT)->funs->METHOD((OBJECT), __VA_ARGS__))
 #define gu_invoke_maybe(DEFAULT, OBJECT, METHOD, ...)		\
 	((OBJECT)->funs->METHOD					\
-	 ? ((OBJECT)->funs->METHOD((OBJECT), __VA_ARGS))	\
+	 ? ((OBJECT)->funs->METHOD((OBJECT), __VA_ARGS__))	\
 	 : (DEFAULT))
 #endif
 
