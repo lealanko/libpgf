@@ -1,14 +1,18 @@
-from codecs import utf_8_encode, utf_8_decode
-from io import RawIOBase, BufferedIOBase, TextIOBase, UnsupportedOperation
+from codecs import utf_8_encode, utf_8_decode, ascii_encode, ascii_decode
+from io import RawIOBase, BufferedIOBase, TextIOBase, UnsupportedOperation, StringIO
 from util import *
 from ffi import *
 
 gu = Library('libgu.so.0', "gu_")
 
-class Abstract(Structure, CBase):
-    @classproperty
-    def default_spec(self):
-        return cref(self)
+
+
+class AbstractMeta(CStructType):
+    def __invert__(cls):
+        return ref(cls)
+
+class Abstract(Structure, CBase, metaclass=AbstractMeta):
+    pass
 
 
 class Pool(Abstract):
@@ -35,8 +39,8 @@ class Pool(Abstract):
     def __exit__(self, *exc):
         self._close()
 
-Pool.new = gu.new_pool.static(Pool)
-Pool._free = gu.pool_free(None, Pool)
+Pool.new = gu.new_pool.static(~Pool)
+Pool._free = gu.pool_free(None, ~Pool)
 
 
 class CSlice(CStructure):
@@ -117,9 +121,30 @@ class _Pool_o(instance(CSpec)):
     def to_py(c):
         return c[0]
 
-Pool.Out = dep(default(Pool, lambda: Pool()))
+Pool.Out = dep(default(~Pool, lambda: Pool()))
     
 
+class SListBase(CStructure):
+    len = Field(c_int)
+
+    def __getitem__(self, i):
+        if i < 0 or i >= self.len:
+            raise ValueError
+        return self.elems[i]
+
+    def __len__(self):
+        return self.len
+
+    def __iter__(self):
+        for i in range(self.len):
+            yield self[i]
+
+
+@memo
+def SList(elem_type):
+    class SList(SListBase):
+        elems = Field(POINTER(elem_type))
+    return SList
 
 
 ##
@@ -129,95 +154,118 @@ Pool.Out = dep(default(Pool, lambda: Pool()))
 
 class Kind(CStructure, delay=True):
     @classmethod
-    def bind(cls, c_type, name):
-        t = gu['gu_type__' + name][cls]
-        t.c_type = c_type
-        _gu_types[c_type] = t
+    def bind(cls, lib, name, c_type=None):
+        t = lib['gu_type__' + name][cls]
+        t._name = name
+        if c_type is not None:
+            t._set_c_type(c_type)
+        else:
+            c_type = t.c_type
+        try:
+            old_gu_types = c_type.gu_types
+        except AttributeError:
+            old_gu_types = []
+        c_type.gu_types = old_gu_types + [t]
+        return t.c_type
 
     @classproperty
     @memo
     def spec(cls):
-        return type_spec(cref(cls))
+        return cref(cls)
 
-    # TODO: autocreate c_type for GuTypes that haven't been explicitly
-    # bound
+    @property
+    @memo
+    def c_type(self):
+        try:
+            return self._c_type
+        except AttributeError:
+            self._c_type = self.create_type()
+            return self._c_type
         
+    def _set_c_type(self, c_type):
+        try:
+            prev_c_type = self._c_type
+        except AttributeError:
+            self._c_type = c_type
+        else:
+            if prev_c_type is not c_type:
+                raise ValueError("Conflicting c_type %r for type object %r", c_type, self)
 
-Kind.super = Field(cref(Kind))
+Kind.super = Field(~Kind)
 Kind.init()
 
-_gu_types = dict()
-
-def gu_type(t):
-    if isinstance(t, Kind):
-        return t
-    elif isinstance(t, CDataType):
-        return _gu_types[t]
-    elif isinstance(t, Spec):
-        return _gu_types[t.c_type]
-    else:
-        raise TypeError
-
-class TypeSpec(ProxySpec):
-    def unwrap(self, t):
-        try:
-            return gu_type(t)
-        except KeyError:
-            raise KeyError('No GuType known for type', t)
-
-    def wrap(self, c):
-        if c is None:
-            return None
-        try:
-            return c.c_type
-        except AttributeError:
-            raise KeyError('No C type known for GuType', c)
-
-def type_spec(sot):
-    return TypeSpec(sot=sot)
-
-
-class TypeRefSpec(RefSpec):
-    def find_ref(self, c):
-        return get_ref(c[0].super.c_type, c)
-
-def type_ref(sot):
-    return TypeRefSpec(sot=sot)
-
 class Type(Kind):
-    @classproperty
-    @memo
-    def spec(cls):
-        return type_spec(type_ref(cls))
+    pass
 
-Kind.bind(Type, 'type')
-Type.has_kind = gu.type_has_kind(c_bool, Type.spec, Kind.spec)
+class _TypeRefSpec(instance(Spec)):
+    c_type = POINTER(Type)
+
+    def to_py(c):
+        return get_ref(c[0].super.c_type, c)
+    def to_c(x):
+        return pointer(x)
+
+Type.Ref = _TypeRefSpec
+
+Kind.bind(gu, 'type', Type)
+Type.has_kind = gu.type_has_kind(c_bool, Type.Ref, ~Kind)
+
 
 class TypeRepr(Type):
     size = Field(c_uint16)
     align = Field(c_uint16)
 
-Kind.bind(TypeRepr, 'repr')
+Kind.bind(gu, 'repr', TypeRepr)
 
 class PrimType(TypeRepr):
     name = Field(c_char_p)
 
-Kind.bind(PrimType, 'primitive')
-
-
-PrimType.bind(None, 'void')
-PrimType.bind(c_int, 'int')
+Kind.bind(gu, 'primitive', PrimType)
+# PrimType.bind(gu, 'void', None) # More trouble than it's worth.
+Kind.bind(gu, 'integer', PrimType)
+Kind.bind(gu, 'signed', PrimType)
+PrimType.bind(gu, 'int', c_int)
+Kind.bind(gu, 'GuFloating', PrimType)
+PrimType.bind(gu, 'double', c_double)
 
 class AbstractType(Type):
     pass
 
-Kind.bind(AbstractType, 'abstract')
+Kind.bind(gu, 'abstract', AbstractType)
+
+class OpaqueType(TypeRepr):
+    pass
+
+Kind.bind(gu, 'GuOpaque', OpaqueType)
+
+class Member(CStructure):
+    offset = Field(c_ptrdiff_t)
+    name = Field(c_char_p)
+    type = Field(Type)
+    is_flex = Field(c_bool)
+    def as_field(self):
+        return CField(self.offset, self.type.c_type)
 
 class StructRepr(TypeRepr):
     name = Field(c_char_p)
-    # members = Field(SList(Member))
+    members = Field(SList(Member))
 
-Kind.bind(StructRepr, 'struct')
+    def create_type(self):
+        class cls(CStructure, size=self.size):
+            pass
+        cls.__name__, _ = ascii_decode(self.name)
+        for m in self.members:
+            sname, _ = ascii_decode(m.name)
+            setattr(cls, sname, m.as_field())
+        return cls
+            
+
+
+    
+
+Kind.bind(gu, 'struct', StructRepr)
+
+
 
 
 ##
@@ -230,9 +278,9 @@ class Exn(Abstract):
             kind = Type
         return cls.new(exn, kind, pool)
 
-Exn.new = gu.new_exn.static(Exn, Exn, Kind.spec, Pool.Out)
-Exn.caught = gu.exn_caught(Type.spec, Exn)
-Exn.caught_data = gu.exn_caught_data(Address, Exn)
+Exn.new = gu.new_exn.static(~Exn, ~Exn, ~Kind, Pool.Out)
+Exn.caught = gu.exn_caught(Type.Ref, ~Exn)
+Exn.caught_data = gu.exn_caught_data(Address, ~Exn)
 
 # Temporary wrapper until we integrate libgu exception types into the
 # python exception hierarchy
@@ -278,18 +326,102 @@ class ExnData(CStructure):
 #
 #   
 
-class OpaqueType(CStructureType):
+class OpaqueMeta(CStructureMeta):
     def __call__(cls, *args):
         return cls.__new__(cls, *args)
 
-class Opaque(CStructure, metaclass=OpaqueType):
+class Opaque(CStructure, metaclass=OpaqueMeta):
     w_ = Field(c_uintptr)
 
 
-class SeqType(CStructType):
-    def __new__(cls, name, parents, d):
-        d._elemptr_type = POINTER(d.elem_spec.c_type)
-        return CStructType.__new__(cls, name, parents, d)
+
+#
+# Variants
+#
+
+class Constructor(CStructure):
+    c_tag = Field(c_int)
+    c_name = Field(c_char_p)
+    type = Field(Type)
+
+
+class Tag:
+    def __init__(self, ctor, name):
+        self.ctor = ctor
+        self.name = name
+        self.c_type = ctor.type.c_type
+        self.spec = spec(self.c_type)
+        
+    def __get__(self, instance, owner):
+        if instance is None:
+            return self
+        if instance._tag() == self.ctor.c_tag:
+            return [self.spec.to_py(instance.data())]
+        else:
+            return []
+
+class VariantMeta(OpaqueMeta):
+    def __init__(cls, name, parents, dict, ctors=None, prefix=None, **kwargs):
+        OpaqueMeta.__init__(cls, name, parents, dict, **kwargs)
+        if ctors is None:
+            return
+        cls._tags = {}
+        for ctor in ctors:
+            c_name = ctor.c_name
+            if prefix is not None and c_name.startswith(prefix):
+                c_name = c_name.replace(prefix, b'', 1)
+            sname, _ = ascii_decode(c_name)
+            tag = Tag(ctor, sname)
+            cls._tags[ctor.c_tag] = tag
+            cls._tags[sname] = tag
+            setattr(cls, sname, tag)
+    
+class Variant(Opaque, metaclass=VariantMeta):
+    def tag(self):
+        return self._tags[self._tag()].name
+
+    def data(self):
+        return self._tags[self._tag()].spec.to_py(self._data())
+
+Variant._tag = gu.variant_tag(c_int, cspec(Variant))
+Variant._data = gu.variant_data(c_void_p, cspec(Variant))
+
+
+def pp_prefix(typename):
+    buf = StringIO()
+    init = True
+    for c in typename:
+        if c.isupper() and not init:
+            buf.write('_')
+        buf.write(c.upper())
+        init = False
+    buf.write('_')
+    return buf.getvalue()
+
+class VariantType(TypeRepr):
+    ctors = Field(SList(Constructor))
+
+    def create_type(self):
+        try:
+            name = self._name
+        except AttributeError:
+            name = None
+            pfx = None
+        else:
+            pfx, _ = ascii_encode(pp_prefix(name))
+        class SomeVariant(Variant, ctors=self.ctors, prefix=pfx):
+            pass
+        if name:
+            SomeVariant.__name__ = self._name
+        return SomeVariant
+
+Kind.bind(gu, 'GuVariant', VariantType)    
+        
+        
+    
+
+
+
 
 
 
@@ -312,7 +444,8 @@ class Seq(Opaque):
         self._elemdata()[idx] = self.elem_spec.to_c(val, None)
 
     def to_list(self):
-        return list(self._arr())
+        espec = self.elem_spec
+        return [espec.to_py(x) for x in self._arr()]
 
     @classproperty
     @memo
@@ -382,6 +515,9 @@ class String(Opaque):
 String.from_utf8 = gu.utf8_string.static(cspec(String), BytesCSlice, Pool.Out)
 String.utf8 = gu.string_utf8(Slice, cspec(String), Pool.Out)
 
+OpaqueType.bind(gu, 'GuString', String)
+
+
 class _StringSpec(instance(ProxySpec)):
     sot = cspec(String)
     def unwrap(s):
@@ -402,7 +538,7 @@ Strings = Seq.of(String)
 class EOF(Abstract):
     pass
 
-AbstractType.bind(EOF, 'GuEOF')
+AbstractType.bind(gu, 'GuEOF', EOF)
 
 
 
@@ -429,9 +565,9 @@ class In(Abstract):
         # Could be supported in principle.
         raise UnsupportedOperation
         
-In.from_data = gu.data_in.static(In, dep(BytesCSlice), Pool.Out)
-In.bytes = gu.in_bytes(None, In, Slice, Exn.Out)
-In.new_buffered = gu.new_buffered_in.static(In, dep(In), c_size_t, Pool.Out)
+In.from_data = gu.data_in.static(~In, dep(BytesCSlice), Pool.Out)
+In.bytes = gu.in_bytes(None, ~In, Slice, Exn.Out)
+In.new_buffered = gu.new_buffered_in.static(In, dep(~In), c_size_t, Pool.Out)
 BufferedIOBase.register(In)
 
 @memo
@@ -480,7 +616,7 @@ class InStream(CStructure):
 
 InStreamFuns._begin_buffer_dummy = Field(fn(None))
 InStreamFuns._end_buffer_dummy = Field(fn(None))
-InStreamFuns.input = Field(fn(c_size_t, ref(InStream), Slice, Exn.Out))
+InStreamFuns.input = Field(fn(c_size_t, ~InStream, Slice, Exn.Out))
 InStreamFuns.init()
 
 
@@ -495,7 +631,7 @@ class InStreamBridge(instance(BridgeSpec)):
     def wrapper(i):
         return InStreamWrapper(stream=i)
 
-In.new = gu.new_in.static(In, dep(ref(InStreamBridge)), Pool.Out)
+In.new = gu.new_in.static(In, dep(~InStreamBridge), Pool.Out)
 
 
 
@@ -504,12 +640,12 @@ class OutStreamFuns(CStructure, delay=True):
     pass
 
 class OutStream(CStructure):
-    funs = Field(ref(OutStreamFuns))
+    funs = Field(~OutStreamFuns)
 
 OutStreamFuns._begin_buffer_dummy = Field(fn(None))
 OutStreamFuns._end_buffer_dummy = Field(fn(None))
-OutStreamFuns.output = Field(fn(c_size_t, ref(OutStream), CSlice, Exn.Out))
-OutStreamFuns.flush = Field(fn(None, ref(OutStream), Exn.Out))
+OutStreamFuns.output = Field(fn(c_size_t, ~OutStream, CSlice, Exn.Out))
+OutStreamFuns.flush = Field(fn(None, ~OutStream, Exn.Out))
 OutStreamFuns.init()
 
 class OutStreamWrapper(Object):
@@ -529,7 +665,7 @@ class Out(Abstract):
     def write(self, buf):
         self.bytes(buf)
 
-Out.new = gu.new_out.static(Out, dep(ref(OutStreamBridge)), Pool.Out)
+Out.new = gu.new_out.static(Out, dep(~OutStreamBridge), Pool.Out)
 Out.bytes = gu.out_bytes(None, Out, CSlice, Exn.Out)
 Out.flush = gu.out_flush(None, Out, Exn.Out)
     
@@ -556,9 +692,9 @@ class Writer(Abstract):
         b, _ = utf_8_encode(s)
         utf8_write(b, self)
 
-Writer.new = gu.new_writer.static(Writer, dep(ref(WriterOutStreamBridge)), Pool.Out)
-Writer.flush = gu.writer_flush(None, Writer, Exn.Out)
-utf8_write = gu.utf8_write.static(c_size_t, CSlice, Writer, Exn.Out)
+Writer.new = gu.new_writer.static(~Writer, dep(~WriterOutStreamBridge), Pool.Out)
+Writer.flush = gu.writer_flush(None, ~Writer, Exn.Out)
+utf8_write = gu.utf8_write.static(c_size_t, CSlice, ~Writer, Exn.Out)
 
 
 
@@ -578,10 +714,10 @@ class Enum(Abstract):
             raise StopIteration
         # XXX: this isn't enough for structured data, e.g. pointers or
         # transparent structures.
-        ret._add_dep(pool)
+        add_dep(ret, pool)
         return self._elem_spec.to_py(ret)
 
-Enum.next = gu.enum_next(c_bool, Enum, c_void_p, Pool)
+Enum.next = gu.enum_next(c_bool, ~Enum, c_void_p, ~Pool)
 
 @memo
 def enum(sot):

@@ -15,6 +15,18 @@ for kind in [c_ushort, c_uint, c_ulong, c_ulonglong]:
 
 c_uint8_p = POINTER(c_uint8)
 
+_ints = {}
+_ints[sizeof(c_int)] = c_int
+_ints[sizeof(c_long)] = c_long
+_ints[sizeof(c_longlong)] = c_longlong
+
+_uints = {}
+_uints[sizeof(c_uint)] = c_uint
+_uints[sizeof(c_ulong)] = c_ulong
+_uints[sizeof(c_ulonglong)] = c_ulonglong
+
+c_ssize_t = c_ptrdiff_t = _ints[sizeof(c_size_t)]
+
 _, CData, *_ = Pointer.__mro__
 
 CPointerType = type(Pointer)
@@ -70,6 +82,10 @@ class Spec(Object):
     def to_c(self, c, ctx):
         raise NotImplementedError
 
+    def __invert__(cls):
+        return ref(cls)
+
+
 class ProxySpec(Spec):
     @property
     @memo
@@ -123,6 +139,8 @@ def default(sot, dft):
 class Address(c_void_p):
     def __getitem__(self, c_type):
         return get_ref(c_type, self)
+    def __setitem__(self, c_type, value):
+        cast(self, POINTER(c_type))[0] = value
     def __call__(self, res, *args):
         return cast(self, fn(res, *args))
     def static(self, res, *args):
@@ -150,7 +168,7 @@ class Library:
         return Address(dlsym(self.dll._handle, name))
 
 def address(cobj):
-    return cast(byref(cobj), Address)
+    return Address(addressof(cobj))
 
 def pun(cobj, ctype):
     assert issubclass(ctype, type(cobj)) or isinstance(cobj, ctype)
@@ -260,6 +278,8 @@ def cref(t):
 
 class CBase(CData):
     _refspec = None
+    def __hash__(self):
+        return hash(addressof(self))
 
 class Context:
     pass
@@ -313,7 +333,7 @@ class CFuncPtrBase(CBase):
                 c_ret = CFuncPtr.__call__(self, *c_args)
                 ret = self.resspec.to_py(c_ret)
                 for s, a in zip(self.argspecs, c_args):
-                    if isinstance(s, Spec) and s.is_dep:
+                    if isinstance(s, Spec) and s.is_dep and ret is not None:
                         add_dep(ret, a)
                 return ret
             else:
@@ -346,6 +366,26 @@ class LazyField(Field):
     def type(self):
         return self.f()
 
+class CField:
+    def __init__(self, offset, sot):
+        self.offset = offset
+        self.sot = sot
+        self.spec = spec(sot)
+        self.c_type = self.spec.c_type
+
+    @property
+    def c_type(self):
+        return self.spec.c_type
+
+    def __get__(self, instance, owner):
+        if instance is None:
+            return self
+        return (address(instance) + self.offset)[self.c_type]
+
+    def __set__(self, instance, value):
+        (address(instance) + self.offset)[self.c_type] = value
+        
+
 class SpecField:
     def __init__(self, field, spec):
         self.field = field
@@ -362,41 +402,50 @@ class SpecField:
         self.field.__set__(instance, c)
         
 
-class CStructureType(CStructType):
+class CStructureMeta(CStructType):
+    def __invert__(cls):
+        return ref(cls)
     def __prepare__(name, bases, **kwargs):
         return OrderedDict()
 
-    def __init__(cls, name, parents, dict, delay=False):
+    def __init__(cls, name, parents, dict, delay=False, **kwargs):
         CStructType.__init__(cls, name, parents, dict)
     
-    def __new__(cls, name, bases, odict, delay=False):
-        fields = OrderedDict()
+    def __new__(cls, name, bases, odict, delay=False, size=None, **kwargs):
         d = dict()
-        for k, v in odict.items():
-            if isinstance(v, Field):
-                fields[k] = spec(v.type)
-            else:
-                d[k] = v
-        d['fields'] = fields
-        ret = CStructType.__new__(cls, name, bases, d)
-        if not delay:
-            ret.init()
+        if size is None:
+            fields = OrderedDict()
+            for k, v in odict.items():
+                if isinstance(v, Field):
+                    fields[k] = spec(v.type)
+                else:
+                    d[k] = v
+            d['_fields'] = fields
+            ret = CStructType.__new__(cls, name, bases, d)
+            if not delay:
+                ret.init()
+        else:
+            if delay:
+                raise ValueError
+            d['_fields_'] = [('_data', c_byte * size)]
+            ret = CStructType.__new__(cls, name, bases, d)
         return ret
 
     def __setattr__(self, name, value):
         if isinstance(value, Field):
-            self.fields[name] = spec(value.type)
+            self._fields[name] = spec(value.type)
         else:
             CStructType.__setattr__(self, name, value)
 
     def init(self):
-        self._fields_ = [(k, v.c_type) for k, v in self.fields.items()]
-        for k, v in self.fields.items():
+        self._fields_ = [(k, v.c_type) for k, v in self._fields.items()]
+        for k, v in self._fields.items():
             f = getattr(self, k)
             setattr(self, k, SpecField(f, v))
-        del self.fields
+        del self._fields
 
-class CStructure(Structure, CBase, metaclass=CStructureType):
+class CStructure(Structure, CBase, metaclass=CStructureMeta):
     pass
+
 
 
