@@ -266,20 +266,6 @@ gu_chars_str(GuChars chars, GuPool* pool)
 	return str;
 }
 
-// A bit of a hack to prevent the need for extern inline, which clang doesn't
-// yet support properly.
 
-#undef gu_seq_data
-void*
-gu_seq_data(GuSeq seq)
-{
-	return gu_seq_data_(seq);
-}
-
-#undef gu_seq_length
-size_t
-gu_seq_length(GuSeq seq)
-{
-	return gu_seq_length_(seq);
-}
-
+extern inline void* gu_seq_data(GuSeq seq);
+extern inline size_t gu_seq_length(GuSeq seq);
