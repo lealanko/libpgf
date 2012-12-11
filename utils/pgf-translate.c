@@ -1,5 +1,7 @@
 // Copyright 2011-2012 University of Helsinki. Released under LGPL3.
 
+#define _POSIX_C_SOURCE 2 // For getopt
+
 #include <libpgf.h>
 #include <gu/file.h>
 #include <locale.h>
