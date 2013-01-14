@@ -269,3 +269,4 @@ gu_chars_str(GuChars chars, GuPool* pool)
 
 extern inline void* gu_seq_data(GuSeq seq);
 extern inline size_t gu_seq_length(GuSeq seq);
+extern inline bool gu_seq_is_empty(GuSeq seq);
