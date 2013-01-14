@@ -20,12 +20,16 @@ _ints[sizeof(c_int)] = c_int
 _ints[sizeof(c_long)] = c_long
 _ints[sizeof(c_longlong)] = c_longlong
 
+
 _uints = {}
 _uints[sizeof(c_uint)] = c_uint
 _uints[sizeof(c_ulong)] = c_ulong
 _uints[sizeof(c_ulonglong)] = c_ulonglong
 
-c_ssize_t = c_ptrdiff_t = _ints[sizeof(c_size_t)]
+def sized_int(sz, signed=True):
+    return _ints[sz] if signed else _uints[sz]
+
+c_ssize_t = c_ptrdiff_t = sized_int(sizeof(c_size_t), signed=True)
 
 _, CData, *_ = Pointer.__mro__
 
@@ -356,8 +360,8 @@ def fn(ressot, *argsots, static=False):
     return CFunc
 
 class Field:
-    def __init__(self, t):
-        self.type = t
+    def __init__(self, sot):
+        self.sot = sot
 
 class LazyField(Field):
     def __init__(self, f):
@@ -367,15 +371,18 @@ class LazyField(Field):
         return self.f()
 
 class CField:
-    def __init__(self, offset, sot):
+    def __init__(self, offset, sot=None, delay=None):
         self.offset = offset
         self.sot = sot
-        self.spec = spec(sot)
-        self.c_type = self.spec.c_type
+        self.delay = delay
 
     @property
     def c_type(self):
-        return self.spec.c_type
+        if self.delay:
+            sot = self.delay()
+        else:
+            sot = self.sot
+        return spec(sot).c_type
 
     def __get__(self, instance, owner):
         if instance is None:
@@ -417,7 +424,7 @@ class CStructureMeta(CStructType):
             fields = OrderedDict()
             for k, v in odict.items():
                 if isinstance(v, Field):
-                    fields[k] = spec(v.type)
+                    fields[k] = spec(v.sot)
                 else:
                     d[k] = v
             d['_fields'] = fields
@@ -428,12 +435,13 @@ class CStructureMeta(CStructType):
             if delay:
                 raise ValueError
             d['_fields_'] = [('_data', c_byte * size)]
+            d.update(odict)
             ret = CStructType.__new__(cls, name, bases, d)
         return ret
 
     def __setattr__(self, name, value):
         if isinstance(value, Field):
-            self._fields[name] = spec(value.type)
+            self._fields[name] = spec(value.sot)
         else:
             CStructType.__setattr__(self, name, value)
 

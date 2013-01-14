@@ -12,12 +12,19 @@ def memo(f):
     cache = WeakKeyDictionary()
     @wraps(f)
     def g(x):
+        # This is a bit complicated to avoid calling f(x) in a handler.
+        got = False
         try:
             val = cache[x]
+            got = True
         except TypeError:
-            val = f(x)
+            weak = False
         except KeyError:
-            val = cache[x] = f(x)
+            weak = True
+        if not got:
+            val = f(x)
+            if weak:
+                cache[x] = val
         return val
     return g
 

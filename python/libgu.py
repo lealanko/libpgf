@@ -6,6 +6,22 @@ from ffi import *
 gu = Library('libgu.so.0', "gu_")
 
 
+# TODO: ABC
+def dump(out, o, strict=False):
+    if hasattr(o, 'dump'):
+        o.dump(out, strict)
+    else:
+        out.write(repr(o))
+
+def dump_kws(out, kws, strict=False):
+    first = True
+    for k, v in kws:
+        if first:
+            first = False
+        else:
+            out.write(', ')
+        out.write(k + '=')
+        dump(out, v, strict)
 
 class AbstractMeta(CStructType):
     def __invert__(cls):
@@ -42,6 +58,14 @@ class Pool(Abstract):
 Pool.new = gu.new_pool.static(~Pool)
 Pool._free = gu.pool_free(None, ~Pool)
 
+
+class CStr(instance(Spec)):
+    c_type = c_char_p
+
+    def to_py(c_val):
+        s, _ = ascii_decode(c_val)
+        return s
+        
 
 class CSlice(CStructure):
     p = Field(c_uint8_p)
@@ -154,7 +178,7 @@ def SList(elem_type):
 
 class Kind(CStructure, delay=True):
     @classmethod
-    def bind(cls, lib, name, c_type=None):
+    def bind_(cls, lib, name, c_type=None):
         t = lib['gu_type__' + name][cls]
         t._name = name
         if c_type is not None:
@@ -166,7 +190,9 @@ class Kind(CStructure, delay=True):
         except AttributeError:
             old_gu_types = []
         c_type.gu_types = old_gu_types + [t]
-        return t.c_type
+        return t
+
+    bind = bind_
 
     @classproperty
     @memo
@@ -179,8 +205,9 @@ class Kind(CStructure, delay=True):
         try:
             return self._c_type
         except AttributeError:
-            self._c_type = self.create_type()
-            return self._c_type
+            pass
+        self._c_type = self.create_type()
+        return self._c_type
         
     def _set_c_type(self, c_type):
         try:
@@ -194,13 +221,27 @@ class Kind(CStructure, delay=True):
 Kind.super = Field(~Kind)
 Kind.init()
 
+class _KindRefSpec(instance(ProxySpec)):
+    sot = ~Kind
+    def unwrap(py):
+        return py.gu_types[0]
+    def wrap(c):
+        return c.c_type
+
+Kind.Ref = _KindRefSpec    
+
 class Type(Kind):
-    pass
+    @classmethod
+    def bind(cls, lib, name, c_type=None):
+        t = lib['gu_type__' + name][cls]
+        return t.super.c_type.bind_(lib, name, c_type)
 
 class _TypeRefSpec(instance(Spec)):
     c_type = POINTER(Type)
 
     def to_py(c):
+        if not c:
+            return None
         return get_ref(c[0].super.c_type, c)
     def to_c(x):
         return pointer(x)
@@ -218,7 +259,7 @@ class TypeRepr(Type):
 Kind.bind(gu, 'repr', TypeRepr)
 
 class PrimType(TypeRepr):
-    name = Field(c_char_p)
+    name = Field(CStr)
 
 Kind.bind(gu, 'primitive', PrimType)
 # PrimType.bind(gu, 'void', None) # More trouble than it's worth.
@@ -227,6 +268,18 @@ Kind.bind(gu, 'signed', PrimType)
 PrimType.bind(gu, 'int', c_int)
 Kind.bind(gu, 'GuFloating', PrimType)
 PrimType.bind(gu, 'double', c_double)
+
+class TypeAlias(Type):
+    type = Field(Type.Ref)
+    def create_type(self):
+        return self.type.c_type
+
+Kind.bind(gu, 'alias', TypeAlias)
+
+class TypeDef(TypeAlias):
+    name = Field(CStr)
+
+Kind.bind(gu, 'typedef', TypeDef)    
 
 class AbstractType(Type):
     pass
@@ -240,23 +293,39 @@ Kind.bind(gu, 'GuOpaque', OpaqueType)
 
 class Member(CStructure):
     offset = Field(c_ptrdiff_t)
-    name = Field(c_char_p)
-    type = Field(Type)
+    name = Field(CStr)
+    type = Field(Type.Ref)
     is_flex = Field(c_bool)
     def as_field(self):
-        return CField(self.offset, self.type.c_type)
+        return CField(self.offset, delay=lambda: self.type.c_type)
+
+class StructBase(CStructure):
+
+    def dump_kws(self, out, strict):
+        kws = ((m.name, getattr(self, m.name)) for m in self._members)
+        dump_kws(out, kws, strict)
+
+    def dump(self, out, strict):
+        out.write(type(self).__name__ + '(')
+        self.dump_kws(out, strict)
+        out.write(')')
+            
+    def __repr__(self):
+        ms = ["%s=%s" % (m.name, repr(getattr(self, m.name)))
+              for m in self._members]
+        return "%s(%s)" % (type(self).__name__, ', '.join(ms))
+        
 
 class StructRepr(TypeRepr):
-    name = Field(c_char_p)
+    name = Field(CStr)
     members = Field(SList(Member))
 
     def create_type(self):
-        class cls(CStructure, size=self.size):
-            pass
-        cls.__name__, _ = ascii_decode(self.name)
+        class cls(StructBase, size=self.size):
+            _members = self.members
+        cls.__name__ = self.name
         for m in self.members:
-            sname, _ = ascii_decode(m.name)
-            setattr(cls, sname, m.as_field())
+            setattr(cls, m.name, m.as_field())
         return cls
             
 
@@ -278,7 +347,7 @@ class Exn(Abstract):
             kind = Type
         return cls.new(exn, kind, pool)
 
-Exn.new = gu.new_exn.static(~Exn, ~Exn, ~Kind, Pool.Out)
+Exn.new = gu.new_exn.static(~Exn, ~Exn, Kind.Ref, Pool.Out)
 Exn.caught = gu.exn_caught(Type.Ref, ~Exn)
 Exn.caught_data = gu.exn_caught_data(Address, ~Exn)
 
@@ -288,7 +357,7 @@ class GuException(Exception):
     pass
 
 class _CurrentExnSpec(instance(ProxySpec)):
-    sot = Exn
+    sot = ~Exn
     def as_c(e):
         if e is None:
             e = Exn()
@@ -341,8 +410,8 @@ class Opaque(CStructure, metaclass=OpaqueMeta):
 
 class Constructor(CStructure):
     c_tag = Field(c_int)
-    c_name = Field(c_char_p)
-    type = Field(Type)
+    c_name = Field(CStr)
+    type = Field(Type.Ref)
 
 
 class Tag:
@@ -356,7 +425,7 @@ class Tag:
         if instance is None:
             return self
         if instance._tag() == self.ctor.c_tag:
-            return [self.spec.to_py(instance.data())]
+            return [instance.data]
         else:
             return []
 
@@ -367,21 +436,38 @@ class VariantMeta(OpaqueMeta):
             return
         cls._tags = {}
         for ctor in ctors:
-            c_name = ctor.c_name
-            if prefix is not None and c_name.startswith(prefix):
-                c_name = c_name.replace(prefix, b'', 1)
-            sname, _ = ascii_decode(c_name)
+            sname = ctor.c_name
+            if prefix is not None and sname.startswith(prefix):
+                sname = sname.replace(prefix, '', 1)
             tag = Tag(ctor, sname)
             cls._tags[ctor.c_tag] = tag
             cls._tags[sname] = tag
             setattr(cls, sname, tag)
     
 class Variant(Opaque, metaclass=VariantMeta):
+    def dump(self, out, strict):
+        out.write('%s.%s(' % (type(self).__name__, self.tag))
+        d = self.data
+        if isinstance(d, StructBase) and not strict:
+            d.dump_kws(out, strict)
+        else:
+            dump(out, d, strict)
+        out.write(')')
+    
+    def __repr__(self):
+        return '%s.%s(%s)' % (type(self).__name__,
+                              self.tag,
+                              repr(self.data))
+    
+    @property
     def tag(self):
         return self._tags[self._tag()].name
 
+    @property
     def data(self):
-        return self._tags[self._tag()].spec.to_py(self._data())
+        tag = self._tags[self._tag()]
+        p = cast(self._data(), POINTER(tag.c_type))
+        return tag.spec.to_py(p[0])
 
 Variant._tag = gu.variant_tag(c_int, cspec(Variant))
 Variant._data = gu.variant_data(c_void_p, cspec(Variant))
@@ -408,7 +494,7 @@ class VariantType(TypeRepr):
             name = None
             pfx = None
         else:
-            pfx, _ = ascii_encode(pp_prefix(name))
+            pfx = pp_prefix(name)
         class SomeVariant(Variant, ctors=self.ctors, prefix=pfx):
             pass
         if name:
@@ -417,10 +503,43 @@ class VariantType(TypeRepr):
 
 Kind.bind(gu, 'GuVariant', VariantType)    
         
-        
-    
 
 
+
+#
+# Enum  
+# 
+
+class EnumConstant(CStructure):
+    name = Field(CStr)
+    value = Field(c_int64)
+    enum_value = Field(c_void_p) # pointer to some integer type
+
+class EnumType(TypeRepr):
+    constants = Field(SList(EnumConstant))
+
+    def create_type(self):
+        try:
+            name = self._name
+        except AttributeError:
+            name = None
+            pfx = None
+        else:
+            pfx = pp_prefix(name)
+        have_neg = any(c.value < 0 for c in self.constants)
+        repr_t = sized_int(self.size, signed=have_neg)
+        class SomeEnum(repr_t):
+            pass
+        for c in self.constants:
+            sname = c.name
+            if pfx is not None and sname.startswith(pfx):
+                sname = sname.replace(pfx, '', 1)
+            setattr(SomeEnum, sname, c.value)
+        if name:
+            SomeEnum.__name__ = self._name
+        return SomeEnum
+
+Kind.bind(gu, 'enum', EnumType)    
 
 
 
@@ -495,6 +614,17 @@ class _SeqSpec(Spec):
         return self.c_type.from_list(x)
     
 
+
+#
+# SeqType
+#
+
+class SeqType(OpaqueType):
+    elem_type = Field(Type.Ref)
+    def create_type(self):
+        return Seq.of(self.elem_type)
+
+
 #
 # String
 #
@@ -508,6 +638,16 @@ class String(Opaque):
         slc = self.utf8()
         s, _ = utf_8_decode(slc)
         return s
+
+    def dump(self, out, strict=False):
+        if strict:
+            out.write('String(')
+        out.write(repr(str(self)))
+        if strict:
+            out.write(')')
+
+    def __repr__(self):
+        return "String(%r)" % str(self)
 
     def __eq__(self, other):
         return self.eq(other)
@@ -567,7 +707,7 @@ class In(Abstract):
         
 In.from_data = gu.data_in.static(~In, dep(BytesCSlice), Pool.Out)
 In.bytes = gu.in_bytes(None, ~In, Slice, Exn.Out)
-In.new_buffered = gu.new_buffered_in.static(In, dep(~In), c_size_t, Pool.Out)
+In.new_buffered = gu.new_buffered_in.static(~In, dep(~In), c_size_t, Pool.Out)
 BufferedIOBase.register(In)
 
 @memo
@@ -631,7 +771,7 @@ class InStreamBridge(instance(BridgeSpec)):
     def wrapper(i):
         return InStreamWrapper(stream=i)
 
-In.new = gu.new_in.static(In, dep(~InStreamBridge), Pool.Out)
+In.new = gu.new_in.static(~In, dep(~InStreamBridge), Pool.Out)
 
 
 

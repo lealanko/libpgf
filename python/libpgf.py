@@ -39,8 +39,12 @@ Parser.new = pgf.new_parser.static(~Parser, ~Concr, Pool.Out)
 Parser.parse = pgf.parser_parse(~Parse, ~Parser, ~Cat, CtntId, Pool.Out)
 
 # XXX: reveal the variant structure
-class Expr(Opaque):
-    pass
+#class Expr(Opaque):
+#    pass
+
+ExprType = Type.bind(pgf, 'PgfExpr')
+Expr = ExprType.c_type
+
 
 ExprEnum = enum(Expr)
 
@@ -84,7 +88,7 @@ class Lzr(Abstract):
 
 Lzr.new = pgf.new_lzr.static(~Lzr, ~Concr, Pool.Out)
 Lzr.concretize = pgf.lzr_concretize(~CncTreeEnum, ~Lzr, Expr, Pool.Out)
-Lzr.linearize_simple = pgf.lzr_linearize_simple(None, ~Lzr, ~CncTree, CtntId, 
+Lzr.linearize_simple = pgf.lzr_linearize_simple(None, ~Lzr, CncTree, CtntId, 
                                                 ~Writer, Exn.Out)
 
-Lzr.linearize = pgf.lzr_linearize(None, ~Lzr, ~CncTree, CtntId, ~PresenterBridge)
+Lzr.linearize = pgf.lzr_linearize(None, ~Lzr, CncTree, CtntId, ~PresenterBridge)
