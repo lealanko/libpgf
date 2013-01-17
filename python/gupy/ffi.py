@@ -6,7 +6,7 @@ from itertools import chain, repeat
 from contextlib import contextmanager
 from collections import OrderedDict, Callable
 
-from util import *
+from .util import *
 
 
 for kind in [c_ushort, c_uint, c_ulong, c_ulonglong]:

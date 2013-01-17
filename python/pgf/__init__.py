@@ -1,4 +1,4 @@
-from libgu import *
+from gu import *
 
 pgf = Library('libpgf.so.0', "pgf_")
 
