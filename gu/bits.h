@@ -44,7 +44,7 @@ gu_align_forward(uintptr_t addr, size_t alignment) {
 	return (addr + mask) & ~mask;
 }
 
-static inline uintptr_t
+inline uintptr_t
 gu_align_backward(uintptr_t addr, size_t alignment) {
 	gu_require(alignment == gu_ceil2e(alignment));
 	return addr & ~(alignment - 1);
@@ -88,17 +88,17 @@ typedef GuWord GuTagged;
 
 #define GU_TAG_MAX (sizeof(GuWord) - 1)
 
-static inline size_t
+inline size_t
 gu_tagged_tag(GuTagged t) {
 	return (int) (t & (sizeof(GuWord) - 1));
 }
 
-static inline void*
+inline void*
 gu_tagged_ptr(GuTagged w) {
 	return (void*) gu_align_backward(w, sizeof(GuWord));
 }
 
-static inline GuTagged
+inline GuTagged
 gu_tagged(void* ptr, size_t tag) {
 	gu_require(tag < sizeof(GuWord));
 	uintptr_t u = (uintptr_t) ptr;

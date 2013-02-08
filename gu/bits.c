@@ -72,3 +72,15 @@ gu_decode_double(uint64_t u)
 	}
 	return sign ? copysign(ret, -1.0) : ret;
 }
+
+extern inline size_t
+gu_tagged_tag(GuTagged t);
+
+extern inline void*
+gu_tagged_ptr(GuTagged w);
+
+extern inline GuTagged
+gu_tagged(void* ptr, size_t tag);
+
+extern inline uintptr_t
+gu_align_backward(uintptr_t addr, size_t alignment);
