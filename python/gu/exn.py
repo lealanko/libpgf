@@ -31,7 +31,7 @@ class _CurrentExnSpec(util.instance(ProxySpec)):
         t = e.caught()
         if t:
             addr = e.caught_data()
-            s = spec(t)
+            s = spec(t.c_type)
             val = None
             if addr:
                 val = s.c_type.from_addr(addr)

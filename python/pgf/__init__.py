@@ -38,12 +38,15 @@ class Parser(Abstract):
 Parser.new = pgf.new_parser.static(~Parser, ~Concr, Pool.Out)
 Parser.parse = pgf.parser_parse(~Parse, ~Parser, ~Cat, CtntId, Pool.Out)
 
-# XXX: reveal the variant structure
-#class Expr(Opaque):
-#    pass
+class ReadExn(Abstract):
+    pass
+
+AbstractType.bind(pgf, 'PgfReadExn', ReadExn)
 
 ExprType = Type.bind(pgf, 'PgfExpr')
 Expr = ExprType.c_type
+
+Expr.read = pgf.read_expr.static(Expr, ~Reader, Pool.Out, Exn.Out)
 
 
 ExprEnum = enum(Expr)

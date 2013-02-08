@@ -67,6 +67,16 @@ class Type(Kind):
         t = lib['gu_type__' + name][cls]
         return t.super.c_type.bind_(lib, name, c_type)
 
+class _TypeSpec(util.instance(Spec)):
+    c_type = POINTER(Type)
+
+    def to_py(c):
+        if not c:
+            return None
+        return get_ref(c[0].super.c_type, c)
+    def to_c(x):
+        return pointer(x)
+
 class _TypeRefSpec(util.instance(Spec)):
     c_type = POINTER(Type)
 
@@ -80,7 +90,7 @@ class _TypeRefSpec(util.instance(Spec)):
 Type.Ref = _TypeRefSpec
 
 Kind.bind(gu, 'type', Type)
-Type.has_kind = gu.type_has_kind(c_bool, Type.Ref, ~Kind)
+Type.has_kind = gu.type_has_kind(c_bool, Type.Ref, Kind.Ref)
 
 
 class TypeRepr(Type):
