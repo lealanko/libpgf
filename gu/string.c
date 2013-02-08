@@ -217,8 +217,9 @@ gu_string_eq(GuString s1, GuString s2)
 	if (s1.w_ == s2.w_) {
 		return true;
 	}
-	GuCSlice data1 = gu_string_open(s1, NULL);
-	GuCSlice data2 = gu_string_open(s2, NULL);
+	GuShortData short1, short2;
+	GuCSlice data1 = gu_string_open(s1, &short1);
+	GuCSlice data2 = gu_string_open(s2, &short2);
 	return gu_cslice_eq(data1, data2);
 }
 
