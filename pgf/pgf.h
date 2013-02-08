@@ -112,5 +112,6 @@ typedef GuSeq PgfTokens;  // -> PgfToken
 #include <gu/type.h>
 GU_DECLARE_TYPE(PgfPGF, referenced);
 
+GU_DECLARE_TYPE(PgfReadExn, abstract);
 
 #endif // PGF_H_

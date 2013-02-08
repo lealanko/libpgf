@@ -141,7 +141,7 @@ struct PgfExprParser {
 	GuExn* err;
 	GuPool* expr_pool;
 	const char* lookahead;
-	int next_char;
+	int next_char; // 0 = EOF
 };
 
 
@@ -152,12 +152,20 @@ static const char pgf_expr_semic[] = ";";
 static char
 pgf_expr_parser_next(PgfExprParser* parser)
 {
-	if (parser->next_char >= 0) {
+	int next = parser->next_char;
+	if (next >= 0) {
 		char ret = (char) parser->next_char;
-		parser->next_char = -1;
+		if (next > 0) {
+			parser->next_char = -1;
+		}
 		return ret;
 	}
-	return gu_getc(parser->rdr, parser->err);
+	char c = gu_getc(parser->rdr, parser->err);
+	if (gu_exn_caught(parser->err) == gu_type(GuEOF)) {
+		gu_exn_clear(parser->err);
+		return '\0';
+	}
+	return c;
 }
 
 static const char*
@@ -184,6 +192,9 @@ pgf_expr_parser_lookahead(PgfExprParser* parser)
 	case ';':
 		str = pgf_expr_semic;
 		break;
+	case '\0':
+		str = NULL;
+		break;
 	default:
 		if (isalpha(c)) {
 			GuPool* tmp_pool = gu_new_pool();
@@ -192,6 +203,7 @@ pgf_expr_parser_lookahead(PgfExprParser* parser)
 				gu_buf_push(chars, char, c);
 				c = pgf_expr_parser_next(parser);
 				if (!gu_ok(parser->err)) {
+					// A non-EOF I/O error
 					return NULL;
 				}
 			}
@@ -239,6 +251,11 @@ pgf_expr_parser_term(PgfExprParser* parser)
 			pgf_expr_parser_consume(parser);
 			return expr;
 		}
+		// Didn't get matching rpar, hence error.
+		if (gu_ok(parser->err)) {
+			gu_raise(parser->err, PgfReadExn);
+		}
+		return gu_null_variant;
 	} else if (pgf_expr_parser_token_is_id(la)) {
 		pgf_expr_parser_consume(parser);
 		GuString s = gu_str_string(la, parser->expr_pool);
@@ -273,22 +290,24 @@ pgf_expr_parser_expr(PgfExprParser* parser)
 
 
 PgfExpr
-pgf_read_expr(GuReader* rdr, GuPool* pool, GuExn* err)
+pgf_read_expr(GuReader* rdr, GuPool* pool, GuExn* exn)
 {
 	GuPool* tmp_pool = gu_new_pool();
+	GuExn* eof_exn = gu_exn(exn, GuEOF, tmp_pool);
 	PgfExprParser* parser = gu_new(PgfExprParser, tmp_pool);
 	parser->rdr = rdr;
 	parser->intern = gu_new_intern(pool, tmp_pool);
 	parser->expr_pool = pool;
-	parser->err = err;
+	parser->err = eof_exn;
 	parser->lookahead = NULL;
 	parser->next_char = -1;
 	PgfExpr expr = pgf_expr_parser_expr(parser);
-	const char* la = pgf_expr_parser_lookahead(parser);
-	if (la == pgf_expr_semic) {
-		pgf_expr_parser_consume(parser);
-	} else {
-		expr = gu_null_variant;
+	if (!gu_variant_is_null(expr)) {
+		if (parser->lookahead == pgf_expr_semic) {
+			pgf_expr_parser_consume(parser);
+		} else if (parser->lookahead != NULL) {
+			gu_raise(exn, PgfReadExn);
+		}
 	}
 	gu_pool_free(tmp_pool);
 	return expr;

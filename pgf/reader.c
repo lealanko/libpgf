@@ -49,7 +49,7 @@ struct PgfReadTagExn {
 
 static GU_DEFINE_TYPE(PgfReadTagExn, abstract, _);
 
-static GU_DEFINE_TYPE(PgfReadExn, abstract, _);
+GU_DEFINE_TYPE(PgfReadExn, abstract, _);
 
 static void
 pgf_reader_tell(PgfReader* rdr)
