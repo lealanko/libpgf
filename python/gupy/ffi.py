@@ -285,6 +285,11 @@ class CBase(CData):
     def __hash__(self):
         return hash(addressof(self))
 
+    def __repr__(self):
+        cls = type(self)
+        return (("<%s.%s@%0" + str(sizeof(c_void_p)*2) + "x>")
+                % (cls.__module__, cls.__name__, addressof(self)))
+
 class Context:
     pass
 

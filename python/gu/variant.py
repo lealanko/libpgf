@@ -96,8 +96,6 @@ class VariantType(TypeRepr):
             pfx = pp_prefix(name)
         class SomeVariant(Variant, ctors=self.ctors, prefix=pfx):
             pass
-        if name:
-            SomeVariant.__name__ = self._name
         return SomeVariant
 
 Kind.bind(gu, 'GuVariant', VariantType)    

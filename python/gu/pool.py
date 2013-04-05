@@ -15,7 +15,7 @@ class Pool(Abstract):
             self.alive = False
 
     def __del__(self):
-        if self.own:
+        if self is not None and self.own:
             self._close()
 
     def __enter__(self):

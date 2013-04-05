@@ -15,7 +15,7 @@ class Concr(Abstract):
 Concr.id = pgf.concr_id(String, ~Concr)
 Concr.lang = pgf.concr_lang(String, ~Concr)
 
-ConcrEnum = enum(Concr)
+ConcrEnum = enum(~Concr)
 
 class Pgf(Abstract):
     pass
@@ -47,6 +47,36 @@ ExprType = Type.bind(pgf, 'PgfExpr')
 Expr = ExprType.c_type
 
 Expr.read = pgf.read_expr.static(Expr, ~Reader, Pool.Out, Exn.Out)
+Expr.print = pgf.expr_print(None, Expr, ~Writer, Exn.Out)
+
+def _expr_read_string(s, pool=None):
+    with Pool() as p:
+        r = Reader.new_string(s, p)
+        return Expr.read(r, pool)
+
+Expr.read_string = _expr_read_string
+
+def _expr_str(expr):
+    sio = io.StringIO()
+    with Pool() as p:
+        wtr = Writer.new(sio, p)
+        expr.print(wtr)
+        wtr.flush()
+    return sio.getvalue()
+
+Expr.__str__ = _expr_str
+
+
+class _ExprSpec(util.instance(ProxySpec)):
+    sot = cspec(Expr)
+    def unwrap(x):
+        if isinstance(x, str):
+            return Expr.read_string(x)
+        elif isinstance(x, Expr):
+            return x
+        raise TypeError
+
+Expr.default_spec = _ExprSpec
 
 
 ExprEnum = enum(Expr)

@@ -38,6 +38,12 @@ class Kind(CStructure, delay=True):
         except AttributeError:
             pass
         self._c_type = self.create_type()
+        try:
+            name = self._name
+        except AttributeError:
+            pass
+        else:
+            self._c_type.__name__ = name
         return self._c_type
         
     def _set_c_type(self, c_type):
@@ -123,7 +129,10 @@ class TypeDef(TypeAlias):
 Kind.bind(gu, 'typedef', TypeDef)    
 
 class AbstractType(Type):
-    pass
+    def create_type(self):
+        class SomeAbstract(Abstract):
+            pass
+        return SomeAbstract
 
 Kind.bind(gu, 'abstract', AbstractType)
 
