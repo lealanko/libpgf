@@ -9,34 +9,66 @@ CtntId = c_int
 class Cat(Abstract):
     pass
 
-class Concr(Abstract):
-    pass
+class Concr(Abstract, metaclass=delay_init):
+    """A concrete grammar."""
+    
+    @cfunc(pgf.concr_id)
+    def id(self: ~Concr) -> String:
+        """Return the internal name of this concrete grammar."""
 
-Concr.id = pgf.concr_id(String, ~Concr)
-Concr.lang = pgf.concr_lang(String, ~Concr)
+    @cfunc(pgf.concr_lang)
+    def lang(self: ~Concr) -> String:
+        """Return the language code for this concrete grammar."""
+
+#Concr.id = pgf.concr_id(String, ~Concr)
+#Concr.id.__doc__ = """Return the internal name of this concrete grammar."""
+#Concr.lang = pgf.concr_lang(String, ~Concr)
 
 ConcrEnum = enum(~Concr)
 
-class Pgf(Abstract):
-    pass
+class Pgf(Abstract, metaclass=delay_init):
+    """A PGF grammar."""
+    
+    @cfunc(pgf.read_pgf, static=True)
+    def read(input: ~In, pool: Pool.Out, exn: Exn.Out) -> ~Pgf:
+        """Read the PGF file `input` and return a new PGF grammar object."""
 
-Pgf.read = pgf.read_pgf.static(~Pgf, ~In, Pool.Out, Exn.Out)
-Pgf.startcat = pgf.pgf_startcat(~Cat, dep(~Pgf))
-Pgf.cat = pgf.pgf_cat(~Cat, dep(~Pgf), CId)
-Pgf.concr = pgf.pgf_concr(~Concr, dep(~Pgf), CId, Pool.Out)
-Pgf.concr_by_lang = pgf.pgf_concr_by_lang(~Concr, dep(~Pgf), String, Pool.Out)
-Pgf.concrs = pgf.pgf_concrs(~ConcrEnum, dep(~Pgf), Pool.Out)
+    @cfunc(pgf.pgf_startcat)
+    def startcat(self: dep(~Pgf)) -> ~Cat:
+        """Return the default starting category."""
 
-class Parse(Abstract):
-    pass
+    @cfunc(pgf.pgf_cat)
+    def cat(self: dep(~Pgf), id: CId) -> ~Cat:
+        """Return the category with the name `id`."""
 
-Parse.token = pgf.parse_token(~Parse, ~Parse, Token, Pool.Out)
+    @cfunc(pgf.pgf_concr)
+    def concr(self: dep(~Pgf), id: CId, pool: Pool.Out) -> ~Concr:
+        """Return the concrete grammar with the name `id`."""
 
-class Parser(Abstract): 
-    pass
+    @cfunc(pgf.pgf_concr_by_lang)
+    def concr_by_lang(self: dep(~Pgf), lang: String, pool: Pool.Out
+                      ) -> ~Concr:
+        """Return the concrete grammar for the language `lang`."""
 
-Parser.new = pgf.new_parser.static(~Parser, ~Concr, Pool.Out)
-Parser.parse = pgf.parser_parse(~Parse, ~Parser, ~Cat, CtntId, Pool.Out)
+    @cfunc(pgf.pgf_concrs)
+    def concrs(self: dep(~Pgf), pool: Pool.Out) -> ~ConcrEnum:
+        """Return an iterator over all the concrete grammars."""
+    
+    
+class Parse(Abstract, metaclass=delay_init):
+    @cfunc(pgf.parse_token)
+    def token(self: ~dep(Parse), token: Token, pool: Pool.Out) -> ~Parse:
+        """Feed a new token into the parse state."""
+
+class Parser(Abstract, metaclass=delay_init):
+    @cfunc(pgf.new_parser, static=True)
+    def new(concr: ~Concr, pool: Pool.Out) -> ~Parser:
+        """Create a new parser for the grammar `concr`."""
+
+    @cfunc(pgf.parser_parse)
+    def parse(self: ~Parser, cat: ~Cat, cntn_id: CtntId, pool: Pool.Out
+              ) -> ~Parse:
+        """Begin parsing constituent `ctnt_id` of category `cat`."""
 
 class ReadExn(Abstract):
     pass
