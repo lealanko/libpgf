@@ -34,6 +34,9 @@ class String(Opaque):
 
 String.from_utf8 = gu.utf8_string.static(cspec(String), BytesCSlice, Pool.Out)
 String.utf8 = gu.string_utf8(Slice, cspec(String), Pool.Out)
+String.is_null = gu.string_is_null(c_bool, cspec(String))
+
+String.null = gu.null_string[String]
 
 OpaqueType.bind(gu, 'GuString', String)
 
@@ -41,8 +44,14 @@ OpaqueType.bind(gu, 'GuString', String)
 class _StringSpec(util.instance(ProxySpec)):
     sot = cspec(String)
     def unwrap(s):
-        return String(s) if isinstance(s, str) else s
+        if s is None:
+            return String.null
+        elif isinstance(s, str):
+            return String(s)
+        return s
     def wrap(s):
+        if s.is_null():
+            return None
         return str(s)
 
 String.default_spec = _StringSpec
