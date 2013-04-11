@@ -111,5 +111,27 @@ class WeakDict(collections.MutableMapping):
 
     def __len__(self):
         return len(self.dict)
-                
-        
+
+
+def initialize(name, bases, namespace):
+  [target] = bases
+  for k, v in namespace.items():
+    setattr(target, k, v)
+  return target
+
+      
+def _delay_prepare(name, bases, realmeta=None, **kwargs):
+    if realmeta is not None:
+        kwargs['metaclass'] = realmeta
+    class NewClass(*bases, **kwargs):
+        pass
+    NewClass.__name__ = name
+    return {name: NewClass}
+
+def delay_init(name, bases, namespace, realmeta=None, **kwargs):
+    cls = namespace[name]
+    for k, v in namespace.items():
+        setattr(cls, k, v)
+    return cls
+
+delay_init.__prepare__ = _delay_prepare

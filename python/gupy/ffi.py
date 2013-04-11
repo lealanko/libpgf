@@ -5,6 +5,9 @@ from ctypes import *
 from itertools import chain, repeat
 from contextlib import contextmanager
 from collections import OrderedDict, Callable
+from functools import update_wrapper, partial
+import inspect
+import types
 
 from .util import *
 
@@ -294,6 +297,7 @@ class Context:
     pass
 
 class CFuncPtrBase(CBase):
+    __name__ = '<CFunc>'
     static = False
 
     def __new__(cls, *args):
@@ -326,7 +330,7 @@ class CFuncPtrBase(CBase):
             
     def __get__(self, instance, owner):
         if instance and not self.static:
-            return partial(self, instance)
+            return types.MethodType(self, instance)
         return self
     def __call__(self, *args):
         if len(args) > len(self.argspecs):
@@ -364,6 +368,17 @@ def fn(ressot, *argsots, static=False):
         _flags_ = FUNCFLAG_CDECL
     return CFunc
 
+def wrap_cfunc(addr, func, static=False):
+    a = inspect.getfullargspec(func)
+    cargspecs = [a.annotations[k] for k in a.args]
+    cretspec = a.annotations['return']
+    wrapper = cast(addr, fn(cretspec, *cargspecs, static=static))
+    update_wrapper(wrapper, func, updated=[])
+    return wrapper
+
+def cfunc(addr, static=False):
+    return partial(wrap_cfunc, addr, static=False)
+    
 class Field:
     def __init__(self, sot):
         self.sot = sot
