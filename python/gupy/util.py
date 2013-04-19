@@ -8,6 +8,14 @@ class classproperty(object):
   def __get__(self, instance, owner):
       return self.f(owner)
 
+class roproperty:
+  def __init__(self, f):
+    self.f = f
+  def __get__(self, instance, owner):
+    if instance is None:
+      return self
+    return self.f(instance)
+
 def memo(f):
     cache = WeakKeyDictionary()
     @wraps(f)
@@ -117,6 +125,8 @@ def initialize(name, bases, namespace):
   [target] = bases
   for k, v in namespace.items():
     setattr(target, k, v)
+  if not name.startswith('_'):
+    target.__name__ = name
   return target
 
       
@@ -130,6 +140,7 @@ def _delay_prepare(name, bases, realmeta=None, **kwargs):
 
 def delay_init(name, bases, namespace, realmeta=None, **kwargs):
     cls = namespace[name]
+    del namespace[name]
     for k, v in namespace.items():
         setattr(cls, k, v)
     return cls

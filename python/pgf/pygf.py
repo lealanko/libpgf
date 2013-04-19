@@ -21,6 +21,8 @@ def curry(f):
         
 
 class Result:
+    """An iterable that supports piping."""
+    
     def __init__(self, thunk):
         self.thunk = thunk
 
@@ -38,6 +40,8 @@ class Result:
 
     @command
     def __or__(self, other):
+        """Feed the values of this result into `other`, which must be a unary function. Returns a new
+        :py:class:`Result` iterating over all the results from `other`."""
         for x in self:
             y = other(x)
             if isinstance(y, Result):
@@ -65,6 +69,10 @@ atexit.register(_free_current)
 
 
 def import_pgf(filename):
+    """Load the current PGF grammar from `filename`. The currently
+    active PGF grammar is implicitly used by the :py:func:`parse` and
+    :py:func:`linearize` functions."""
+    
     f = open(filename, 'rb')
     i = gu.In.new(f)
     i = gu.In.new_buffered(i, 4096)
@@ -114,6 +122,9 @@ def _parse_tokens(parser, cat, tokens, pool=None):
 @curry
 @command
 def parse(tokens, cat=None, lang=None):
+    """Parse `tokens`, which may be either a list or a string of space-separated tokens. Returns
+    a :py:class:`Result` of :py:class:`pgf.Expr` syntax trees."""
+    
     tokens = to_tokens(tokens)
     cat = to_cat(cat)
     if lang is None:
@@ -124,8 +135,6 @@ def parse(tokens, cat=None, lang=None):
     for expr in _parse_tokens(parser, cat, tokens):
         yield expr
 
-p = parse
-
 
 class _ListPresenter(list):
     def symbol_tokens(self, tokens):
@@ -134,6 +143,10 @@ class _ListPresenter(list):
 @curry
 @command
 def linearize(expr, lang=None, flatten=True):
+    """Linearize the expression `expr` into tokens. If `flatten` is
+    true, the return result iterates over a string of space-separated
+    tokens. Otherwise, the results are lists of tokens."""
+
     if lang is None:
         concrs = _current.concrs
     else:
@@ -147,6 +160,4 @@ def linearize(expr, lang=None, flatten=True):
                 yield ' '.join(pr)
             else:
                 yield list(pr)
-        
-l = linearize
 

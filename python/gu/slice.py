@@ -53,7 +53,7 @@ class _CSliceSpec(util.instance(ProxySpec)):
         return c_val.bytes()
     def unwrap(buf):
         # XXX: accept read-only buffer, once possible
-        return buf if isutil.instance(buf, CSlice) else CSlice.copy_buffer(buf)
+        return buf if isinstance(buf, CSlice) else CSlice.copy_buffer(buf)
 
 CSlice.default_spec = _CSliceSpec
     

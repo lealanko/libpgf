@@ -23,6 +23,7 @@ class GuException(Exception):
 
 class _CurrentExnSpec(util.instance(ProxySpec)):
     sot = ~Exn
+    optional = True
     def as_c(e):
         if e is None:
             e = Exn()

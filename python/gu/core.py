@@ -1,5 +1,5 @@
-from gupy import util
 from gupy.ffi import *
+from gupy import util
 
 
 gu = Library('libgu.so.0', "gu_")

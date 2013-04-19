@@ -73,7 +73,8 @@ def copy_deps(src, dst):
 
 class Spec(Object):
     is_dep = False
-
+    optional = False
+    
     def from_addr(self, addr):
         return self.to_py(addr[c_type])
 
@@ -94,16 +95,20 @@ class Spec(Object):
 
 
 class ProxySpec(Spec):
-    @property
+    @roproperty
+    def optional(self):
+        return self.spec.optional
+    
+    @roproperty
     @memo
     def spec(self):
         return spec(self.sot)
     
-    @property
+    @roproperty
     def is_dep(self):
         return self.spec.is_dep
 
-    @property
+    @roproperty
     def c_type(self):
         return self.wrap_type(self.spec.c_type)
 
@@ -134,6 +139,7 @@ def dep(sot):
     return DepSpec(sot=sot)
 
 class DefaultSpec(ProxySpec):
+    optional = True
     def unwrap(self, x):
         if x is None:
             return self.default()
@@ -371,13 +377,13 @@ def fn(ressot, *argsots, static=False):
 def wrap_cfunc(addr, func, static=False):
     a = inspect.getfullargspec(func)
     cargspecs = [a.annotations[k] for k in a.args]
-    cretspec = a.annotations['return']
+    cretspec = a.annotations.get('return', None)
     wrapper = cast(addr, fn(cretspec, *cargspecs, static=static))
     update_wrapper(wrapper, func, updated=[])
     return wrapper
 
 def cfunc(addr, static=False):
-    return partial(wrap_cfunc, addr, static=False)
+    return partial(wrap_cfunc, addr, static=static)
     
 class Field:
     def __init__(self, sot):
