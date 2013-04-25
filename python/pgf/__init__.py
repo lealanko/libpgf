@@ -1,3 +1,5 @@
+"""Python interface to the `libpgf` library."""
+
 from gu import *
 
 pgf = Library('libpgf.so.0', "pgf_")
@@ -109,21 +111,24 @@ class Parse(Abstract, metaclass=delay_init):
     
     @cfunc(pgf.parse_token)
     def token(self: ~dep(Parse), token: Token, pool: Pool.Out) -> ~Parse:
-        """Feed a new token into the parse state."""
+        """Feed a new token into the parse state. Returns a new state object."""
 
     @cfunc(pgf.parse_result)
     def result(self: ~Parse, pool: Pool.Out) -> ~ExprEnum:
-        """Return the expressions completely parsed at the current state."""
+        """Return an iterator over the :py:class:`Expr` trees that are
+        completely parsed at the current parse state."""
 
 class Parser(Abstract, metaclass=delay_init):
     @cfunc(pgf.new_parser, static=True)
     def new(concr: ~Concr, pool: Pool.Out) -> ~Parser:
-        """Create a new parser for the grammar `concr`."""
+        """Create a new :py:class:`Parser` for the grammar `concr`."""
 
     @cfunc(pgf.parser_parse)
     def parse(self: ~Parser, cat: ~Cat, cntn_id: CtntId, pool: Pool.Out
               ) -> ~Parse:
-        """Begin parsing constituent `ctnt_id` of category `cat`."""
+        """Begin parsing constituent `ctnt_id` of category `cat`.
+        Returns a new :py:class`Parse` object representing the initial
+        parsing state."""
 
 
 class CncTree(Opaque):

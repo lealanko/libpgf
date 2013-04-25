@@ -6,7 +6,7 @@ This is the documentation for ``pygf``, a Python binding for the libpgf_ library
 .. _libpgf: http://grammaticalframework.org/libpgf/
 
 
-Contents:
+.. Contents:
 
 .. toctree::
    :maxdepth: 2
@@ -48,11 +48,17 @@ For more intricate operations, refer to the full API.
 API Documentation
 =================
 
+`pgf`
+-----
 .. automodule:: pgf
    :members:
+   :special-members:
 
+`pgf.pygf` 
+----------
 .. automodule:: pgf.pygf
    :members:
+   :special-members:
 
 Indices and tables
 ==================

@@ -65,12 +65,17 @@ DX_ARG_ABLE(dev, [include internal development documentation],
 	    [],
 	    [DX_ENV_APPEND(DEVDOC, YES)
 	     DX_ENV_APPEND(NODEVDOC, NO)
-	     DX_ENV_APPEND(INPUT, $srcdir)],
+	     AC_SUBST(DOXYGEN_INPUT, ["${srcdir}"])
+	     #DX_ENV_APPEND(INPUT, $srcdir)
+	     ],
 	    [DX_ENV_APPEND(DEVDOC, NO)
 	     DX_ENV_APPEND(NODEVDOC, YES)
-	     DX_ENV_APPEND(INPUT, 
-	     [README.md libgu.h \$(guinclude_HEADERS) \
-	      libpgf.h \$(pgfinclude_HEADERS)])])
+	     AC_SUBST(DOXYGEN_INPUT, ["README.md libgu.h \$(guinclude_HEADERS) libpgf.h \$(pgfinclude_HEADERS)"])
+	     # libpgf.h \$(pgfinclude_HEADERS)
+	     #DX_ENV_APPEND(INPUT, 
+	     #[README.md libgu.h \$(guinclude_HEADERS) \
+	     # libpgf.h \$(pgfinclude_HEADERS)])
+	     ])
 DX_INIT_DOXYGEN(libpgf)
 
 

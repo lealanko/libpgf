@@ -123,7 +123,7 @@
       <defines title=""/>
       <variables title=""/>
     </memberdef>
-    <sourcelink visible="$DEVDOC"/>
+    <sourcelink visible="$SOURCE_BROWSER"/>
     <includegraph visible="$INCLUDE_GRAPH"/>
     <includedbygraph visible="$INCLUDED_BY_GRAPH"/>
     <authorsection/>

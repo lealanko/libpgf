@@ -1,6 +1,9 @@
+"""Simplified interface for parsing with PGF grammars."""
+
 import gu
 import pgf
 import io
+import inspect
 from itertools import count
 from functools import wraps, partial
 
@@ -9,6 +12,7 @@ def command(f):
     @wraps(f)
     def wrapper(*args, **kwargs):
         return Result(lambda: f(*args, **kwargs))
+    wrapper.__signature__ = inspect.signature(f)
     return wrapper
 
 def curry(f):
