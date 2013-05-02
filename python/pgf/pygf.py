@@ -76,11 +76,11 @@ def import_pgf(filename):
     """Load the current PGF grammar from `filename`. The currently
     active PGF grammar is implicitly used by the :py:func:`parse` and
     :py:func:`linearize` functions."""
-    
-    f = open(filename, 'rb')
-    i = gu.In.new(f)
-    i = gu.In.new_buffered(i, 4096)
-    _current.pgf = pgf.Pgf.read(i)
+
+    with open(filename, 'rb') as f:
+        i = gu.In.new(f)
+        i = gu.In.new_buffered(i, 4096)
+        _current.pgf = pgf.Pgf.read(i)
     _current.cat = _current.pgf.startcat()
     _current.concrs = list(_current.pgf.concrs())
     _current.parse_concr = _current.concrs[0]

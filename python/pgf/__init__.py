@@ -5,6 +5,8 @@ from gu import *
 pgf = Library('libpgf.so.0', "pgf_")
 
 CId = String
+TypeDef.bind(pgf, 'PgfCId', CId)
+
 Token = String
 CtntId = c_int
 
@@ -167,11 +169,11 @@ class Lzr(Abstract, metaclass=delay_init):
     """A linearizer."""
 
     @cfunc(pgf.new_lzr, static=True)
-    def new(concr: ~Concr, pool: ~Pool.Out) -> ~Lzr:
+    def new(concr: ~Concr, pool: Pool.Out) -> ~Lzr:
         """Create a new linearizer for the concrete category `concr`."""
 
     @cfunc(pgf.lzr_concretize)
-    def concretize(self: ~Lzr, expr: ~Expr, pool: ~Pool.Out) -> ~CncTreeEnum:
+    def concretize(self: ~Lzr, expr: Expr, pool: Pool.Out) -> ~CncTreeEnum:
         """Iterate over the concrete trees corresponding to the abstract
         syntax tree `expr`."""
 
