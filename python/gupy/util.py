@@ -121,6 +121,9 @@ class WeakDict(collections.MutableMapping):
         return len(self.dict)
 
 
+def _initialize_prepare(name, bases, **kwargs):
+  return collections.OrderedDict()
+
 def initialize(name, bases, namespace):
   [target] = bases
   for k, v in namespace.items():
@@ -129,6 +132,8 @@ def initialize(name, bases, namespace):
     target.__name__ = name
   return target
 
+initialize.__prepare__ = _initialize_prepare
+
       
 def _delay_prepare(name, bases, realmeta=None, **kwargs):
     if realmeta is not None:
@@ -136,7 +141,7 @@ def _delay_prepare(name, bases, realmeta=None, **kwargs):
     class NewClass(*bases, **kwargs):
         pass
     NewClass.__name__ = name
-    return {name: NewClass}
+    return collections.OrderedDict({name: NewClass})
 
 def delay_init(name, bases, namespace, realmeta=None, **kwargs):
     cls = namespace[name]
