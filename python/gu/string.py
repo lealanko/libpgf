@@ -15,18 +15,32 @@ class String(Opaque):
         return cls.from_utf8(b, pool)
 
     def __str__(self):
+        if self.is_null():
+            return '<null>'
         slc = self.utf8()
         s, _ = codecs.utf_8_decode(slc)
         return s
 
     def dump(self, out, strict=False):
-        if strict:
-            out.write('String(')
-        out.write(repr(str(self)))
-        if strict:
-            out.write(')')
+        if self.is_null():
+            if strict:
+                out.write('String.null')
+            else:
+                out.write('<null>')
+        else:                
+            if strict:
+                out.write('String(')
+            out.write(repr(str(self)))
+            if strict:
+                out.write(')')
+
+    def __bool__(self):
+        # XXX: should we return False on an empty non-null string?
+        return not self.is_null()
 
     def __repr__(self):
+        if self.is_null():
+            return "String.null"
         return "String(%r)" % str(self)
 
     def __eq__(self, other):
