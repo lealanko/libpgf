@@ -113,6 +113,7 @@ pgf_pgf_startcat(PgfPGF* pgf)
 	GuPool* pool = gu_local_pool();
 	GuString str = gu_str_string("startcat", pool);
 	PgfLiteral lit = gu_map_get(pgf->abstract.aflags, &str, PgfLiteral);
+	gu_pool_free(pool);
 	switch (gu_variant_tag(lit)) {
 	case PGF_LITERAL_STR: {
 		PgfLiteralStr* lits = gu_variant_data(lit);
