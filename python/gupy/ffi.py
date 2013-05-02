@@ -10,11 +10,7 @@ import inspect
 import types
 
 from .util import *
-
-
-for kind in [c_ushort, c_uint, c_ulong, c_ulonglong]:
-    if sizeof(kind) == sizeof(c_void_p):
-        c_uintptr = kind
+from .dladdr import dladdr
 
 c_uint8_p = POINTER(c_uint8)
 
@@ -33,6 +29,7 @@ def sized_int(sz, signed=True):
     return _ints[sz] if signed else _uints[sz]
 
 c_ssize_t = c_ptrdiff_t = sized_int(sizeof(c_size_t), signed=True)
+c_uintptr = sized_int(sizeof(c_void_p), signed=False)
 
 _, CData, *_ = Pointer.__mro__
 
@@ -166,8 +163,11 @@ class Address(c_void_p):
         return hash(self.value)
     def __add__(self, offset):
         return Address(self.value + offset)
-
-
+    def name(self):
+        return dladdr(self)
+    _ptr_fmt = "%0" + str(sizeof(c_void_p)*2) + "x"
+    def hex(self):
+        return Address._ptr_fmt % self.value
 
 class Library:
     def __init__(self, soname, prefix):
@@ -175,7 +175,7 @@ class Library:
         self.prefix = prefix
 
     def __getattr__(self, name):
-        return Address(dlsym(self.dll._handle, self.prefix + name))
+        return self[self.prefix + name]
 
     def __getitem__(self, name):
         return Address(dlsym(self.dll._handle, name))
@@ -185,7 +185,11 @@ def address(cobj):
 
 def pun(cobj, ctype):
     assert issubclass(ctype, type(cobj)) or isinstance(cobj, ctype)
-    return ctype.from_address(addressof(cobj))
+    ret = ctype.from_address(addressof(cobj))
+    # XXX: This is ugly. Maybe it would be better to have a dep system
+    # that works on plain addresses instead of typed wrapper objects.
+    copy_deps(cobj, ret)
+    return ret
 
 class CSpec(Spec):
     def check(self, a):
@@ -296,8 +300,14 @@ class CBase(CData):
 
     def __repr__(self):
         cls = type(self)
-        return (("<%s.%s@%0" + str(sizeof(c_void_p)*2) + "x>")
-                % (cls.__module__, cls.__name__, addressof(self)))
+        addr = address(self)
+        name = addr.name()
+        if name:
+            annot = " (%s)" % name
+        else:
+            annot = ""
+        return (("<%s.%s@%s%s>")
+                % (cls.__module__, cls.__name__, addr.hex(), annot))
 
 class Context:
     pass
@@ -305,6 +315,16 @@ class Context:
 class CFuncPtrBase(CBase):
     __name__ = '<CFunc>'
     static = False
+
+    def __repr__(self):
+        if address(self).name():
+            return CBase.__repr_(self)
+        addr = cast(self, Address)
+        name = addr.name()
+        if name:
+            return "<CFunc@%s (%s)>" % (addr.hex(), name)
+        else:
+            return "<CFunc@%s>" % addr.hex()
 
     def __new__(cls, *args):
         if len(args) == 1 and isinstance(args[0], Callable):
@@ -335,7 +355,7 @@ class CFuncPtrBase(CBase):
             return cls.resspec.c_type()
             
     def __get__(self, instance, owner):
-        if instance and not self.static:
+        if instance is not None and not self.static:
             return types.MethodType(self, instance)
         return self
     def __call__(self, *args):
@@ -444,7 +464,8 @@ class CStructureMeta(CStructType):
     def __init__(cls, name, parents, dict, delay=False, **kwargs):
         CStructType.__init__(cls, name, parents, dict)
     
-    def __new__(cls, name, bases, odict, delay=False, size=None, **kwargs):
+    def __new__(cls, name, bases, odict, delay=False, size=None, align=1,
+                **kwargs):
         d = dict()
         if size is None:
             fields = OrderedDict()
@@ -460,7 +481,9 @@ class CStructureMeta(CStructType):
         else:
             if delay:
                 raise ValueError
-            d['_fields_'] = [('_data', c_byte * size)]
+            n_cells = (size + align - 1) // align
+            fields = [('_data', sized_int(align) * n_cells)]
+            d['_fields_'] = fields
             d.update(odict)
             ret = CStructType.__new__(cls, name, bases, d)
         return ret
@@ -476,10 +499,12 @@ class CStructureMeta(CStructType):
         for k, v in self._fields.items():
             f = getattr(self, k)
             setattr(self, k, SpecField(f, v))
-        del self._fields
 
 class CStructure(Structure, CBase, metaclass=CStructureMeta):
-    pass
+    def __init__(self, **kwargs):
+        super().__init__()
+        for k, v in kwargs.items():
+            setattr(self, k, v)
 
 
 
