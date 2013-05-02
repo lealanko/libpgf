@@ -32,9 +32,12 @@ class StructRepr(TypeRepr):
     members = Field(SList(Member))
 
     def create_type(self):
-        class cls(StructBase, size=self.size):
+        class cls(StructBase, size=self.size, align=self.align):
             _members = self.members
+        # XXX: this name is just informative, it cannot be used as an identifier.
+        # TODO: maybe create a dynamic module where these can be imported?
         cls.__name__ = self.name
+        cls.__qualname__ = cls.__name__
         for m in self.members:
             setattr(cls, m.name, m.as_field())
         return cls

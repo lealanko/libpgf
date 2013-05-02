@@ -12,6 +12,7 @@ def wrap_method(base, funs, attr):
     def wrapper(ref, *args):
         return getattr(pun(ref, b).py, attr)(*args)
     wrapper.__name__ = attr
+    wrapper.__qualname__ = attr
     field = getattr(funs, attr)
     return field.spec.c_type(wrapper)
 

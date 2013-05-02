@@ -40,4 +40,3 @@ class _Pool_o(util.instance(CSpec)):
         return c[0]
 
 Pool.Out = dep(default(~Pool, lambda: Pool()))
-    
