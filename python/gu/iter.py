@@ -5,7 +5,7 @@ class Enum(Abstract):
     def __iter__(self):
         return self
     def __next__(self):
-        pool = Pool()
+        pool = Pool.get()
         ret = self._elem_spec.c_type()
         got = self.next(address(ret), pool)
         if not got:

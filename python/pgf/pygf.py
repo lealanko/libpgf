@@ -115,20 +115,19 @@ def to_concrs(lang):
         lang = lang.split(',')
     return [to_concr(l) for l in lang]
 
-def _parse_tokens(parser, cat, tokens, pool=None):
-    if pool is None:
-        pool = gu.Pool()
-    parse = parser.parse(cat, 0, pool)
+@pgf.pooled
+def _parse_tokens(parser, cat, tokens, pool):
+    parse = parser.parse(cat, 0)
     for tok in tokens:
-        parse = parse.token(tok, pool)
+        parse = parse.token(tok)
     return parse.result(pool)
 
 @curry
 @command
-def parse(tokens, cat=None, lang=None):
+@pgf.pooled
+def parse(tokens, cat=None, lang=None, pool=None):
     """Parse `tokens`, which may be either a list or a string of space-separated tokens. Returns
     a :py:class:`Result` of :py:class:`pgf.Expr` syntax trees."""
-    
     tokens = to_tokens(tokens)
     cat = to_cat(cat)
     if lang is None:
@@ -136,7 +135,7 @@ def parse(tokens, cat=None, lang=None):
     else:
         concr = to_concr(lang)
     parser = pgf.Parser.new(concr)
-    for expr in _parse_tokens(parser, cat, tokens):
+    for expr in _parse_tokens(parser, cat, tokens, pool=pool):
         yield expr
 
 

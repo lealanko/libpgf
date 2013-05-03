@@ -5,7 +5,7 @@ class Pool(Abstract):
     own = False
 
     def __new__(cls):
-        p = cls.new()
+        p = cls._new()
         p.own = True
         return p
 
@@ -24,7 +24,33 @@ class Pool(Abstract):
     def __exit__(self, *exc):
         self._close()
 
-Pool.new = gu.new_pool.static(~Pool)
+    default = Parameter(None)
+
+    @staticmethod
+    def get():
+        p = Pool.default()
+        if p is None:
+            p = Pool()
+        return p
+
+    @staticmethod
+    def shift(pool=None):
+        if pool is None:
+            pool = Pool()
+        return Pool.default << pool
+
+
+def pooled(f):
+    @wraps(f)
+    def g(*args, pool=None, **kwargs):
+        with Pool.shift() as p:
+            if pool is None:
+                pool = p
+            return f(*args, pool=pool, **kwargs)
+    return g
+    
+
+Pool._new = gu.new_pool.static(~Pool)
 Pool._free = gu.pool_free(None, ~Pool)
 
 class _Pool_o(util.instance(CSpec)):
@@ -33,10 +59,10 @@ class _Pool_o(util.instance(CSpec)):
 
     def as_c(p):
         if p is None:
-            p = Pool()
+            p = Pool.get()
         yield byref(p)
 
     def to_py(c):
         return c[0]
 
-Pool.Out = dep(default(~Pool, lambda: Pool()))
+Pool.Out = dep(default(~Pool, Pool.get))
