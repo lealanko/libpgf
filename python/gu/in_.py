@@ -61,7 +61,7 @@ class InStreamWrapper(Object):
         return self.stream.readinto(slc)
 
 class InStreamBridge(util.instance(BridgeSpec)):
-    c_type = InStream
+    base_type = InStream
     funs_type = InStreamFuns
     wrap_fields = ['input']
     def wrapper(i):

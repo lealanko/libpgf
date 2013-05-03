@@ -56,8 +56,6 @@ class Pgf(Abstract, metaclass=delay_init):
     
     
 
-
-
 class ReadExn(Abstract):
     pass
 
@@ -66,11 +64,8 @@ AbstractType.bind(pgf, 'PgfReadExn', ReadExn)
 ExprType = Type.bind(pgf, 'PgfExpr')
 
 Expr = ExprType.c_type
-#Expr.read = pgf.read_expr.static(Expr, ~Reader, Pool.Out, Exn.Out)
-#Expr.print = pgf.expr_print(None, Expr, ~Writer, Exn.Out)
 
-
-class Expr(ExprType.c_type, metaclass=initialize):
+class _(Expr, metaclass=initialize):
     """A syntax tree of an abstract grammar."""
 
     @cfunc(pgf.read_expr, static=True)
@@ -161,7 +156,7 @@ PresenterFuns.init()
 
 
 class PresenterBridge(instance(BridgeSpec)):
-    c_type = Presenter
+    base_type = Presenter
     funs_type = PresenterFuns
     wrap_fields = ['symbol_tokens']
 

@@ -25,7 +25,7 @@ class OutStreamWrapper(Object):
         self.stream.flush()
 
 class OutStreamBridge(util.instance(BridgeSpec)):
-    c_type = OutStream
+    base_type = OutStream
     funs_type = OutStreamFuns
     wrap_fields = ['output', 'flush']
     def wrapper(o):
