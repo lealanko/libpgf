@@ -1,6 +1,8 @@
 from weakref import *
 from functools import wraps, partial
+from contextlib import contextmanager
 import collections
+import threading
 
 class classproperty(object):
   def __init__(self, f):
@@ -122,13 +124,17 @@ class WeakDict(collections.MutableMapping):
 
 
 def _initialize_prepare(name, bases, **kwargs):
-  return collections.OrderedDict()
+  [target] = bases
+  od = collections.OrderedDict()
+  if name != '_':
+    od[name] = target
+  return od
 
 def initialize(name, bases, namespace):
   [target] = bases
   for k, v in namespace.items():
     setattr(target, k, v)
-  if not name.startswith('_'):
+  if name != '_':
     target.__name__ = name
   return target
 
@@ -151,3 +157,22 @@ def delay_init(name, bases, namespace, realmeta=None, **kwargs):
     return cls
 
 delay_init.__prepare__ = _delay_prepare
+
+class Parameter(threading.local):
+  def __init__(self, value):
+    self.value = value
+
+  def __ilshift__(self, new_value):
+    self.value = new_value
+    return self
+
+  @contextmanager
+  def __lshift__(self, new_value):
+    old_value = self.value
+    self.value = new_value
+    yield old_value
+    self.value = old_value
+
+  def __call__(self):
+    return self.value
+  
