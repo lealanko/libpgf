@@ -44,6 +44,7 @@ class Kind(CStructure, delay=True):
             pass
         else:
             self._c_type.__name__ = name
+            self._c_type.__qualname__ = name
         return self._c_type
         
     def _set_c_type(self, c_type):

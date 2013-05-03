@@ -35,7 +35,7 @@ class _CurrentExnSpec(util.instance(ProxySpec)):
             s = spec(t.c_type)
             val = None
             if addr:
-                val = s.c_type.from_addr(addr)
+                val = s.to_py(addr[t.c_type])
                 add_dep(val, e) # More precisely: the pool of e
             raise GuException(s.c_type, val)
 
