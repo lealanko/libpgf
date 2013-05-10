@@ -8,7 +8,8 @@ class Member(CStructure):
     type = Field(Type.Ref)
     is_flex = Field(c_bool)
     def as_field(self):
-        return CField(self.offset, delay=lambda: self.type.c_type)
+        f = CField(self.offset, delay=lambda: self.type.c_type)
+        return SpecField(f, thunk=lambda: spec(self.type.c_type))
 
 class StructBase(CStructure):
 

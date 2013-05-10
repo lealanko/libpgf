@@ -440,19 +440,32 @@ class CField:
         
 
 class SpecField:
-    def __init__(self, field, spec):
+    def __init__(self, field, spec=None, thunk=None):
         self.field = field
-        self.spec = spec
+        if spec is None:
+            self.thunk = thunk
+        else:
+            self.spec = spec
+
+    @roproperty
+    def spec(self):
+        s = self.thunk()
+        self.spec = s
+        return s
+        
     def __get__(self, instance, owner):
         if instance is None:
             return self
         c = self.field.__get__(instance, owner)
         return self.spec.to_py(c)
+
     def __set__(self, instance, value):
         c = self.spec.to_c(value, None)
         if isinstance(c, CArgObject):
             c = pointer(c._obj)
         self.field.__set__(instance, c)
+        # XXX: cannot safely remove dep to previous value
+        add_dep(instance, c)
         
 
 class CStructureMeta(CStructType):
