@@ -29,6 +29,7 @@ AM_PROG_CC_C_O
  -Wall\
  -Wextra\
  -Wno-missing-field-initializers\
+ -Wno-type-limits\
  -Wno-unused-parameter"
 fi]
 
