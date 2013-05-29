@@ -1,4 +1,5 @@
 from .core import *
+from .struct import *
 from .type import *
 from .slist import *
 from .pool import *
@@ -73,7 +74,7 @@ class VariantMeta(OpaqueMeta):
             # need to copy them.
             cls._make = gu.make_variant(
                 cspec(cls),
-                c_byte, c_size_t, c_size_t, dep(c_void_p), Pool.Out)
+                c_byte, c_size_t, c_size_t, dep(~Any), Pool.Out)
     
 class Variant(Opaque, metaclass=VariantMeta):
     def dump(self, out, strict):
@@ -90,9 +91,13 @@ class Variant(Opaque, metaclass=VariantMeta):
             return '%s.%d(%x)' % (type(self).__name__,
                                   self._tag(),
                                   self._data())
-        return '%s.%s(%s)' % (type(self).__name__,
-                              self.tag.name,
-                              repr(self.data))
+        out = StringIO()
+        self.dump(out, False)
+        return out.getvalue()
+        #self.tag.c_type
+        #return '%s.%s(%s)' % (type(self).__name__,
+        #                      self.tag.name,
+        #                      repr(self.data))
 
     def __bool__(self):
         return self.tag is not None
@@ -115,8 +120,8 @@ class Variant(Opaque, metaclass=VariantMeta):
     @classmethod
     def make(cls, tag, value, pool=None):
         #print(tag, alignment(value), sizeof(value), address(value), pool)
-        v = cls._make(tag, alignment(value), sizeof(value),
-                      address(value), pool)
+        v = cls._make(tag, sizeof(value), alignment(value),
+                      value, pool)
         return v
 
 Variant._tag = gu.variant_tag(c_int, cspec(Variant))
