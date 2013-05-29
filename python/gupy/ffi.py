@@ -168,6 +168,9 @@ class Address(c_void_p):
     _ptr_fmt = "%0" + str(sizeof(c_void_p)*2) + "x"
     def hex(self):
         return Address._ptr_fmt % self.value
+    def __repr__(self):
+        return "Address(0x" + self.hex() + ")"
+    
 
 class Library:
     def __init__(self, soname, prefix):
@@ -281,6 +284,12 @@ class RefSpec(ProxySpec):
         else:
             for a in ProxySpec.as_c(self, r):
                 yield byref(a)
+
+class Any(instance(CSpec)):
+    c_type = None
+    def check(a):
+        return a
+
 
 #@memo        
 def ref(sot):
@@ -495,7 +504,7 @@ class CStructureMeta(CStructType):
             if delay:
                 raise ValueError
             n_cells = (size + align - 1) // align
-            fields = [('_data', sized_int(align) * n_cells)]
+            fields = [('_dummy_field', sized_int(align) * n_cells)]
             d['_fields_'] = fields
             d.update(odict)
             ret = CStructType.__new__(cls, name, bases, d)
