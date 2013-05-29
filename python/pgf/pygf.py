@@ -141,7 +141,7 @@ def parse(tokens, cat=None, lang=None, pool=None):
 
 class _ListPresenter(list):
     def symbol_tokens(self, tokens):
-        self += tokens
+        self += map(str, tokens)
 
 @curry
 @command

@@ -361,7 +361,8 @@ class CFuncPtrBase(CBase):
         try:
             return wrap_args([])
         except Exception as e:
-            return cls.resspec.c_type()
+            c_type = cls.resspec.c_type
+            return c_type and c_type()
             
     def __get__(self, instance, owner):
         if instance is not None and not self.static:
