@@ -65,7 +65,18 @@ ExprType = Type.bind(pgf, 'PgfExpr')
 
 Expr = ExprType.c_type
 
-class _(Expr, metaclass=initialize):
+ApplicationType = Type.bind(pgf, 'PgfApplication')
+Application = ApplicationType.c_type
+
+LiteralType = Type.bind(pgf, 'PgfLiteral')
+Literal = LiteralType.c_type
+
+class Literal(Literal, metaclass=initialize):
+    @property
+    def val(self):
+        return self.data.val
+
+class Expr(Expr, metaclass=initialize):
     """A syntax tree of an abstract grammar."""
 
     @cfunc(pgf.read_expr, static=True)
@@ -75,6 +86,17 @@ class _(Expr, metaclass=initialize):
     @cfunc(pgf.expr_print)
     def print(self: Expr, writer: ~Writer, exn: Exn.Out) -> None:
         """Print an expression to `writer`."""
+
+    @cfunc(pgf.expr_unapply)
+    def unapply(self: Expr, pool: Pool.Out) -> ~Application:
+        """Extract function and arguments from an application."""
+
+    @ensure_pool
+    def __call__(self, *args):
+        expr = self
+        for arg in args:
+            expr = Expr.APP(fun = expr, arg = arg)
+        return expr
 
     @staticmethod
     def read_string(s, pool=None):
