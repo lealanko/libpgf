@@ -73,6 +73,7 @@ pgf_expr_unapply(PgfExpr expr, GuPool* pool)
 	return appl;
 }
 
+
 GU_DEFINE_TYPE(PgfBindType, enum,
 	       GU_ENUM_C(PgfBindType, PGF_BIND_TYPE_EXPLICIT),
 	       GU_ENUM_C(PgfBindType, PGF_BIND_TYPE_IMPLICIT));
@@ -131,6 +132,11 @@ GU_DEFINE_TYPE(
 	GU_CONSTRUCTOR_S(
 		PGF_EXPR_IMPL_ARG, PgfExprImplArg,
 		GU_MEMBER(PgfExprImplArg, expr, PgfExpr)));
+
+GU_DEFINE_TYPE(
+	PgfApplication, struct,
+	GU_MEMBER(PgfApplication, fun, PgfCId),
+	GU_MEMBER(PgfApplication, args, PgfExprs));
 
 
 typedef struct PgfExprParser PgfExprParser;
