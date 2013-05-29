@@ -34,13 +34,13 @@ class Tag:
         else:
             return []
 
-    def __call__(self, val=None, *args, pool=None, **kwargs):
+    def __call__(self, _val=None, *args, pool=None, **kwargs):
         """Create a new variant instance with this tag and `val` as data."""
-        if (args or kwargs) and val is None:
+        if (args or kwargs) and _val is None:
             c_val = self.c_type(*args, **kwargs)
         else:
             # XXX: make pool available in to_c
-            c_val = self.spec.to_c(val, None)
+            c_val = self.spec.to_c(_val, None)
         return self.cls.make(self.ctor.c_tag, c_val, pool)
         
         

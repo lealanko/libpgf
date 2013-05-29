@@ -33,7 +33,7 @@ class Result:
     def __repr__(self):
         o = io.StringIO()
         print("<Result:", file=o)
-        for i, r in zip(count(0), self):
+        for i, r in enumerate(self):
             # Print components as str, not repr
             print(str(i) + ": " + str(r), file=o)
         print(">", end='', file=o)

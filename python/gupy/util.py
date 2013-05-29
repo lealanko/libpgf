@@ -136,6 +136,7 @@ def initialize(name, bases, namespace):
     setattr(target, k, v)
   if name != '_':
     target.__name__ = name
+    target.__qualname__ = name
   return target
 
 initialize.__prepare__ = _initialize_prepare
