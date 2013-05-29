@@ -17,6 +17,7 @@ pgf_pgf_concr(PgfPGF* pgf, GuString cid, GuPool* pool)
 PgfConcr*
 pgf_pgf_concr_by_lang(PgfPGF* pgf, GuString lang, GuPool* opool)
 {
+	gu_require(!gu_string_is_null(lang));
 	GuPool* pool = gu_local_pool();
 	GuEnum* concrs = pgf_pgf_concrs(pgf, pool);
 	PgfConcr* concr = NULL;
