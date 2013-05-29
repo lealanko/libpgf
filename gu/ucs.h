@@ -8,7 +8,7 @@
 #include <gu/assert.h>
 
 
-#if defined(__STDC_ISO_10646__) && WCHAR_MAX >= 0x10FFFF
+#if defined(__STDC_ISO_10646__)
 #include <wchar.h>
 /// If defined, #GuUCS is a `typedef` for `wchar_t`.
 #define GU_UCS_WCHAR
