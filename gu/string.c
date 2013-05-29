@@ -20,6 +20,12 @@ struct GuStringBuf {
 
 typedef uint8_t GuShortData[sizeof(GuWord)];
 
+bool
+gu_string_is_null(GuString s)
+{
+	return (s.w_ == (uintptr_t)(void*)NULL);
+}
+
 GuStringBuf*
 gu_string_buf(GuPool* pool)
 {
@@ -84,6 +90,11 @@ static GuCSlice
 gu_string_open(GuString s, GuShortData* short_data)
 {
 	GuCSlice ret;
+	if (gu_string_is_null(s)) {
+		ret.p = NULL;
+		ret.sz = 0;
+		return ret;
+	}
 	GuWord w = s.w_;
 	if (!(w & 1)) {
 		// long string
@@ -193,12 +204,6 @@ gu_str_string(const char* str, GuPool* pool)
 	gu_pool_free(tmp_pool);
 	return s;
 #endif
-}
-
-bool
-gu_string_is_null(GuString s)
-{
-	return (s.w_ == (uintptr_t)(void*)NULL);
 }
 
 GuWord
