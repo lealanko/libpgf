@@ -11,7 +11,9 @@ class Pool(Abstract):
 
     def _close(self):
         if self.alive:
-            self._free()
+            # bypass normal machinery to cope with program shutdown
+            from _ctypes import CFuncPtr, byref
+            CFuncPtr.__call__(type(self)._free, byref(self))
             self.alive = False
 
     def __del__(self):
@@ -47,6 +49,13 @@ def pooled(f):
             if pool is None:
                 pool = p
             return f(*args, pool=pool, **kwargs)
+    return g
+
+def ensure_pool(f):
+    @wraps(f)
+    def g(*args, **kwargs):
+        with Pool.shift(Pool.default()):
+            return f(*args, **kwargs)
     return g
     
 
