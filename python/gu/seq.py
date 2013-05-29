@@ -24,6 +24,14 @@ class Seq(Opaque):
         espec = self.elem_spec
         return [espec.to_py(x) for x in self._arr()]
 
+    def __len__(self):
+        return self.length()
+
+    def __iter__(self):
+        for i in range(len(self)):
+            yield self[i]
+    
+
     @classproperty
     @memo
     def default_spec(cls):
@@ -66,8 +74,8 @@ class _SeqSpec(Spec):
     @property
     def c_type(self):
         return Seq.of(self.elem_spec)
-    #def to_py(self, c):
-    #    return c.to_list()
+    def to_py(self, c):
+        return c
     def to_c(self, x, ctx):
         if isinstance(x, self.c_type):
             return x
