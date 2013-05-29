@@ -66,10 +66,13 @@ class _SeqSpec(Spec):
     @property
     def c_type(self):
         return Seq.of(self.elem_spec)
-    def to_py(self, c):
-        return c.to_list()
+    #def to_py(self, c):
+    #    return c.to_list()
     def to_c(self, x, ctx):
+        if isinstance(x, self.c_type):
+            return x
         return self.c_type.from_list(x)
+        
     
 
 
@@ -80,5 +83,7 @@ class _SeqSpec(Spec):
 class SeqType(OpaqueType):
     elem_type = Field(Type.Ref)
     def create_type(self):
-        return Seq.of(self.elem_type)
+        return Seq.of(self.elem_type.c_type)
+
+Kind.bind(gu, 'GuSeq', SeqType)
 

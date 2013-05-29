@@ -63,10 +63,10 @@ class _StringSpec(util.instance(ProxySpec)):
         elif isinstance(s, str):
             return String(s)
         return s
-    def wrap(s):
-        if s.is_null():
-            return None
-        return str(s)
+    #def wrap(s):
+    #    if s.is_null():
+    #        return None
+    #    return str(s)
 
 String.default_spec = _StringSpec
 String.eq = gu.string_eq(c_bool, String, String)
