@@ -66,10 +66,8 @@ pgf_expr_unapply(PgfExpr expr, GuPool* pool)
 		gu_seq_set(appl->args, PgfExpr, n, app->arg);
 		expr = app->fun;
 	}
-	PgfExpr e = pgf_expr_unwrap(expr);
-	gu_assert(gu_variant_tag(e) == PGF_EXPR_FUN);
-	PgfExprFun* fun = gu_variant_data(e);
-	appl->fun = fun->fun;
+	appl->fun = pgf_expr_unwrap(expr);
+	gu_ensure(gu_variant_tag(appl->fun) == PGF_EXPR_FUN);
 	return appl;
 }
 
@@ -135,7 +133,7 @@ GU_DEFINE_TYPE(
 
 GU_DEFINE_TYPE(
 	PgfApplication, struct,
-	GU_MEMBER(PgfApplication, fun, PgfCId),
+	GU_MEMBER(PgfApplication, fun, PgfExpr),
 	GU_MEMBER(PgfApplication, args, PgfExprs));
 
 

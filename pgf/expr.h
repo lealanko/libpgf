@@ -135,7 +135,7 @@ pgf_expr_unwrap(PgfExpr expr);
 typedef struct PgfApplication PgfApplication;
 
 struct PgfApplication {
-	PgfCId fun;
+	PgfExpr fun;
 	PgfExprs args;
 };
 

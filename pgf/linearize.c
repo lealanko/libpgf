@@ -276,19 +276,21 @@ static PgfCCat*
 pgf_lzn_infer(PgfLzn* lzn, PgfExpr expr, GuPool* pool, PgfCncTree* ctree_out);
 
 static PgfCCat*
-pgf_lzn_infer_apply_try(PgfLzn* lzn, PgfApplication* appl,
+pgf_lzn_infer_apply_try(PgfLzn* lzn, GuSeq args,
 			PgfInferMap* infer, GuChoiceMark* marks,
-			PgfCCatIds arg_cats, int* ip, int n_args, 
+			PgfCCatIds arg_cats, int* ip, 
 			GuPool* pool, PgfCncTreeApp* app_out)
 {
-	gu_enter("f: %s, *ip: %d, n_args: %d", appl->fun, *ip, n_args);
+	// gu_enter("f: %s, *ip: %d, n_args: %d", appl->fun, *ip, n_args);
+	int n_args = gu_seq_length(args);
+	gu_enter("->");
 	PgfCCat* ret = NULL;
 	while (*ip < n_args) {
 		PgfCncTree* arg_treep = NULL;
 		if (app_out) {
 			arg_treep = gu_seq_index(app_out->args, PgfCncTree, *ip);
 		}
-		PgfExpr arg_expr = gu_seq_get(appl->args, PgfExpr, *ip);
+		PgfExpr arg_expr = gu_seq_get(args, PgfExpr, *ip);
 		PgfCCat* arg_i =
 			pgf_lzn_infer(lzn, arg_expr, pool, arg_treep);
 		if (arg_i == NULL) {
@@ -320,13 +322,13 @@ finish:
 typedef GuSeq PgfChoiceMarks;
 
 static PgfCCat*
-pgf_lzn_infer_application(PgfLzn* lzn, PgfApplication* appl, 
+pgf_lzn_infer_application(PgfLzn* lzn, PgfCId fun, GuSeq args,
 			  GuPool* pool, PgfCncTree* ctree_out)
 {
 	PgfInferMap* infer =
-		gu_map_get(lzn->lzr->fun_indices, &appl->fun, PgfInferMap*);
-	size_t n_args = gu_seq_length(appl->args);
-	gu_enter("-> f: %s, n_args: %d", appl->fun, n_args);
+		gu_map_get(lzn->lzr->fun_indices, &fun, PgfInferMap*);
+	size_t n_args = gu_seq_length(args);
+	gu_enter("->");
 	if (infer == NULL) {
 		gu_exit("<- couldn't find f");
 		return NULL;
@@ -348,9 +350,8 @@ pgf_lzn_infer_application(PgfLzn* lzn, PgfApplication* appl,
 	int i = 0;
 	markdata[i] = gu_choice_mark(lzn->ch);
 	while (true) {
-		ret = pgf_lzn_infer_apply_try(lzn, appl, infer,
-					      markdata, arg_cats,
-					      &i, n_args, pool, appt);
+		ret = pgf_lzn_infer_apply_try(
+			lzn, args, infer, markdata, arg_cats, &i, pool, appt);
 		if (ret != NULL) {
 			break;
 		}
@@ -373,10 +374,12 @@ static PgfCCat*
 pgf_lzn_infer(PgfLzn* lzn, PgfExpr expr, GuPool* pool, PgfCncTree* ctree_out)
 {
 	PgfCCat* ret = NULL;
-	GuPool* tmp_pool = gu_new_pool();
+	GuPool* tmp_pool = gu_local_pool();
 	PgfApplication* appl = pgf_expr_unapply(expr, tmp_pool);
 	if (appl != NULL) {
-		ret = pgf_lzn_infer_application(lzn, appl, pool, ctree_out);
+		PgfExprFun* fun = gu_variant_data(appl->fun);
+		ret = pgf_lzn_infer_application(
+			lzn, fun->fun, appl->args, pool, ctree_out);
 	} else {
 		GuVariantInfo i = gu_variant_open(pgf_expr_unwrap(expr));
 		switch (i.tag) {
