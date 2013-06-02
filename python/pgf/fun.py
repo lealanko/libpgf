@@ -1,5 +1,6 @@
 from pgf import *
 import types
+import sys
 
 class _FunModule(types.ModuleType):
     __file__ = __file__

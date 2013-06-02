@@ -15,10 +15,17 @@ class Seq(Opaque):
         return cast(self._data(), POINTER(self.elem_spec.c_type))
 
     def __getitem__(self, idx):
-        return self.elem_spec.to_py(self._elemdata()[idx])
+        if idx < 0 or idx >= self.length():
+            raise IndexError
+        c = self._elemdata()[idx]
+        copy_deps(self, c)
+        return self.elem_spec.to_py(c)
 
-    def __setitem__(self, idx, val):
-        self._elemdata()[idx] = self.elem_spec.to_c(val, None)
+    ### XXX TODO: update deps!
+    #def __setitem__(self, idx, val):
+    #    if idx < 0 or idx >= self.length():
+    #        raise IndexError
+    #    self._elemdata()[idx] = self.elem_spec.to_c(val, None)
 
     def to_list(self):
         espec = self.elem_spec

@@ -88,7 +88,7 @@ class Expr(Expr, metaclass=initialize):
         """Print an expression to `writer`."""
 
     @cfunc(pgf.expr_unapply)
-    def unapply(self: Expr, pool: Pool.Out) -> ~Application:
+    def unapply(self: dep(Expr), pool: Pool.Out) -> ~Application:
         """Extract function and arguments from an application."""
 
     @ensure_pool

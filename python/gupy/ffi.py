@@ -57,7 +57,7 @@ def get_ref(ctype, addr):
 
 dep_table = WeakDict()
 def add_dep(key, value):
-    dep_table.get(key, []).append(value)
+    dep_table.get(key, {})[id(value)] = value
 
 def copy_deps(src, dst):
     try:
@@ -65,8 +65,9 @@ def copy_deps(src, dst):
     except KeyError:
         pass
     else:
-        dst_deps = dep_table.get(dst, [])
-        dst_deps += deps
+        dst_deps = dep_table.get(dst, {})
+        for k, v in deps.items():
+            dst_deps[k] = v
 
 class Spec(Object):
     is_dep = False
@@ -467,6 +468,10 @@ class SpecField:
         if instance is None:
             return self
         c = self.field.__get__(instance, owner)
+        # Some of the deps of the struct may apply to the field. To be
+        # safe, copy them all. Ideally, of course, we would have more
+        # precise dep specifications for compound objects.
+        copy_deps(instance, c)
         return self.spec.to_py(c)
 
     def __set__(self, instance, value):
