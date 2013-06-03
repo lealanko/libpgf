@@ -4,19 +4,20 @@ from contextlib import contextmanager
 import collections
 import threading
 
+
 class classproperty(object):
-  def __init__(self, f):
-      self.f = f
-  def __get__(self, instance, owner):
-      return self.f(owner)
+    def __init__(self, f):
+        self.f = f
+    def __get__(self, instance, owner):
+        return self.f(owner)
 
 class roproperty:
-  def __init__(self, f):
-    self.f = f
-  def __get__(self, instance, owner):
-    if instance is None:
-      return self
-    return self.f(instance)
+    def __init__(self, f):
+        self.f = f
+    def __get__(self, instance, owner):
+        if instance is None:
+            return self
+        return self.f(instance)
 
 def memo(f):
     cache = WeakKeyDictionary()
@@ -124,20 +125,24 @@ class WeakDict(collections.MutableMapping):
 
 
 def _initialize_prepare(name, bases, **kwargs):
-  [target] = bases
-  od = collections.OrderedDict()
-  if name != '_':
-    od[name] = target
-  return od
+    [target] = bases
+    od = collections.OrderedDict()
+    if name != '_':
+        od[name] = target
+    return od
 
 def initialize(name, bases, namespace):
-  [target] = bases
-  for k, v in namespace.items():
-    setattr(target, k, v)
-  if name != '_':
-    target.__name__ = name
-    target.__qualname__ = name
-  return target
+    target, = bases
+    if name == '_':
+        # Don't overwrite the original name.
+        del namespace['__qualname__']
+    else:
+        target.__name__ = name
+        # The cyclic class reference confuses Sphinx.
+        del namespace[name]
+    for k, v in namespace.items():
+        setattr(target, k, v)
+    return target
 
 initialize.__prepare__ = _initialize_prepare
 
@@ -160,20 +165,25 @@ def delay_init(name, bases, namespace, realmeta=None, **kwargs):
 delay_init.__prepare__ = _delay_prepare
 
 class Parameter(threading.local):
-  def __init__(self, value):
-    self.value = value
+    """A thread-local variable with dynamic binding."""
 
-  def __ilshift__(self, new_value):
-    self.value = new_value
-    return self
+    def __init__(self, value):
+        self.value = value
 
-  @contextmanager
-  def __lshift__(self, new_value):
-    old_value = self.value
-    self.value = new_value
-    yield old_value
-    self.value = old_value
+    def __ilshift__(self, new_value):
+        """Set the current value to `new_value`."""
+        self.value = new_value
+        return self
 
-  def __call__(self):
-    return self.value
+    @contextmanager
+    def __lshift__(self, new_value):
+        """Create a context where the value is `new_value`."""
+        old_value = self.value
+        self.value = new_value
+        yield old_value
+        self.value = old_value
+
+    def __call__(self):
+        """Return the current value of the parameter."""
+        return self.value
   
