@@ -125,6 +125,13 @@ libgu.h and libpgf.h, respectively.
 The sources in @ref pgf-translate have some comments which may also
 clarify how to use the library.
 
+
+Python bindings
+---------------
+
+There now exist Python bindings for the library. See the [PyGF home page] for details.
+
+
 Feedback
 --------
 
@@ -152,6 +159,7 @@ and parsing algorithms were created by [Krasimir Angelov].
 [libpgf-0.1.tar.gz]:	http://www.grammaticalframework.org/libpgf/libpgf-0.1.tar.gz
 [LGPL3]:		http://www.gnu.org/licenses/lgpl.html
 [Krasimir Angelov]:	http://www.cse.chalmers.se/~krasimir/
+[PyGF home page]:	http://www.grammaticalframework.org/libpgf/pygf
 [YAML]:			http://yaml.org/
 
 @page pgf-translate pgf-translate.c

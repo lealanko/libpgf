@@ -1,6 +1,43 @@
+"""Memory pools.
+
+The ``libgu`` library uses pool-based memory management: a number of
+objects are allocated from a single memory pool, until the entire pool
+is freed along with all its objects.
+
+The Python bindings try to provide a safe and convenient interface to
+hide the complexity of the pools, but for performance reasons the pools
+may still require manual management. The conventions for memory pools
+are as follows:
+
+All functions that allocate ``libgu`` objects have an optional ``pool``
+keyword parameter. If a `Pool` object is provided as an
+argument, the objects are allocated from that pool.
+
+If the ``pool`` argument is not provided (or ``None``), then the
+*default* pool is used. The default pool is accessed through
+`Pool.default`, which is a thread-local
+`gupy.util.Parameter` object. Some common operations on the
+default pool are encapsulated in the `Pool.shift` method and the
+`pooled` and `ensure_pool` wrappers.
+
+If the default pool, too, is ``None`` (as it is initially), then a new
+pool is created when ``libgu`` needs to allocate something. This is
+convenient, but results in a proliferation of small pools, which is
+inefficient.
+
+All Python-side `libgu` objects retain a reference to the pool from
+which they were allocated (as well as other objects they depend on), so
+the user of the library is not forced to worry about object lifetimes.
+However, memory efficiency suffers if large pools are kept alive due to
+lingering references to few small objects in them.
+
+"""
+
 from .core import *
 
 class Pool(Abstract):
+    """A memory pool."""
+
     alive = True
     own = False
 
@@ -37,12 +74,21 @@ class Pool(Abstract):
 
     @staticmethod
     def shift(pool=None):
+        """A context with a new pool.
+
+        Returns a context manager that sets the default pool to ``pool``
+        or, if ``None``, a newly allocated pool. The context manager
+        yields the previous default pool. When the context exits, the
+        previous pool is restored as default.
+        """
+
         if pool is None:
             pool = Pool()
         return Pool.default << pool
 
 
 def pooled(f):
+    """Execute the function with a newly allocated default pool."""
     @wraps(f)
     def g(*args, pool=None, **kwargs):
         with Pool.shift() as p:
@@ -51,7 +97,9 @@ def pooled(f):
             return f(*args, pool=pool, **kwargs)
     return g
 
+
 def ensure_pool(f):
+    """Ensure that there is a default pool while executing the function."""
     @wraps(f)
     def g(*args, **kwargs):
         with Pool.shift(Pool.default()):

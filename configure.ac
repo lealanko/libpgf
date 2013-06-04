@@ -1,4 +1,4 @@
-AC_INIT(Portable Grammar Format library, 0.2,
+AC_INIT(Portable Grammar Format library, 0.3,
 		 https://code.google.com/p/grammatical-framework/,
 		 libpgf,
 		 http://grammaticalframework.org/libpgf/)

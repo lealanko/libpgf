@@ -93,6 +93,7 @@ class Expr(Expr, metaclass=initialize):
 
     @ensure_pool
     def __call__(self, *args):
+        """Create a nested application expression."""
         expr = self
         for arg in args:
             expr = Expr.APP(fun = expr, arg = arg)

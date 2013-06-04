@@ -2,7 +2,7 @@ from setuptools import setup
 
 setup(
     name = 'PyGF',
-    version = '0.2dev',
+    version = '0.3',
     packages = ['gupy', 'gu', 'pgf'],
     license = 'GNU Lesser General Public License version 3',
     author = 'Lauri Alanko',
@@ -11,5 +11,5 @@ setup(
     package_data = {
         'docs': ['conf.py', '*.rst'],
         },
-    #long_description=open('README.txt').read(),
+    long_description=open('README.rst').read(),
 )

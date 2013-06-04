@@ -54,9 +54,27 @@ API Documentation
    :members:
    :special-members:
 
+`pgf.fun` 
+----------
+.. automodule:: pgf.fun
+   :members:
+   :special-members:
+
 `pgf.pygf` 
 ----------
 .. automodule:: pgf.pygf
+   :members:
+   :special-members:
+
+`gu.pool`
+---------
+.. automodule:: gu.pool
+   :members:
+   :special-members:
+
+`gupy.util`
+-----------
+.. automodule:: gupy.util
    :members:
    :special-members:
 
