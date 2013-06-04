@@ -18,8 +18,9 @@ Getting the library
 -------------------
 
 The library is currently available only as source packages. It is
-released under the @ref LGPL3. The current version is 0.2.
+released under the @ref LGPL3. The current version is 0.3.
 
+- [libpgf-0.3.tar.gz]
 - [libpgf-0.2.tar.gz]
 - [libpgf-0.1.tar.gz]
 
@@ -155,6 +156,7 @@ and parsing algorithms were created by [Krasimir Angelov].
 [GF bug tracker]:	http://code.google.com/p/grammatical-framework/issues/
 [GF mailing list]:	https://groups.google.com/group/gf-dev
 [Lauri Alanko]:		mailto:lealanko@ling.helsinki.fi
+[libpgf-0.3.tar.gz]:	http://www.grammaticalframework.org/libpgf/libpgf-0.3.tar.gz
 [libpgf-0.2.tar.gz]:	http://www.grammaticalframework.org/libpgf/libpgf-0.2.tar.gz
 [libpgf-0.1.tar.gz]:	http://www.grammaticalframework.org/libpgf/libpgf-0.1.tar.gz
 [LGPL3]:		http://www.gnu.org/licenses/lgpl.html
