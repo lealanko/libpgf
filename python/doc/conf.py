@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 #
-# pygf documentation build configuration file, created by
+# PyGF documentation build configuration file, created by
 # sphinx-quickstart on Fri Apr 12 16:24:39 2013.
 #
 # This file is execfile()d with the current directory set to its containing dir.
@@ -39,10 +39,10 @@ source_suffix = '.rst'
 #source_encoding = 'utf-8-sig'
 
 # The master toctree document.
-master_doc = 'index'
+master_doc = 'contents'
 
 # General information about the project.
-project = 'pygf'
+project = 'PyGF'
 copyright = '2013, University of Helsinki'
 
 # The version info for the project you're documenting, acts as replacement for
@@ -136,7 +136,10 @@ html_theme = 'default'
 #html_use_smartypants = True
 
 # Custom sidebar templates, maps document names to template names.
-#html_sidebars = {}
+#html_sidebars = {
+#    "**": ['globaltoc.html', 'relations.html', 
+#           'sourcelink.html', 'searchbox.html']
+#}
 
 # Additional templates that should be rendered to pages, maps page names to
 # template names.
@@ -169,7 +172,7 @@ html_theme = 'default'
 #html_file_suffix = None
 
 # Output file base name for HTML help builder.
-htmlhelp_basename = 'pygfdoc'
+htmlhelp_basename = 'PyGFdoc'
 
 
 # -- Options for LaTeX output --------------------------------------------------
@@ -188,7 +191,7 @@ latex_elements = {
 # Grouping the document tree into LaTeX files. List of tuples
 # (source start file, target name, title, author, documentclass [howto/manual]).
 latex_documents = [
-  ('index', 'pygf.tex', 'pygf Documentation',
+  ('index', 'PyGF.tex', 'PyGF Documentation',
    'Lauri Alanko', 'manual'),
 ]
 
@@ -218,7 +221,7 @@ latex_documents = [
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    ('index', 'pygf', 'pygf Documentation',
+    ('index', 'PyGF', 'PyGF Documentation',
      ['Lauri Alanko'], 1)
 ]
 
@@ -232,8 +235,8 @@ man_pages = [
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-  ('index', 'pygf', 'pygf Documentation',
-   'Lauri Alanko', 'pygf', 'One line description of project.',
+  ('index', 'PyGF', 'PyGF Documentation',
+   'Lauri Alanko', 'PyGF', 'One line description of project.',
    'Miscellaneous'),
 ]
 
