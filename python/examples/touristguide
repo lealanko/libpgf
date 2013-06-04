@@ -1,0 +1,146 @@
+#!/usr/bin/env python3
+# -*- python -*-
+
+"""A simple toy example of using the PyGF library.
+
+This program requires a``Phrasebook.pgf`` grammar file in the current
+working directory. This can be obtained from the GF distribution.
+
+The program simply parses input phrases and analyzes the syntax trees in
+order to come up with some vaguely relevant reply.
+
+"""
+
+from pgf.pygf import *
+from pgf import *
+import pgf.fun as f
+import itertools
+import random
+import bisect
+
+
+def picker(**kwargs):
+    keys, weights = zip(*kwargs.items())
+    funs = [Expr.FUN(fun=key) for key in keys]
+    cumprobs = list(itertools.accumulate(weights))
+    def f(*args):
+        r = random.random() * cumprobs[-1]
+        return funs[bisect.bisect(cumprobs, r)](*args)
+    return f
+
+class Handler:
+    def __init__(self, d):
+        self.handlers = d
+    def handle(self, expr):
+        with Pool.shift() as old:
+            app = expr.unapply()
+            try:
+                hdl = self.handlers[str(app.fun)]
+            except KeyError:
+                hdl = self.handlers[None]
+            if isinstance(hdl, dict):
+                hdl = pick(hdl)
+            with Pool.default << old:
+                return hdl(app.fun, *app.args)
+    __call__ = handle
+
+def handler(**kwargs):
+    d = dict()
+    for key, hdl in kwargs.items():
+        if isinstance(hdl, dict):
+            hdl = picker(hdl)
+        if key == '_':
+            d[None] = hdl
+        d[key] = lambda _, *args, _hdl=hdl: _hdl(*args)
+    return Handler(d)
+
+# todo: pick these from the Cat directly
+SomePlaceKind = picker(
+    Toilet=1.0,
+    Church=1.0,
+    Museum=1.0,
+    Airport=1.0
+    )
+
+invert_deixis = handler(
+    WeMale=f.YouPlurPolMale,
+    YouPlurFamMale=f.WeMale,
+    YouPlurPolMale=f.WeMale,
+
+    WeFemale=f.YouPlurPolFemale,
+    YouPlurFamFemale=f.WeFemale,
+    YouPlurPolFemale=f.WeFemale,
+
+    IMale=f.YouPolMale,
+    YouFamMale=f.IMale,
+    YouPolMale=f.IMale,
+
+    IFemale=f.YouPolFemale,
+    YouFamFemale=f.IFemale,
+    YouPolFemale=f.IFemale,
+    _=lambda fun, *args: fun(*map(invert_deixis, args))
+)
+
+SPropMaybe = picker(
+    SProp=1.0, 
+    SPropNot=1.0
+)
+
+def PProp(prop):
+    return f.PSentence(f.SProp(prop))
+
+PQuestion_handler = handler(
+    QProp=lambda prop: 
+    f.PSentence(SPropMaybe(invert_deixis(prop))),
+    
+    WherePerson=lambda person: 
+    PProp(f.PropAction(
+            f.ABePlace(invert_deixis(person),
+                       f.ThePlace(SomePlaceKind())))),
+    
+    QDoHave=lambda person, obj:
+    f.SHave(invert_deixis(person), obj),
+    
+    _=lambda fun, *args:
+    f.PSentence(f.SPropNot(f.PropAction(
+                f.AKnowQuestion(f.IFemale, invert_deixis(fun(*args))))))
+
+    )
+
+PThanks = f.PGreetingFemale(f.GThanks)
+
+Greeting_handler = handler(
+    GGoodLuck=PThanks,
+    GCongratulations=PThanks,
+    GHappyBirthday=PThanks,
+    GHelp=f.PGreetingFemale(f.GSorry),
+    
+    _=lambda greeting, *args:
+        f.PGreetingFemale(greeting(*args)),
+    )
+
+Phrase_handler = handler(
+    PQuestion=PQuestion_handler,
+    PGreetingMale=Greeting_handler,
+    PGreetingFemale=Greeting_handler,
+
+    PSentence=lambda sentence:
+    f.PSentence(f.SProp(f.PropAction(
+                f.AKnowSentence(f.IFemale, sentence)))),
+
+    _=lambda fun, *args:
+    f.PGreetingFemale(f.GSorry),
+        
+)
+
+def iteration():
+        s = input('> ')
+        expr,*_ = parse(s, lang='en_US')
+        reply = Phrase_handler(expr)
+        l,*_ = linearize(reply, lang='en_US')
+        print(l)
+
+if __name__ == '__main__':
+    import_pgf('Phrasebook.pgf')
+    while True:
+        iteration()
